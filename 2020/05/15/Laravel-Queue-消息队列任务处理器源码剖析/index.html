@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="Laravel">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Laravel Queue-消息队列任务处理器源码剖析">
+<meta property="og:url" content="http://yoursite.com/2020/05/15/Laravel-Queue-消息队列任务处理器源码剖析/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-06-12T06:29:16.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Laravel Queue-消息队列任务处理器源码剖析">
+<meta name="twitter:description" content="思考并回答以下问题：">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/05/15/Laravel-Queue-消息队列任务处理器源码剖析/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Laravel Queue-消息队列任务处理器源码剖析 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/15/Laravel-Queue-消息队列任务处理器源码剖析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="放弃会成为一种习惯">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Laravel Queue-消息队列任务处理器源码剖析
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2020-05-15 15:17:10" itemprop="dateCreated datePublished" datetime="2020-05-15T15:17:10+08:00">2020-05-15</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2020-06-12 14:29:16" itemprop="dateModified" datetime="2020-06-12T14:29:16+08:00">2020-06-12</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/PHP/" itemprop="url" rel="index"><span itemprop="name">PHP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">29k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">26 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+
+
+<h1 id="运行队列处理器"><a href="#运行队列处理器" class="headerlink" title="运行队列处理器"></a><span style="color:#339AFF;">运行队列处理器</span></h1><h2 id="队列处理器的设置"><a href="#队列处理器的设置" class="headerlink" title="队列处理器的设置"></a><span style="color:#00ACC1;">队列处理器的设置</span></h2><p>Laravel包含一个队列处理器，当新任务被推到队列中时它能处理这些任务。你可以通过queue:work命令来运行处理器。要注意，一旦queue:work命令开始，它将一直运行，直到你手动停止或者你关闭控制台：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>可以指定队列处理器所使用的连接。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work redis</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>可以自定义队列处理器，方式是处理给定连接的特定队列。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work redis --queue=emails</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>可以使用--once选项来指定仅对队列中的单一任务进行处理：</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work --once</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>如果一个任务失败了，会被放入延时队列中去，--delay选项可以设置失败任务的延时时间：</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work --delay=2</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>如果想要限制一个任务的内存，可以使用--memory  :</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work --memory=128</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>当队列需要处理任务时，进程将继续处理任务，它们之间没有延迟。但是，如果没有新的工作可用，--sleep参数决定了工作进程将「睡眠」多长时间：</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work --sleep=3</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>可以指定Laravel队列处理器最多执行多长时间后就应该被关闭掉：</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work --timeout=60</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>可以指定Laravel队列处理器失败任务重试的次数：</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php artisan queue:work --tries=60</span><br></pre></td></tr></table></figure>
+
+<p>可以看出来，队列处理器的设置大多数都可以由任务类进行设置，但是其中三个sleep、delay、memory只能由artisan来设置。</p>
+<h2 id="WorkCommand命令行启动"><a href="#WorkCommand命令行启动" class="headerlink" title="WorkCommand命令行启动"></a><span style="color:#00ACC1;">WorkCommand命令行启动</span></h2><p>任务处理器进程的命令行模式会调用Illuminate\Queue\Console\WorkCommand，这个类在初始化的时候依赖注入了Illuminate\Queue\Worker：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">WorkCommand</span> <span class="keyword">extends</span> <span class="title">Command</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * The console command name.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@var</span> string</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> $signature = <span class="string">'queue:work</span></span><br><span class="line"><span class="string">                            &#123;connection? : The name of the queue connection to work&#125;</span></span><br><span class="line"><span class="string">                            &#123;--queue= : The names of the queues to work&#125;</span></span><br><span class="line"><span class="string">                            &#123;--daemon : Run the worker in daemon mode (Deprecated)&#125;</span></span><br><span class="line"><span class="string">                            &#123;--once : Only process the next job on the queue&#125;</span></span><br><span class="line"><span class="string">                            &#123;--stop-when-empty : Stop when the queue is empty&#125;</span></span><br><span class="line"><span class="string">                            &#123;--delay=0 : The number of seconds to delay failed jobs&#125;</span></span><br><span class="line"><span class="string">                            &#123;--force : Force the worker to run even in maintenance mode&#125;</span></span><br><span class="line"><span class="string">                            &#123;--memory=128 : The memory limit in megabytes&#125;</span></span><br><span class="line"><span class="string">                            &#123;--sleep=3 : Number of seconds to sleep when no job is available&#125;</span></span><br><span class="line"><span class="string">                            &#123;--timeout=60 : The number of seconds a child process can run&#125;</span></span><br><span class="line"><span class="string">                            &#123;--tries=1 : Number of times to attempt a job before logging it failed&#125;'</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Create a new queue work command.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  \Illuminate\Queue\Worker  $worker</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  \Illuminate\Contracts\Cache\Repository  $cache</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">(Worker $worker, Cache $cache)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">parent</span>::__construct();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">$this</span>-&gt;cache = $cache;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;worker = $worker;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Execute the console command.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">handle</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;downForMaintenance() &amp;&amp; <span class="keyword">$this</span>-&gt;option(<span class="string">'once'</span>)) </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;worker-&gt;sleep(<span class="keyword">$this</span>-&gt;option(<span class="string">'sleep'</span>));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 我们将侦听已处理的事件和失败的事件，以便在处理作业时将信息写入控制台，</span></span><br><span class="line">        <span class="comment">// 这将使开发人员可以观察到队列中正在处理哪些作业，并了解其进度。</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">$this</span>-&gt;listenForEvents();</span><br><span class="line"></span><br><span class="line">        $connection = <span class="keyword">$this</span>-&gt;argument(<span class="string">'connection'</span>)</span><br><span class="line">                        ?: <span class="keyword">$this</span>-&gt;laravel[<span class="string">'config'</span>][<span class="string">'queue.default'</span>];</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 我们需要为应用程序的队列配置文件中设置的连接获取正确的队列。 </span></span><br><span class="line">        <span class="comment">// 我们将基于为当前正在执行的队列操作运行的设置连接来拉它。</span></span><br><span class="line">        $queue = <span class="keyword">$this</span>-&gt;getQueue($connection);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">$this</span>-&gt;runWorker(</span><br><span class="line">            $connection, $queue</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>任务处理器启动后，会运行handle函数，在执行任务之前，程序首先会注册监听事件，主要监听任务完成与任务失败的情况：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Listen for the queue events in order to update the console output.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">listenForEvents</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;laravel[<span class="string">'events'</span>]-&gt;listen(JobProcessing::class, <span class="function"><span class="keyword">function</span> <span class="params">($event)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;writeOutput($event-&gt;job, <span class="string">'starting'</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">$this</span>-&gt;laravel[<span class="string">'events'</span>]-&gt;listen(JobProcessed::class, <span class="function"><span class="keyword">function</span> <span class="params">($event)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;writeOutput($event-&gt;job, <span class="string">'success'</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">$this</span>-&gt;laravel[<span class="string">'events'</span>]-&gt;listen(JobFailed::class, <span class="function"><span class="keyword">function</span> <span class="params">($event)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;writeOutput($event-&gt;job, <span class="string">'failed'</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">$this</span>-&gt;logFailedJob($event);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Write the status output for the queue worker.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Contracts\Queue\Job  $job</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $status</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">writeOutput</span><span class="params">(Job $job, $status)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">switch</span> ($status) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">'starting'</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;writeStatus($job, <span class="string">'Processing'</span>, <span class="string">'comment'</span>);</span><br><span class="line">        <span class="keyword">case</span> <span class="string">'success'</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;writeStatus($job, <span class="string">'Processed'</span>, <span class="string">'info'</span>);</span><br><span class="line">        <span class="keyword">case</span> <span class="string">'failed'</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;writeStatus($job, <span class="string">'Failed'</span>, <span class="string">'error'</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Format the status output for the queue worker.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Contracts\Queue\Job  $job</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $status</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $type</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">writeStatus</span><span class="params">(Job $job, $status, $type)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;output-&gt;writeln(sprintf(</span><br><span class="line">        <span class="string">"&lt;&#123;$type&#125;&gt;[%s][%s] %s&lt;/&#123;$type&#125;&gt; %s"</span>,</span><br><span class="line">        Carbon::now()-&gt;format(<span class="string">'Y-m-d H:i:s'</span>),</span><br><span class="line">        $job-&gt;getJobId(),</span><br><span class="line">        str_pad(<span class="string">"&#123;$status&#125;:"</span>, <span class="number">11</span>), $job-&gt;resolveName()</span><br><span class="line">    ));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Store a failed job event.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Queue\Events\JobFailed  $event</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">logFailedJob</span><span class="params">(JobFailed $event)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;laravel[<span class="string">'queue.failer'</span>]-&gt;log(</span><br><span class="line">        $event-&gt;connectionName, $event-&gt;job-&gt;getQueue(),</span><br><span class="line">        $event-&gt;job-&gt;getRawBody(), $event-&gt;exception</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>启动任务管理器runWorker，该函数默认会调用Illuminate\Queue\Worker的daemon函数，只有在命令中强制--once参数的时候，才会执行runNestJob函数：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Run the worker instance.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $connection</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $queue</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> array</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">runWorker</span><span class="params">($connection, $queue)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;worker-&gt;setCache(<span class="keyword">$this</span>-&gt;cache);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;worker-&gt;&#123;<span class="keyword">$this</span>-&gt;option(<span class="string">'once'</span>) ? <span class="string">'runNextJob'</span> : <span class="string">'daemon'</span>&#125;(</span><br><span class="line">        $connection, $queue, <span class="keyword">$this</span>-&gt;gatherWorkerOptions()</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="Worker任务调度"><a href="#Worker任务调度" class="headerlink" title="Worker任务调度"></a>Worker任务调度</h1><p>我们接下来接着看daemon函数：</p>
+<blockquote>
+<p>Illuminate\Queue\Worker.php</p>
+</blockquote>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Listen to the given queue in a loop.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $connectionName</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $queue</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Queue\WorkerOptions  $options</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">daemon</span><span class="params">($connectionName, $queue, WorkerOptions $options)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;supportsAsyncSignals()) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;listenForSignals();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    $lastRestart = <span class="keyword">$this</span>-&gt;getTimestampOfLastQueueRestart();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// Before reserving any jobs, we will make sure this queue is not paused and</span></span><br><span class="line">        <span class="comment">// if it is we will just pause this worker for a given amount of time and</span></span><br><span class="line">        <span class="comment">// make sure we do not need to kill this worker process off completely.</span></span><br><span class="line">        <span class="keyword">if</span> (! <span class="keyword">$this</span>-&gt;daemonShouldRun($options, $connectionName, $queue)) </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;pauseWorker($options, $lastRestart);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// First, we will attempt to get the next job off of the queue. We will also</span></span><br><span class="line">        <span class="comment">// register the timeout handler and reset the alarm for this job so it is</span></span><br><span class="line">        <span class="comment">// not stuck in a frozen state forever. Then, we can fire off this job.</span></span><br><span class="line">        $job = <span class="keyword">$this</span>-&gt;getNextJob(</span><br><span class="line">            <span class="keyword">$this</span>-&gt;manager-&gt;connection($connectionName), $queue</span><br><span class="line">        );</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;supportsAsyncSignals()) </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;registerTimeoutHandler($job, $options);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// If the daemon should run (not in maintenance mode, etc.), then we can run</span></span><br><span class="line">        <span class="comment">// fire off this job for processing. Otherwise, we will need to sleep the</span></span><br><span class="line">        <span class="comment">// worker so no more jobs are processed until they should be processed.</span></span><br><span class="line">        <span class="keyword">if</span> ($job) </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;runJob($job, $connectionName, $options);</span><br><span class="line">        &#125; <span class="keyword">else</span> </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;sleep($options-&gt;sleep);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;supportsAsyncSignals()) </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;resetTimeoutHandler();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Finally, we will check to see if we have exceeded our memory limits or if</span></span><br><span class="line">        <span class="comment">// the queue should restart based on other indications. If so, we'll stop</span></span><br><span class="line">        <span class="comment">// this worker and let whatever is "monitoring" it restart the process.</span></span><br><span class="line">        <span class="keyword">$this</span>-&gt;stopIfNecessary($options, $lastRestart, $job);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="信号处理"><a href="#信号处理" class="headerlink" title="信号处理"></a>信号处理</h1><p>listenForSignals函数用于PHP 7.1版本以上，用于脚本的信号处理。所谓的信号处理，就是由Process Monitor（如Supervisor）发送并与我们的脚本进行通信的异步通知。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">listenForSignals</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;supportsAsyncSignals()) </span><br><span class="line">    &#123;</span><br><span class="line">        pcntl_async_signals(<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">        pcntl_signal(SIGTERM, <span class="function"><span class="keyword">function</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;shouldQuit = <span class="keyword">true</span>;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        pcntl_signal(SIGUSR2, <span class="function"><span class="keyword">function</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;paused = <span class="keyword">true</span>;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        pcntl_signal(SIGCONT, <span class="function"><span class="keyword">function</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;paused = <span class="keyword">false</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">supportsAsyncSignals</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> version_compare(PHP_VERSION, <span class="string">'7.1.0'</span>) &gt;= <span class="number">0</span> &amp;&amp; extension_loaded(<span class="string">'pcntl'</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>pcntl_async_signals()被调用来启用信号处理，然后我们为多个信号注册处理程序：</p>
+<ul>
+<li>当脚本被Supervisor指示关闭时，会引发信号SIGTERM。 </li>
+<li>SIGUSR2是用户定义的信号，Laravel用来表示脚本应该暂停。</li>
+<li>当暂停的脚本被Supervisor指示继续进行时，会引发SIGCONT。</li>
+</ul>
+<p>在真正运行任务之前，程序还从cache中取了一次最后一次重启的时间：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">getTimestampOfLastQueueRestart</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;cache) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;cache-&gt;get(<span class="string">'illuminate:queue:restart'</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>确定worker是否应该处理作业进入循环后，首先要判断当前脚本是应该处理任务，还是应该暂停，还是应该退出：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">daemonShouldRun</span><span class="params">(WorkerOptions $options)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ! (</span><br><span class="line">        (<span class="keyword">$this</span>-&gt;manager-&gt;isDownForMaintenance() &amp;&amp; ! $options-&gt;force) </span><br><span class="line">        || <span class="keyword">$this</span>-&gt;paused </span><br><span class="line">        || <span class="keyword">$this</span>-&gt;events-&gt;until(<span class="keyword">new</span> Events\Looping) === <span class="keyword">false</span></span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以下几种情况，循环将不会处理任务：</p>
+<ul>
+<li>脚本处于维护模式并且没有--force选项。</li>
+<li>脚本被supervisor暂停。</li>
+<li>脚本的looping事件监听器返回false。</li>
+</ul>
+<p>looping事件监听器在每次循环的时候都会被启动，如果返回false，那么当前的循环将会被暂停：pauseWorker：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">pauseWorker</span><span class="params">(WorkerOptions $options, $lastRestart)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;sleep($options-&gt;sleep &gt; <span class="number">0</span> ? $options-&gt;sleep : <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">$this</span>-&gt;stopIfNecessary($options, $lastRestart);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>脚本在sleep一段时间之后，就要重新判断当前脚本是否需要stop：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">stopIfNecessary</span><span class="params">(WorkerOptions $options, $lastRestart)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;shouldQuit) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;kill();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;memoryExceeded($options-&gt;memory)) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;stop(<span class="number">12</span>);</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">elseif</span> (<span class="keyword">$this</span>-&gt;queueShouldRestart($lastRestart)) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;stop();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">queueShouldRestart</span><span class="params">($lastRestart)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;getTimestampOfLastQueueRestart() != $lastRestart;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">getTimestampOfLastQueueRestart</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;cache) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;cache-&gt;get(<span class="string">'illuminate:queue:restart'</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以下情况脚本将会被stop：</p>
+<ul>
+<li>脚本被supervisor退出。</li>
+<li>内存超限。</li>
+<li>脚本被重启过。</li>
+</ul>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">kill</span><span class="params">($status = <span class="number">0</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (extension_loaded(<span class="string">'posix'</span>)) </span><br><span class="line">    &#123;</span><br><span class="line">        posix_kill(getmypid(), SIGKILL);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">exit</span>($status);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">stop</span><span class="params">($status = <span class="number">0</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;events-&gt;fire(<span class="keyword">new</span> Events\WorkerStopping);</span><br><span class="line">    <span class="keyword">exit</span>($status);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>脚本被重启，当前的进程需要退出并且重新加载。</p>
+<h1 id="获取下一个任务"><a href="#获取下一个任务" class="headerlink" title="获取下一个任务"></a>获取下一个任务</h1><p>当含有多个队列的时候，命令行可以用“,”连接多个队列的名字，位于前面的队列优先级更高：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">getNextJob</span><span class="params">($connection, $queue)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">foreach</span> (explode(<span class="string">','</span>, $queue) <span class="keyword">as</span> $queue) </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (! is_null($job = $connection-&gt;pop($queue))) </span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> $job;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">catch</span> (<span class="keyword">Exception</span> $e) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;exceptions-&gt;report($e);</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">catch</span> (Throwable $e) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;exceptions-&gt;report(<span class="keyword">new</span> FatalThrowableError($e));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>$connection是具体的驱动，我们这里是Illuminate\Queue\RedisQueue：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RedisQueue</span> <span class="keyword">extends</span> <span class="title">Queue</span> <span class="keyword">implements</span> <span class="title">QueueContract</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Pop the next job off of the queue.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  string|null  $queue</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> \Illuminate\Contracts\Queue\Job|null</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">pop</span><span class="params">($queue = null)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;migrate($prefixed = <span class="keyword">$this</span>-&gt;getQueue($queue));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">empty</span>($nextJob = <span class="keyword">$this</span>-&gt;retrieveNextJob($prefixed))) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        [$job, $reserved] = $nextJob;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ($reserved) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> RedisJob(</span><br><span class="line">                <span class="keyword">$this</span>-&gt;container, <span class="keyword">$this</span>, $job,</span><br><span class="line">                $reserved, <span class="keyword">$this</span>-&gt;connectionName, $queue ?: <span class="keyword">$this</span>-&gt;default</span><br><span class="line">            );</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Get the queue or return the default.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  string|null  $queue</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> string</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getQueue</span><span class="params">($queue)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">'queues:'</span>.($queue ?: <span class="keyword">$this</span>-&gt;default);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在从队列中取出任务之前，需要先将delay队列和reserved队列中已经到时间的任务放到主队列中：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Migrate any delayed or expired jobs onto the primary queue.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $queue</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">migrate</span><span class="params">($queue)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;migrateExpiredJobs($queue.<span class="string">':delayed'</span>, $queue);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (! is_null(<span class="keyword">$this</span>-&gt;retryAfter)) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;migrateExpiredJobs($queue.<span class="string">':reserved'</span>, $queue);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Migrate the delayed jobs that are ready to the regular queue.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $from</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $to</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> array</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">migrateExpiredJobs</span><span class="params">($from, $to)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;getConnection()-&gt;eval(</span><br><span class="line">        LuaScripts::migrateExpiredJobs(), <span class="number">3</span>, $from, $to, $to.<span class="string">':notify'</span>, <span class="keyword">$this</span>-&gt;currentTime()</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于从队列取出任务、在队列删除任务、压入主队列是三个操作，为了防止并发，程序这里使用了LUA脚本，保证三个操作的原子性：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Get the Lua script to migrate expired jobs back onto the queue.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * KEYS[1] - The queue we are removing jobs from, for example: queues:foo:reserved</span></span><br><span class="line"><span class="comment"> * KEYS[2] - The queue we are moving jobs to, for example: queues:foo</span></span><br><span class="line"><span class="comment"> * KEYS[3] - The notification list for the queue we are moving jobs to, for example queues:foo:notify</span></span><br><span class="line"><span class="comment"> * ARGV[1] - The current UNIX timestamp</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> string</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">function</span> <span class="title">migrateExpiredJobs</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&lt;&lt;&lt;'LUA'</span></span><br><span class="line"><span class="string">-- Get all of the jobs with an expired "score"...</span></span><br><span class="line"><span class="string">local val = redis.call('zrangebyscore', KEYS[1], '-inf', ARGV[1])</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">-- If we have values in the array, we will remove them from the first queue</span></span><br><span class="line"><span class="string">-- and add them onto the destination queue in chunks of 100, which moves</span></span><br><span class="line"><span class="string">-- all of the appropriate jobs onto the destination queue very safely.</span></span><br><span class="line"><span class="string">if(next(val) ~= nil) then</span></span><br><span class="line"><span class="string">    redis.call('zremrangebyrank', KEYS[1], 0, #val - 1)</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    for i = 1, #val, 100 do</span></span><br><span class="line"><span class="string">        redis.call('rpush', KEYS[2], unpack(val, i, math.min(i+99, #val)))</span></span><br><span class="line"><span class="string">        -- Push a notification for every job that was migrated...</span></span><br><span class="line"><span class="string">        for j = i, math.min(i+99, #val) do</span></span><br><span class="line"><span class="string">            redis.call('rpush', KEYS[3], 1)</span></span><br><span class="line"><span class="string">        end</span></span><br><span class="line"><span class="string">    end</span></span><br><span class="line"><span class="string">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> val</span><br><span class="line">LUA;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来，就要从主队列中获取下一个任务，在取出下一个任务之后，还要将任务放入reserved队列中，当任务执行失败后，该任务会进行重试。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Retrieve the next job from the queue.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $queue</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  bool  $block</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> array</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">retrieveNextJob</span><span class="params">($queue, $block = true)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $nextJob = <span class="keyword">$this</span>-&gt;getConnection()-&gt;eval(</span><br><span class="line">        LuaScripts::pop(), <span class="number">3</span>, $queue, $queue.<span class="string">':reserved'</span>, $queue.<span class="string">':notify'</span>,</span><br><span class="line">        <span class="keyword">$this</span>-&gt;availableAt(<span class="keyword">$this</span>-&gt;retryAfter)</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">empty</span>($nextJob)) &#123;</span><br><span class="line">        <span class="keyword">return</span> [<span class="keyword">null</span>, <span class="keyword">null</span>];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    [$job, $reserved] = $nextJob;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (! $job &amp;&amp; ! is_null(<span class="keyword">$this</span>-&gt;blockFor) &amp;&amp; $block &amp;&amp;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;getConnection()-&gt;blpop([$queue.<span class="string">':notify'</span>], <span class="keyword">$this</span>-&gt;blockFor)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;retrieveNextJob($queue, <span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> [$job, $reserved];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Get the Lua script for popping the next job off of the queue.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * KEYS[1] - The queue to pop jobs from, for example: queues:foo</span></span><br><span class="line"><span class="comment"> * KEYS[2] - The queue to place reserved jobs on, for example: queues:foo:reserved</span></span><br><span class="line"><span class="comment"> * KEYS[3] - The notify queue</span></span><br><span class="line"><span class="comment"> * ARGV[1] - The time at which the reserved job will expire</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> string</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">function</span> <span class="title">pop</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&lt;&lt;&lt;'LUA'</span></span><br><span class="line"><span class="string">-- Pop the first job off of the queue...</span></span><br><span class="line"><span class="string">local job = redis.call('lpop', KEYS[1])</span></span><br><span class="line"><span class="string">local reserved = false</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">if(job ~= false) then</span></span><br><span class="line"><span class="string">    -- Increment the attempt count and place job on the reserved queue...</span></span><br><span class="line"><span class="string">    reserved = cjson.decode(job)</span></span><br><span class="line"><span class="string">    reserved['attempts'] = reserved['attempts'] + 1</span></span><br><span class="line"><span class="string">    reserved = cjson.encode(reserved)</span></span><br><span class="line"><span class="string">    redis.call('zadd', KEYS[2], ARGV[1], reserved)</span></span><br><span class="line"><span class="string">    redis.call('lpop', KEYS[3])</span></span><br><span class="line"><span class="string">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> &#123;job, reserved&#125;</span><br><span class="line">LUA;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从redis中获取到job之后，就会将其包装成RedisJob类：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">(Container $container, RedisQueue $redis, $job, $reserved, $connectionName, $queue)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;job            = $job;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;redis          = $redis;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;queue          = $queue;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;reserved       = $reserved;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;container      = $container;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;connectionName = $connectionName;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;decoded        = <span class="keyword">$this</span>-&gt;payload();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">payload</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> json_decode(<span class="keyword">$this</span>-&gt;getRawBody(), <span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getRawBody</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;job;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="超时处理"><a href="#超时处理" class="headerlink" title="超时处理"></a>超时处理</h1><p>如果一个脚本超时，pcntl_alarm将会启动并杀死当前的work进程。杀死进程后，work进程将会被守护进程重启，继续进行下一个任务。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">registerTimeoutHandler</span><span class="params">($job, WorkerOptions $options)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> ($options-&gt;timeout &gt; <span class="number">0</span> &amp;&amp; <span class="keyword">$this</span>-&gt;supportsAsyncSignals())</span><br><span class="line">    &#123;</span><br><span class="line">        pcntl_signal(SIGALRM, <span class="function"><span class="keyword">function</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;kill(<span class="number">1</span>);</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        pcntl_alarm(<span class="keyword">$this</span>-&gt;timeoutForJob($job, $options) + $options-&gt;sleep);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">timeoutForJob</span><span class="params">($job, WorkerOptions $options)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> $job &amp;&amp; ! is_null($job-&gt;timeout()) </span><br><span class="line">        ? $job-&gt;timeout()</span><br><span class="line">        : $options-&gt;timeout;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="任务事务"><a href="#任务事务" class="headerlink" title="任务事务"></a>任务事务</h1><p>运行任务前后会启动两个事件JobProcessing与JobProcessed，这两个事件需要事先注册监听者：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">runJob</span><span class="params">($job, $connectionName, WorkerOptions $options)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span> </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;process($connectionName, $job, $options);</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">catch</span> (<span class="keyword">Exception</span> $e) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;exceptions-&gt;report($e);</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">catch</span> (Throwable $e) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;exceptions-&gt;report(<span class="keyword">new</span> FatalThrowableError($e));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">process</span><span class="params">($connectionName, $job, WorkerOptions $options)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;raiseBeforeJobEvent($connectionName, $job);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">$this</span>-&gt;markJobAsFailedIfAlreadyExceedsMaxAttempts(</span><br><span class="line">            $connectionName, </span><br><span class="line">            $job, </span><br><span class="line">            (int) $options-&gt;maxTries</span><br><span class="line">        );</span><br><span class="line"></span><br><span class="line">        $job-&gt;fire();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">$this</span>-&gt;raiseAfterJobEvent($connectionName, $job);</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">catch</span> (<span class="keyword">Exception</span> $e) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;handleJobException($connectionName, $job, $options, $e);</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">catch</span> (Throwable $e) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;handleJobException(</span><br><span class="line">            $connectionName, </span><br><span class="line">            $job, </span><br><span class="line">            $options, </span><br><span class="line">            <span class="keyword">new</span> FatalThrowableError($e)</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="任务前与任务后事件"><a href="#任务前与任务后事件" class="headerlink" title="任务前与任务后事件"></a>任务前与任务后事件</h2><p>raiseBeforeJobEvent函数用于触发任务处理前的事件，raiseAfterJobEvent函数用于触发任务处理后的事件：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">raiseBeforeJobEvent</span><span class="params">($connectionName, $job)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;events-&gt;fire(</span><br><span class="line">        <span class="keyword">new</span> Events\JobProcessing(</span><br><span class="line">            $connectionName, $job</span><br><span class="line">        )</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">raiseAfterJobEvent</span><span class="params">($connectionName, $job)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;events-&gt;fire(</span><br><span class="line">        <span class="keyword">new</span> Events\JobProcessed(</span><br><span class="line">            $connectionName, $job</span><br><span class="line">        )</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="任务异常处理"><a href="#任务异常处理" class="headerlink" title="任务异常处理"></a>任务异常处理</h2><p>任务在运行过程中会遇到异常情况，这个时候就要判断当前任务的失败次数是不是超过限制。如果没有超过限制，那么就会把当前任务重新放回队列当中；如果超过了限制，那么就要标记当前任务为失败任务，并且将任务从reserved队列中删除。</p>
+<h2 id="任务失败"><a href="#任务失败" class="headerlink" title="任务失败"></a>任务失败</h2><p>markJobAsFailedIfAlreadyExceedsMaxAttempts函数用于任务运行前，判断当前任务是否重试次数超过限制：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">markJobAsFailedIfAlreadyExceedsMaxAttempts</span><span class="params">($connectionName, $job, $maxTries)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $maxTries = ! is_null($job-&gt;maxTries()) </span><br><span class="line">                ? $job-&gt;maxTries() </span><br><span class="line">                : $maxTries;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ($maxTries === <span class="number">0</span> || $job-&gt;attempts() &lt;= $maxTries) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">$this</span>-&gt;failJob(</span><br><span class="line">        $connectionName, </span><br><span class="line">        $job, </span><br><span class="line">        $e = <span class="keyword">new</span> MaxAttemptsExceededException(</span><br><span class="line">            <span class="string">'A queued job has been attempted too many times. The job may have previously timed out.'</span></span><br><span class="line">        )</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="keyword">throw</span> $e;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">maxTries</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> array_get(<span class="keyword">$this</span>-&gt;payload(), <span class="string">'maxTries'</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">attempts</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> Arr::get(<span class="keyword">$this</span>-&gt;decoded, <span class="string">'attempts'</span>) + <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">failJob</span><span class="params">($connectionName, $job, $e)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> FailingJob::handle($connectionName, $job, $e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当遇到重试次数大于限制的任务，work进程就会调用FailingJob：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">failJob</span><span class="params">($connectionName, $job, $e)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> FailingJob::handle($connectionName, $job, $e);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">function</span> <span class="title">handle</span><span class="params">($connectionName, $job, $e = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $job-&gt;markAsFailed();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ($job-&gt;isDeleted()) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> </span><br><span class="line">    &#123;</span><br><span class="line">        $job-&gt;delete();</span><br><span class="line">        $job-&gt;failed($e);</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">finally</span> </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">static</span>::events()-&gt;fire(</span><br><span class="line">            <span class="keyword">new</span> JobFailed(</span><br><span class="line">                $connectionName, $job, $e ? : <span class="keyword">new</span> ManuallyFailedException</span><br><span class="line">            )</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">markAsFailed</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;failed = <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">delete</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">parent</span>::delete();</span><br><span class="line">    <span class="keyword">$this</span>-&gt;redis-&gt;deleteReserved(<span class="keyword">$this</span>-&gt;queue, <span class="keyword">$this</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">isDeleted</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;deleted;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>FailingJob会标记当前任务failed、deleted，并且会将当前任务移除reserved队列，不会再重试：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">deleteReserved</span><span class="params">($queue, $job)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;getConnection()-&gt;zrem(</span><br><span class="line">        <span class="keyword">$this</span>-&gt;getQueue($queue).<span class="string">':reserved'</span>, </span><br><span class="line">        $job-&gt;getReservedJob()</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>FailingJob还会调用RedisJob的failed函数，并且触发JobFailed事件：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">failed</span><span class="params">($e)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;markAsFailed();</span><br><span class="line">    $payload = <span class="keyword">$this</span>-&gt;payload();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">list</span>($class, $method) = JobName::parse($payload[<span class="string">'job'</span>]);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (method_exists(<span class="keyword">$this</span>-&gt;instance = <span class="keyword">$this</span>-&gt;resolve($class),<span class="string">'failed'</span>)) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;instance-&gt;failed($payload[<span class="string">'data'</span>], $e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>程序会解析job类，我们先前在redis中已经存储了：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">    <span class="string">'job'</span>      =&gt; <span class="string">'Illuminate\Queue\CallQueuedHandler@call'</span>,</span><br><span class="line">    <span class="string">'maxTries'</span> =&gt; <span class="keyword">isset</span>($job-&gt;tries) ? $job-&gt;tries : <span class="keyword">null</span>,</span><br><span class="line">    <span class="string">'timeout'</span>  =&gt; <span class="keyword">isset</span>($job-&gt;timeout) ? $job-&gt;timeout : <span class="keyword">null</span>,</span><br><span class="line">    <span class="string">'data'</span>     =&gt; [</span><br><span class="line">        <span class="string">'commandName'</span> =&gt; get_class($job),</span><br><span class="line">        <span class="string">'command'</span>     =&gt; serialize(<span class="keyword">clone</span> $job),</span><br><span class="line">    ],</span><br><span class="line">];</span><br></pre></td></tr></table></figure>
+
+<p>我们接着看failed函数：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">failed</span><span class="params">(array $data, $e)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $command = unserialize($data[<span class="string">'command'</span>]);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (method_exists($command, <span class="string">'failed'</span>)) &#123;</span><br><span class="line">        $command-&gt;failed($e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，最后程序调用了任务类的failed函数。</p>
+<h1 id="异常处理"><a href="#异常处理" class="headerlink" title="异常处理"></a>异常处理</h1><p>当任务遇到异常的时候，程序仍然会判断当前任务的重试次数，如果本次任务的重试次数已经大于或等于限制，那么就会停止重试，标记为失败；否则就会重新放入队列，记录日志。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">handleJobException</span><span class="params">($connectionName, $job, WorkerOptions $options, $e)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;markJobAsFailedIfWillExceedMaxAttempts(</span><br><span class="line">            $connectionName, $job, (int) $options-&gt;maxTries, $e</span><br><span class="line">        );</span><br><span class="line">        <span class="keyword">$this</span>-&gt;raiseExceptionOccurredJobEvent(</span><br><span class="line">            $connectionName, $job, $e</span><br><span class="line">        );</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">finally</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (! $job-&gt;isDeleted()) &#123;</span><br><span class="line">            $job-&gt;release($options-&gt;delay);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">throw</span> $e;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">markJobAsFailedIfWillExceedMaxAttempts</span><span class="params">($connectionName, $job, $maxTries, $e)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $maxTries = ! is_null($job-&gt;maxTries()) </span><br><span class="line">                ? $job-&gt;maxTries() </span><br><span class="line">                : $maxTries;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ($maxTries &gt; <span class="number">0</span> &amp;&amp; $job-&gt;attempts() &gt;= $maxTries) </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;failJob($connectionName, $job, $e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">release</span><span class="params">($delay = <span class="number">0</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">parent</span>::release($delay);</span><br><span class="line">    <span class="keyword">$this</span>-&gt;redis-&gt;deleteAndRelease(<span class="keyword">$this</span>-&gt;queue, <span class="keyword">$this</span>, $delay);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">deleteAndRelease</span><span class="params">($queue, $job, $delay)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $queue = <span class="keyword">$this</span>-&gt;getQueue($queue);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">$this</span>-&gt;getConnection()-&gt;eval(</span><br><span class="line">        LuaScripts::release(), <span class="number">2</span>, $queue.<span class="string">':delayed'</span>, $queue.<span class="string">':reserved'</span>,</span><br><span class="line">        $job-&gt;getReservedJob(), <span class="keyword">$this</span>-&gt;availableAt($delay)</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一旦任务出现异常错误。那么该任务将会立刻从reserved队列放入delayed队列，并且抛出异常，抛出异常后，程序会将其记录在日志中。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">function</span> <span class="title">release</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&lt;&lt;&lt;'LUA'</span></span><br><span class="line"><span class="string">-- Remove the job from the current queue...</span></span><br><span class="line"><span class="string">redis.call('zrem', KEYS[2], ARGV[1])</span></span><br><span class="line"><span class="string">-- Add the job onto the "delayed" queue...</span></span><br><span class="line"><span class="string">redis.call('zadd', KEYS[1], ARGV[2], ARGV[1])</span></span><br><span class="line"><span class="string">return true</span></span><br><span class="line"><span class="string">    LUA;</span></span><br><span class="line"><span class="string">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="任务的运行"><a href="#任务的运行" class="headerlink" title="任务的运行"></a>任务的运行</h2><p>任务的运行首先会调用CallQueuedHandler的call函数：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">fire</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $payload = <span class="keyword">$this</span>-&gt;payload();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">list</span>($class, $method) = JobName::parse($payload[<span class="string">'job'</span>]);</span><br><span class="line"></span><br><span class="line">    with(<span class="keyword">$this</span>-&gt;instance = <span class="keyword">$this</span>-&gt;resolve($class))-&gt;&#123;$method&#125;(<span class="keyword">$this</span>, $payload[<span class="string">'data'</span>]);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Handle the queued job.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Contracts\Queue\Job  $job</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  array  $data</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">call</span><span class="params">(Job $job, array $data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        $command = <span class="keyword">$this</span>-&gt;setJobInstanceIfNecessary(</span><br><span class="line">            $job, unserialize($data[<span class="string">'command'</span>])</span><br><span class="line">        );</span><br><span class="line">    &#125; <span class="keyword">catch</span> (ModelNotFoundException $e) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;handleModelNotFound($job, $e);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">$this</span>-&gt;dispatchThroughMiddleware($job, $command);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (! $job-&gt;hasFailed() &amp;&amp; ! $job-&gt;isReleased()) &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;ensureNextJobInChainIsDispatched($command);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (! $job-&gt;isDeletedOrReleased()) &#123;</span><br><span class="line">        $job-&gt;delete();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>setJobInstanceIfNecessary函数用于为任务类的trait:InteractsWithQueue的设置任务类：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Set the job instance of the given class if necessary.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Contracts\Queue\Job  $job</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  mixed  $instance</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> mixed</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">setJobInstanceIfNecessary</span><span class="params">(Job $job, $instance)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (in_array(InteractsWithQueue::class, class_uses_recursive($instance))) &#123;</span><br><span class="line">        $instance-&gt;setJob($job);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> $instance;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">trait</span> InteractsWithQueue</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Set the base queue job instance.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  \Illuminate\Contracts\Queue\Job  $job</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> $this</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">setJob</span><span class="params">(JobContract $job)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;job = $job;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接着任务的运行就要交给dispatch：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Dispatch a command to its appropriate handler in the current process.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  mixed  $command</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  mixed  $handler</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> mixed</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">dispatchNow</span><span class="params">($command, $handler = null)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> ($handler || $handler = <span class="keyword">$this</span>-&gt;getCommandHandler($command)) &#123;</span><br><span class="line">        $callback = <span class="function"><span class="keyword">function</span> <span class="params">($command)</span> <span class="title">use</span> <span class="params">($handler)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> $handler-&gt;handle($command);</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        $callback = <span class="function"><span class="keyword">function</span> <span class="params">($command)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;container-&gt;call([$command, <span class="string">'handle'</span>]);</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;pipeline-&gt;send($command)-&gt;through(<span class="keyword">$this</span>-&gt;pipes)-&gt;then($callback);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Retrieve the handler for a command.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  mixed  $command</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> bool|mixed</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getCommandHandler</span><span class="params">($command)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">$this</span>-&gt;hasCommandHandler($command)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;container-&gt;make(<span class="keyword">$this</span>-&gt;handlers[get_class($command)]);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Determine if the given command has a handler.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  mixed  $command</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> bool</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">hasCommandHandler</span><span class="params">($command)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> array_key_exists(get_class($command), <span class="keyword">$this</span>-&gt;handlers);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果不对dispatcher类进行任何map函数设置，getCommandHandler将会返回null，此时就会调用任务类的handle函数，进行具体的业务逻辑。</p>
+<p>任务结束后，就会调用delete函数：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Delete the job from the queue.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">delete</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">parent</span>::delete();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">$this</span>-&gt;redis-&gt;deleteReserved(<span class="keyword">$this</span>-&gt;queue, <span class="keyword">$this</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Delete a reserved job from the queue.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $queue</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Queue\Jobs\RedisJob  $job</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">deleteReserved</span><span class="params">($queue, $job)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;getConnection()-&gt;zrem(<span class="keyword">$this</span>-&gt;getQueue($queue).<span class="string">':reserved'</span>, $job-&gt;getReservedJob());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样，运行成功的任务会从reserved中删除。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Laravel/" rel="tag"># Laravel</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/14/Laravel-Container-IoC服务容器/" rel="next" title="Laravel Container-IoC服务容器">
+                <i class="fa fa-chevron-left"></i> Laravel Container-IoC服务容器
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/05/17/Laravel-Event-事件系统的启动与运行源码分析/" rel="prev" title="Laravel Event-事件系统的启动与运行源码分析">
+                Laravel Event-事件系统的启动与运行源码分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">放弃会成为一种习惯</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">158</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">8</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">20</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2020/06/16/面向对象设计原则/" title="面向对象设计原则" target="_blank">面向对象设计原则</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2020/06/11/Laravel-Database-Eloquent-Model源码分析（下）/" title="Laravel Database-Eloquent Model源码分析（下）" target="_blank">Laravel Database-Eloquent Model源码分析（下）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2020/06/11/Laravel-Database-Eloquent-Model源码分析（上）/" title="Laravel Database-Eloquent Model源码分析（上）" target="_blank">Laravel Database-Eloquent Model源码分析（上）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2020/06/03/第11章-接下来如何做/" title="第11章 接下来如何做" target="_blank">第11章 接下来如何做</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2020/06/02/第10章-K最近邻算法/" title="第10章 K最近邻算法" target="_blank">第10章 K最近邻算法</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#运行队列处理器"><span class="nav-number">1.</span> <span class="nav-text">运行队列处理器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#队列处理器的设置"><span class="nav-number">1.1.</span> <span class="nav-text">队列处理器的设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WorkCommand命令行启动"><span class="nav-number">1.2.</span> <span class="nav-text">WorkCommand命令行启动</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Worker任务调度"><span class="nav-number">2.</span> <span class="nav-text">Worker任务调度</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#信号处理"><span class="nav-number">3.</span> <span class="nav-text">信号处理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#获取下一个任务"><span class="nav-number">4.</span> <span class="nav-text">获取下一个任务</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#超时处理"><span class="nav-number">5.</span> <span class="nav-text">超时处理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#任务事务"><span class="nav-number">6.</span> <span class="nav-text">任务事务</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#任务前与任务后事件"><span class="nav-number">6.1.</span> <span class="nav-text">任务前与任务后事件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#任务异常处理"><span class="nav-number">6.2.</span> <span class="nav-text">任务异常处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#任务失败"><span class="nav-number">6.3.</span> <span class="nav-text">任务失败</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#异常处理"><span class="nav-number">7.</span> <span class="nav-text">异常处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#任务的运行"><span class="nav-number">7.1.</span> <span class="nav-text">任务的运行</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">1.7m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">26:27</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

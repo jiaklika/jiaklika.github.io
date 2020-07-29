@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="MySQL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL的又一神器-锁">
+<meta property="og:url" content="http://yoursite.com/2020/05/09/MySQL的又一神器-锁/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-07-04T10:22:50.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MySQL的又一神器-锁">
+<meta name="twitter:description" content="思考并回答以下问题：">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/05/09/MySQL的又一神器-锁/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>MySQL的又一神器-锁 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/09/MySQL的又一神器-锁/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="放弃会成为一种习惯">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">MySQL的又一神器-锁
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2020-05-09 10:01:54" itemprop="dateCreated datePublished" datetime="2020-05-09T10:01:54+08:00">2020-05-09</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2020-07-04 18:22:50" itemprop="dateModified" datetime="2020-07-04T18:22:50+08:00">2020-07-04</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">5.2k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">5 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+
+<h1 id="什么是锁"><a href="#什么是锁" class="headerlink" title="什么是锁"></a><span style="color:#339AFF;">什么是锁</span></h1><h2 id="锁的概述"><a href="#锁的概述" class="headerlink" title="锁的概述"></a><span style="color:#00ACC1;">锁的概述</span></h2><p>对于MySQL来说，锁是一个很重要的特性，数据库的锁是为了支持对共享资源进行并发访问，提供数据的完整性和一致性，这样才能保证在高并发的情况下，访问数据库的时候，数据不会出现问题。</p>
+<h2 id="锁的两个概念"><a href="#锁的两个概念" class="headerlink" title="锁的两个概念"></a><span style="color:#00ACC1;">锁的两个概念</span></h2><p>在数据库中，lock和latch都可以称为锁，但是意义却不同。</p>
+<p>Latch一般称为<span style="color:red">闩锁</span>（轻量级的锁），因为其要求锁定的时间必须非常短。若持续的时间长，则应用的性能会非常差，在InnoDB引擎中，Latch又可以分为<span style="color:red">mutex</span>（互斥量）和<span style="color:red">rwlock</span>（读写锁）。其目的是用来保证并发线程操作临界资源的正确性，并且通常没有死锁检测的机制。</p>
+<p>Lock的对象是<span style="color:red">事务</span>，用来锁定的是数据库中的对象，如表、页、行。并且一般lock的对象仅在事务commit或rollback后进行释放（不同事务隔离级别释放的时间可能不同）。</p>
+<h1 id="InnoDB存储引擎中的锁"><a href="#InnoDB存储引擎中的锁" class="headerlink" title="InnoDB存储引擎中的锁"></a><span style="color:#339AFF;">InnoDB存储引擎中的锁</span></h1><h2 id="锁的粒度"><a href="#锁的粒度" class="headerlink" title="锁的粒度"></a><span style="color:#00ACC1;">锁的粒度</span></h2><p>在数据库中，锁的粒度的不同可以分为表锁、页锁、行锁，这些锁的粒度之间也是会发生升级的，锁升级的意思就是讲当前锁的粒度降低，数据库可以把一个表的1000个行锁升级为一个页锁，或者将页锁升级为表锁，下面分别介绍一下这三种锁的粒度（参考自博客：<a href="https://blog.csdn.net/baolingye/article/details/102506072" target="_blank" rel="noopener">https://blog.csdn.net/baolingye/article/details/102506072</a>）。</p>
+<h3 id="表锁"><a href="#表锁" class="headerlink" title="表锁"></a><span style="color:#EF7060;">表锁</span></h3><p>表级别的锁定是MySQL各存储引擎中最大颗粒度的锁定机制。该锁定机制最大的特点是实现逻辑非常简单，带来的系统负面影响最小。所以获取锁和释放锁的速度很快。由于表级锁一次会将整个表锁定，所以可以很好的避免困扰我们的死锁问题。</p>
+<p>当然，锁定颗粒度大所带来最大的负面影响就是出现锁定资源争用的概率也会最高，致使并大度大打折扣。</p>
+<p>使用表级锁定的主要是MyISAM，MEMORY，CSV等一些非事务性存储引擎。</p>
+<p><strong>特点</strong>：开销小，加锁快；不会出现死锁；锁定粒度大，发生锁冲突的概率最高，并发度最低。</p>
+<h3 id="页锁"><a href="#页锁" class="headerlink" title="页锁"></a><span style="color:#EF7060;">页锁</span></h3><p>页级锁定是MySQL中比较独特的一种锁定级别，在其他数据库管理软件中也并不是太常见。页级锁定的特点是锁定颗粒度介于行级锁定与表级锁之间，所以获取锁定所需要的资源开销，以及所能提供的并发处理能力也同样是介于上面二者之间。另外，页级锁定和行级锁定一样，会发生死锁。</p>
+<p>在数据库实现资源锁定的过程中，随着锁定资源颗粒度的减小，锁定相同数据量的数据所需要消耗的内存数量是越来越多的，实现算法也会越来越复杂。不过，随着锁定资源 颗粒度的减小，应用程序的访问请求遇到锁等待的可能性也会随之降低，系统整体并发度也随之提升。</p>
+<p>使用页级锁定的主要是BerkeleyDB存储引擎。</p>
+<p><strong>特点</strong>：开销和加锁时间界于表锁和行锁之间；会出现死锁；锁定粒度界于表锁和行锁之间，并发度一般。</p>
+<h3 id="行锁"><a href="#行锁" class="headerlink" title="行锁"></a><span style="color:#EF7060;">行锁</span></h3><p>行级锁定最大的特点就是锁定对象的粒度很小，也是目前各大数据库管理软件所实现的锁定颗粒度最小的。由于锁定颗粒度很小，所以发生锁定资源争用的概率也最小，能够给予应用程序尽可能大的并发处理能力而提高一些需要高并发应用系统的整体性能。</p>
+<p>虽然能够在并发处理能力上面有较大的优势，但是行级锁定也因此带来了不少弊端。由于锁定资源的颗粒度很小，所以每次获取锁和释放锁需要做的事情也更多，带来的消耗自然也就更大了。此外，行级锁定也最容易发生死锁。</p>
+<p><strong>特点</strong>：开销大，加锁慢；会出现死锁；锁定粒度最小，发生锁冲突的概率最低，并发度也最高。</p>
+<p>比较表锁我们可以发现，这两种锁的特点基本都是相反的，而从锁的角度来说，表级锁更适合于以查询为主，只有少量按索引条件更新数据的应用，如Web应用；而行级锁则更适合于有大量按索引条件并发更新少量不同数据，同时又有并发查询的应用，如一些在线事务处理（OLTP）系统。</p>
+<p>MySQL不同引擎支持的锁的粒度</p>
+
+
+<h2 id="锁的类型"><a href="#锁的类型" class="headerlink" title="锁的类型"></a><span style="color:#00ACC1;">锁的类型</span></h2><p>InnoDB存储引擎中存在着不同类型的锁，下面一一介绍一下。</p>
+<p><strong>S or X（共享锁、排他锁）</strong></p>
+<p>数据的操作其实只有两种，也就是读和写，而数据库在实现锁时，也会对这两种操作使用不同的锁；InnoDB实现了标准的行级锁，也就是共享锁（Shared Lock）和互斥锁（Exclusive Lock）。</p>
+<ul>
+<li>共享锁（读锁）（S Lock），允许事务读一行数据。</li>
+<li>排他锁（写锁）（X Lock），允许事务删除或更新一行数据。</li>
+</ul>
+<p><strong>IS or IX（共享、排他）意向锁</strong></p>
+<p>为了允许行锁和表锁共存，实现多粒度锁机制，InnoDB存储引擎支持一种额外的锁方式，就称为意向锁，意向锁在InnoDB中是表级锁，意向锁分为：</p>
+<ul>
+<li>意向共享锁：表达一个事务想要获取一张表中某几行的共享锁。</li>
+<li>意向排他锁：表达一个事务想要获取一张表中某几行的排他锁。</li>
+</ul>
+<p>另外，这些锁之间的并不是一定可以共存的，有些锁之间是不兼容的，所谓兼容性就是指事务 A 获得一个某行某种锁之后，事务B同样的在这个行上尝试获取某种锁，如果能立即获取，则称锁兼容，反之叫冲突。</p>
+<p>下面我们再看一下这两种锁的兼容性。</p>
+<ul>
+<li>S or X（共享锁、排他锁）的兼容性</li>
+</ul>
+
+
+<ul>
+<li>IS or IX（共享、排他）意向锁的兼容性</li>
+</ul>
+
+
+<h1 id="前面小结"><a href="#前面小结" class="headerlink" title="前面小结"></a><span style="color:#339AFF;">前面小结</span></h1><p>这里用一个思维导图把前面的概念做一个小结。</p>
+
+
+<h1 id="一致性非锁定读和一致性锁定读"><a href="#一致性非锁定读和一致性锁定读" class="headerlink" title="一致性非锁定读和一致性锁定读"></a><span style="color:#339AFF;">一致性非锁定读和一致性锁定读</span></h1><h2 id="一致性锁定读（Locking-Reads）"><a href="#一致性锁定读（Locking-Reads）" class="headerlink" title="一致性锁定读（Locking Reads）"></a><span style="color:#00ACC1;">一致性锁定读（Locking Reads）</span></h2><p>在一个事务中查询数据时，普通的SELECT语句不会对查询的数据进行加锁，其他事务仍可以对查询的数据执行更新和删除操作。因此，InnoDB提供了两种类型的锁定读来保证额外的安全性：</p>
+<ul>
+<li>SELECT … LOCK IN SHARE MODE</li>
+<li>SELECT … FOR UPDATE</li>
+</ul>
+<p>SELECT … LOCK IN SHARE MODE：对读取的行添加S锁，其他事物可以对这些行添加S锁，若添加X锁，则会被阻塞。</p>
+<p>SELECT … FOR UPDATE：会对查询的行及相关联的索引记录加X锁，其他事务请求的S锁或X锁都会被阻塞。当事务提交或回滚后，通过这两个语句添加的锁都会被释放。注意：只有在自动提交被禁用时，SELECT FOR UPDATE才可以锁定行，若开启自动提交，则匹配的行不会被锁定。</p>
+<h2 id="一致性非锁定读"><a href="#一致性非锁定读" class="headerlink" title="一致性非锁定读"></a><span style="color:#00ACC1;">一致性非锁定读</span></h2><p>一致性非锁定读（consistent nonlocking read）是指InnoDB存储引擎通过多版本控制（MVVC）读取当前数据库中行数据的方式。如果读取的行正在执行DELETE或UPDATE操作，这时读取操作不会因此去等待行上锁的释放。相反地，InnoDB会去读取行的一个快照。所以，非锁定读机制大大提高了数据库的并发性。</p>
+
+
+<p>一致性非锁定读是InnoDB默认的读取方式，即读取不会占用和等待行上的锁。在事务隔离级别<span style="color:red">READ COMMITTED</span>和<span style="color:red">REPEATABLE READ</span>下，InnoDB使用一致性非锁定读。</p>
+<p>然而，对于快照数据的定义却不同。在<span style="color:red">READ COMMITTED</span>事务隔离级别下，一致性非锁定读总是<strong>读取被锁定行的最新一份快照数据</strong>。而在<span style="color:red">REPEATABLE READ</span>事务隔离级别下，则<strong>读取事务开始时的行数据版本</strong>。</p>
+<p>下面我们通过一个简单的例子来说明一下这两种方式的区别。</p>
+<p>首先创建一张表;</p>
+
+
+<p>插入一条数据；</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> lock_test <span class="keyword">values</span>(<span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+
+<p>查看隔离级别；</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>下面分为两种事务进行操作。</p>
+<p>在<span style="color:red">REPEATABLE READ</span>事务隔离级别下；</p>
+
+
+<p>在REPEATABLE READ事务隔离级别下，读取事务开始时的行数据，所以当会话B修改了数据之后，通过以前的查询，还是可以查询到数据的。</p>
+<p>在<span style="color:red">READ COMMITTED</span>事务隔离级别下;</p>
+
+
+<p>在<span style="color:red">READ COMMITTED</span>事务隔离级别下，读取该行版本最新的一个快照数据，所以，由于B会话修改了数据，并且提交了事务，所以，A读取不到数据了。</p>
+<h1 id="行锁的算法"><a href="#行锁的算法" class="headerlink" title="行锁的算法"></a><span style="color:#339AFF;">行锁的算法</span></h1><p>InnoDB存储引擎有3种行锁的算法，其分别是：</p>
+<ul>
+<li>Record Lock：单个行记录上的锁。</li>
+<li>Gap Lock：间隙锁，锁定一个范围，但不包含记录本身。</li>
+<li>Next-Key Lock：Gap Lock+Record Lock，锁定一个范围，并且锁定记录本身。</li>
+</ul>
+<p><strong>Record Lock</strong>：总是会去锁住索引记录，如果InnoDB存储引擎表在建立的时候没有设置任何一个索引，那么这时InnoDB存储引擎会使用隐式的主键来进行锁定。</p>
+<p>Next-Key Lock：结合了Gap Lock和Record Lock的一种锁定算法，在Next-Key Lock算法下，InnoDB对于行的查询都是采用这种锁定算法。举个例子10，20，30，那么该索引可能被Next-Key Locking的区间为：</p>
+
+
+<p>除了Next-Key Locking，还有Previous-Key Locking技术，这种技术跟Next-Key Lock正好相反，锁定的区间是区间范围和前一个值。同样上述的值，使用Previous-Key Locking技术，那么可锁定的区间为：</p>
+
+
+<p>不是所有索引都会加上Next-key Lock的，这里有一种<strong>特殊的情况</strong>，在查询的列是唯一索引（包含主键索引）的情况下，<span style="color:red">Next-key Lock</span>会降级为<span style="color:red">Record Lock</span>。</p>
+<p>接下来，我们来通过一个例子解释一下。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="keyword">test</span> (</span><br><span class="line">    x <span class="built_in">INT</span>,</span><br><span class="line">    y <span class="built_in">INT</span>,</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span>(x),    // x是主键索引</span><br><span class="line">    <span class="keyword">KEY</span>(y)    // y是普通索引</span><br><span class="line">);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">test</span> <span class="keyword">select</span> <span class="number">3</span>, <span class="number">2</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">test</span> <span class="keyword">select</span> <span class="number">5</span>, <span class="number">3</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">test</span> <span class="keyword">select</span> <span class="number">7</span>, <span class="number">6</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">test</span> <span class="keyword">select</span> <span class="number">10</span>, <span class="number">8</span>;</span><br></pre></td></tr></table></figure>
+
+<p>我们现在会话A中执行如下语句；</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">test</span> <span class="keyword">WHERE</span> y = <span class="number">3</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span></span><br></pre></td></tr></table></figure>
+
+<p>我们分析一下这时候的加锁情况。</p>
+<ul>
+<li>对于主键x</li>
+</ul>
+
+
+<ul>
+<li>辅助索引y</li>
+</ul>
+
+
+<p>用户可以通过以下两种方式来显示的关闭Gap Lock：</p>
+<ul>
+<li>将事务的隔离级别设为 READ COMMITED。</li>
+<li>将参数innodb_locks_unsafe_for_binlog设置为1。</li>
+</ul>
+<p><strong>Gap Lock的作用</strong>：是为了阻止多个事务将记录插入到同一个范围内，设计它的目的是用来解决<strong>Phontom Problem（幻读问题）</strong>。在MySQL默认的隔离级别（Repeatable Read）下，InnoDB就是使用它来解决幻读问题。</p>
+<blockquote>
+<p><strong>幻读</strong>：是指在同一事务下，连续执行两次同样的SQL语句可能导致不同的结果，第二次的SQL可能会返回之前不存在的行，也就是第一次执行和第二次执行期间有其他事务往里插入了新的行。</p>
+</blockquote>
+<h1 id="锁带来的问题"><a href="#锁带来的问题" class="headerlink" title="锁带来的问题"></a><span style="color:#339AFF;">锁带来的问题</span></h1><h2 id="脏读"><a href="#脏读" class="headerlink" title="脏读"></a><span style="color:#00ACC1;">脏读</span></h2><p><strong>脏读</strong>：在不同的事务下，当前事务可以读到另外事务未提交的数据。另外我们需要注意的是默认的MySQL隔离级别是<span style="color:red">REPEATABLE READ</span>是不会发生脏读的，脏读发生的条件是需要事务的隔离级别为<span style="color:red">READ UNCOMMITTED</span>，所以如果出现脏读，可能就是这种隔离级别导致的。</p>
+<p>下面我们通过一个例子看一下。</p>
+
+
+<p>从上面这个例子可以看出，当我们的事务的隔离级别为<span style="color:red">READ UNCOMMITTED</span>的时候，在会话A还没有提交时，会话B就能够查询到会话A没有提交的数据。</p>
+<h2 id="不可重复读"><a href="#不可重复读" class="headerlink" title="不可重复读"></a><span style="color:#00ACC1;">不可重复读</span></h2><p><strong>不可重复读</strong>：是指在一个事务内多次读取同一集合的数据，但是多次读到的数据是不一样的，这就违反了数据库事务的一致性的原则。但是，这跟脏读还是有区别的，脏读的数据是没有提交的，但是不可重复读的数据是已经提交的数据。</p>
+<p>我们通过下面的例子来看一下这种问题的发生。</p>
+
+
+<p>从上面的例子可以看出，在A的一次会话中，由于会话B插入了数据，导致两次查询的结果不一致，所以就出现了不可重复读的问题。</p>
+<p>我们需要注意的是不可重复读读取的数据是已经提交的数据，事务的隔离级别为<span style="color:red">READ COMMITTED</span>，这种问题我们是可以接受的。</p>
+<p>如果我们需要避免不可重复读的问题的发生，那么我们可以使用<strong>Next-Key Lock算法</strong>（设置事务的隔离级别为<span style="color:red">READ REPEATABLE</span>）来避免，在MySQL中，不可重复读问题就是Phantom Problem，也就是<strong>幻像问题</strong>。</p>
+<h2 id="丢失更新"><a href="#丢失更新" class="headerlink" title="丢失更新"></a><span style="color:#00ACC1;">丢失更新</span></h2><p><strong>丢失更新</strong>：指的是一个事务的更新操作会被另外一个事务的更新操作所覆盖，从而导致数据的不一致。在当前数据库的任何隔离级别下都不会导致丢失更新问题，要出现这个问题，在多用户计算机系统环境下有可能出现这种问题。</p>
+<p>如何避免丢失更新的问题呢，我们只需要让事务的操作变成串行化，不要并行执行就可以。</p>
+<p>我们一般使用<span style="color:red">SELECT … FOR UPDATE</span>语句，给操作加上一个排他X锁。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#00ACC1;">小结</span></h2><p>这里我们做一个小结，主要是在不同的事务的隔离级别下出现的问题的对照，这样就更加清晰了。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/MySQL/" rel="tag"># MySQL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/08/什么是红黑树？/" rel="next" title="什么是红黑树？">
+                <i class="fa fa-chevron-left"></i> 什么是红黑树？
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/05/10/Laravel-Log/" rel="prev" title="Laravel-Log">
+                Laravel-Log <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">放弃会成为一种习惯</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">158</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">8</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">20</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2020/06/16/面向对象设计原则/" title="面向对象设计原则" target="_blank">面向对象设计原则</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2020/06/11/Laravel-Database-Eloquent-Model源码分析（下）/" title="Laravel Database-Eloquent Model源码分析（下）" target="_blank">Laravel Database-Eloquent Model源码分析（下）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2020/06/11/Laravel-Database-Eloquent-Model源码分析（上）/" title="Laravel Database-Eloquent Model源码分析（上）" target="_blank">Laravel Database-Eloquent Model源码分析（上）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2020/06/03/第11章-接下来如何做/" title="第11章 接下来如何做" target="_blank">第11章 接下来如何做</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2020/06/02/第10章-K最近邻算法/" title="第10章 K最近邻算法" target="_blank">第10章 K最近邻算法</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#什么是锁"><span class="nav-number">1.</span> <span class="nav-text">什么是锁</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#锁的概述"><span class="nav-number">1.1.</span> <span class="nav-text">锁的概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#锁的两个概念"><span class="nav-number">1.2.</span> <span class="nav-text">锁的两个概念</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#InnoDB存储引擎中的锁"><span class="nav-number">2.</span> <span class="nav-text">InnoDB存储引擎中的锁</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#锁的粒度"><span class="nav-number">2.1.</span> <span class="nav-text">锁的粒度</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#表锁"><span class="nav-number">2.1.1.</span> <span class="nav-text">表锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#页锁"><span class="nav-number">2.1.2.</span> <span class="nav-text">页锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#行锁"><span class="nav-number">2.1.3.</span> <span class="nav-text">行锁</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#锁的类型"><span class="nav-number">2.2.</span> <span class="nav-text">锁的类型</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#前面小结"><span class="nav-number">3.</span> <span class="nav-text">前面小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#一致性非锁定读和一致性锁定读"><span class="nav-number">4.</span> <span class="nav-text">一致性非锁定读和一致性锁定读</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#一致性锁定读（Locking-Reads）"><span class="nav-number">4.1.</span> <span class="nav-text">一致性锁定读（Locking Reads）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一致性非锁定读"><span class="nav-number">4.2.</span> <span class="nav-text">一致性非锁定读</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#行锁的算法"><span class="nav-number">5.</span> <span class="nav-text">行锁的算法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#锁带来的问题"><span class="nav-number">6.</span> <span class="nav-text">锁带来的问题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#脏读"><span class="nav-number">6.1.</span> <span class="nav-text">脏读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#不可重复读"><span class="nav-number">6.2.</span> <span class="nav-text">不可重复读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#丢失更新"><span class="nav-number">6.3.</span> <span class="nav-text">丢失更新</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-number">6.4.</span> <span class="nav-text">小结</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">1.7m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">26:27</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
