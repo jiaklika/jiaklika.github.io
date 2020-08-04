@@ -103,23 +103,23 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。怎么理解？">
+  <meta name="description" content="思考并回答以下问题：  Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。怎么理解？ 将有序集合ZSet的评分score设置为延时任务开启的时间，可以实现延迟任务的功能。怎么实现的？ 重试也是通过ZSet实现的。怎么理解？ 一个List，负责即时任务，两个ZSet，负责延时任务与待处理任务。怎么理解？">
 <meta name="keywords" content="Laravel">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Laravel Queue-消息队列任务与分发源码剖析">
 <meta property="og:url" content="http://yoursite.com/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。怎么理解？">
+<meta property="og:description" content="思考并回答以下问题：  Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。怎么理解？ 将有序集合ZSet的评分score设置为延时任务开启的时间，可以实现延迟任务的功能。怎么实现的？ 重试也是通过ZSet实现的。怎么理解？ 一个List，负责即时任务，两个ZSet，负责延时任务与待处理任务。怎么理解？">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/1.png">
 <meta property="og:image" content="http://yoursite.com/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/2.png">
 <meta property="og:image" content="http://yoursite.com/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/3.png">
 <meta property="og:image" content="http://yoursite.com/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/4.png">
 <meta property="og:image" content="http://yoursite.com/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/5.png">
-<meta property="og:updated_time" content="2020-06-12T06:29:16.000Z">
+<meta property="og:updated_time" content="2020-08-04T03:37:42.665Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Laravel Queue-消息队列任务与分发源码剖析">
-<meta name="twitter:description" content="思考并回答以下问题：  Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。怎么理解？">
+<meta name="twitter:description" content="思考并回答以下问题：  Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。怎么理解？ 将有序集合ZSet的评分score设置为延时任务开启的时间，可以实现延迟任务的功能。怎么实现的？ 重试也是通过ZSet实现的。怎么理解？ 一个List，负责即时任务，两个ZSet，负责延时任务与待处理任务。怎么理解？">
 <meta name="twitter:image" content="http://yoursite.com/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/1.png">
 
 
@@ -449,7 +449,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2020-06-12 14:29:16" itemprop="dateModified" datetime="2020-06-12T14:29:16+08:00">2020-06-12</time>
+                <time title="修改时间：2020-08-04 11:37:42" itemprop="dateModified" datetime="2020-08-04T11:37:42+08:00">2020-08-04</time>
               
             
           </span>
@@ -532,6 +532,9 @@
         <p>思考并回答以下问题：</p>
 <ul>
 <li>Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。怎么理解？</li>
+<li>将有序集合ZSet的评分score设置为延时任务开启的时间，可以实现延迟任务的功能。怎么实现的？</li>
+<li>重试也是通过ZSet实现的。怎么理解？</li>
+<li>一个List，负责即时任务，两个ZSet，负责延时任务与待处理任务。怎么理解？</li>
 </ul>
 <a id="more"></a>
 
@@ -549,27 +552,27 @@
 <p><strong>ZSet有序集合</strong></p>
 <p>有些任务场景，并不需要任务立刻执行，而是需要延迟执行；有些任务很重要，需要在任务失败的时候重新尝试。这些功能仅仅依靠List是无法完成的。这个时候，就需要Redis的有序集合。</p>
 <p>Redis有序集合和Redis集合类似，是不包含相同字符串的合集。它们的差别是，每个有序集合的成员都关联着一个评分score，这个评分用于把有序集合中的成员按最低分到最高分排列。</p>
-<p>单看有序集合和延迟任务并无关系，但是可以<span style="color:red">将有序集合的评分score设置为延时任务开启的时间</span>，之后轮询这个有序集合，将到期的任务拿出来进行处理，这样就实现了延迟任务的功能。</p>
+<p>单看有序集合和延迟任务并无关系，但是可以<span style="color:red">将有序集合的评分score设置为延时任务开启的时间</span>，之后<span style="color:red">轮询</span>这个有序集合，将到期的任务拿出来进行处理，这样就实现了延迟任务的功能。</p>
 <p>对于重要的需要重试的任务，在任务执行之前，会将该任务放入有序集合中，设置任务最长的执行时间。若任务顺利执行完毕，该任务会在有序集合中删除。如果任务没有在规定时间内完成，那么该有序集合的任务将会被重新放入队列中。</p>
 <p>相关命令：</p>
 <ul>
-<li>(1) ZADD 添加一个或多个成员到有序集合，或者如果它已经存在更新其分数。</li>
-<li>(2) ZRANGEBYSCORE  按分数返回一个成员范围的有序集合。</li>
-<li>(3) ZREMRANGEBYRANK  在给定的索引之内删除所有成员的有序集合。</li>
+<li>(1) <strong>ZADD</strong> 添加一个或多个成员到有序集合，或者如果它已经存在更新其分数。</li>
+<li>(2) <strong>ZRANGEBYSCORE</strong>  按分数返回一个成员范围的有序集合。</li>
+<li>(3) <strong>ZREMRANGEBYRANK</strong>  在给定的索引之内删除所有成员的有序集合。</li>
 </ul>
-<h2 id="Laravel队列服务的任务调度"><a href="#Laravel队列服务的任务调度" class="headerlink" title="Laravel队列服务的任务调度"></a><span style="color:#00ACC1;">Laravel队列服务的任务调度</span></h2><p>队列服务的任务调度过程如下：</p>
+<h1 id="Laravel队列服务的任务调度"><a href="#Laravel队列服务的任务调度" class="headerlink" title="Laravel队列服务的任务调度"></a><span style="color:#339AFF;">Laravel队列服务的任务调度</span></h1><p>队列服务的任务调度过程如下：</p>
 <img src="/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/1.png">
 
-<p>Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。这两个进程操纵了Redis三个队列，其中一个List，负责即时任务，两个ZSet，负责延时任务与待处理任务。</p>
+<p>Laravel的队列服务由两个进程控制，一个是生产者，一个是消费者。这两个进程操纵了Redis三个队列，其中<span style="color:red">一个List，负责即时任务，两个ZSet，负责延时任务与待处理任务。</span></p>
 <p>生产者负责向Redis推送任务，如果是即时任务，默认就会向queue:default推送；如果是延时任务，就会向queue:default:delayed推送。</p>
 <p>消费者轮询两个队列，不断的从队列中取出任务，先把任务放入queue:default:reserved中，再执行相关任务。如果任务执行成功，就会删除queue:default:reserved中的任务，否则会被重新放入queue:default:delayed队列中。</p>
-<h2 id="Laravel队列服务的总体流程"><a href="#Laravel队列服务的总体流程" class="headerlink" title="Laravel队列服务的总体流程"></a><span style="color:#00ACC1;">Laravel队列服务的总体流程</span></h2><p>任务分发流程：</p>
+<h1 id="Laravel队列服务的总体流程"><a href="#Laravel队列服务的总体流程" class="headerlink" title="Laravel队列服务的总体流程"></a><span style="color:#339AFF;">Laravel队列服务的总体流程</span></h1><p>任务分发流程：</p>
 <img src="/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/2.png">
 
 <p>任务处理器运作：</p>
 <img src="/2020/05/11/Laravel-Queue-消息队列任务与分发源码剖析/3.png">
 
-<h2 id="Laravel队列服务的注册与启动"><a href="#Laravel队列服务的注册与启动" class="headerlink" title="Laravel队列服务的注册与启动"></a><span style="color:#00ACC1;">Laravel队列服务的注册与启动</span></h2><p>Laravel队列服务需要注册的服务比较多：</p>
+<h1 id="Laravel队列服务的注册与启动"><a href="#Laravel队列服务的注册与启动" class="headerlink" title="Laravel队列服务的注册与启动"></a><span style="color:#339AFF;">Laravel队列服务的注册与启动</span></h1><p>Laravel队列服务需要注册的服务比较多：</p>
 <blockquote>
 <p>Illuminate/Queue/QueueServiceProvider.php</p>
 </blockquote>
@@ -578,7 +581,7 @@
 <h2 id="registerManager注册门面"><a href="#registerManager注册门面" class="headerlink" title="registerManager注册门面"></a><span style="color:#00ACC1;">registerManager注册门面</span></h2><p>registerManager负责注册队列服务的门面类：</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Register the queue manager.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">registerManager</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;app-&gt;singleton(<span class="string">'queue'</span>, <span class="function"><span class="keyword">function</span> <span class="params">($app)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// Once we have an instance of the queue manager, we will register the various</span></span><br><span class="line">        <span class="comment">// resolvers for the queue connectors. These connectors are responsible for</span></span><br><span class="line">        <span class="comment">// creating the classes that accept queue configs and instantiate queues.</span></span><br><span class="line">        <span class="keyword">return</span> tap(<span class="keyword">new</span> QueueManager($app), <span class="function"><span class="keyword">function</span> <span class="params">($manager)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;registerConnectors($manager);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Register the connectors on the queue manager.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Queue\QueueManager  $manager</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">registerConnectors</span><span class="params">($manager)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">foreach</span> ([<span class="string">'Null'</span>, <span class="string">'Sync'</span>, <span class="string">'Database'</span>, <span class="string">'Redis'</span>, <span class="string">'Beanstalkd'</span>, <span class="string">'Sqs'</span>] <span class="keyword">as</span> $connector) &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;&#123;<span class="string">"register&#123;$connector&#125;Connector"</span>&#125;($manager);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Register the Redis queue connector.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\Queue\QueueManager  $manager</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">registerRedisConnector</span><span class="params">($manager)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $manager-&gt;addConnector(<span class="string">'redis'</span>, <span class="function"><span class="keyword">function</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> RedisConnector(<span class="keyword">$this</span>-&gt;app[<span class="string">'redis'</span>]);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>QueueManager是队列服务的总门面，提供一切与队列相关的操作接口。QueueManager中有一个成员变量$connectors，该成员变量中存储着所有Laravel支持的底层队列服务：’Database’,’Redis’,’Beanstalkd’,’SQS’。</p>
+<p>QueueManager是队列服务的总门面，提供一切与队列相关的操作接口。QueueManager中有一个成员变量$connectors，该成员变量中存储着所有Laravel支持的底层队列服务：“Database”,“Redis”,“Beanstalkd”,“SQS”。</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">QueueManager</span> <span class="keyword">implements</span> <span class="title">FactoryContract</span>, <span class="title">MonitorContract</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * The array of resolved queue connectors.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@var</span> array</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> $connectors = [];</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Add a queue connection resolver.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  string  $driver</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  \Closure  $resolver</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> void</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">addConnector</span><span class="params">($driver, Closure $resolver)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;connectors[$driver] = $resolver;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>成员变量$connectors会被存储各种驱动的connector，例如RedisConnector、SqsConnector、DatabaseConnector、BeanstalkdConnector。</p>
@@ -720,8 +723,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2020/05/13/Laravel-HTTP-Pipeline中间件处理源码分析/" rel="prev" title="Laravel HTTP-Pipeline中间件处理源码分析">
-                Laravel HTTP-Pipeline中间件处理源码分析 <i class="fa fa-chevron-right"></i>
+              <a href="/2020/05/12/Laravel-Queue-消息队列任务处理器源码剖析/" rel="prev" title="Laravel Queue-消息队列任务处理器源码剖析">
+                Laravel Queue-消息队列任务处理器源码剖析 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -793,7 +796,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">161</span>
+                    <span class="site-state-item-count">162</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -960,7 +963,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#背景知识"><span class="nav-number">2.</span> <span class="nav-text">背景知识</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis队列的数据结构"><span class="nav-number">2.1.</span> <span class="nav-text">Redis队列的数据结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Laravel队列服务的任务调度"><span class="nav-number">2.2.</span> <span class="nav-text">Laravel队列服务的任务调度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Laravel队列服务的总体流程"><span class="nav-number">2.3.</span> <span class="nav-text">Laravel队列服务的总体流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Laravel队列服务的注册与启动"><span class="nav-number">2.4.</span> <span class="nav-text">Laravel队列服务的注册与启动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#registerManager注册门面"><span class="nav-number">2.5.</span> <span class="nav-text">registerManager注册门面</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#registerConnection底层队列连接服务"><span class="nav-number">2.6.</span> <span class="nav-text">registerConnection底层队列连接服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#registerWorker消费者服务注册"><span class="nav-number">2.7.</span> <span class="nav-text">registerWorker消费者服务注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Laravel-Bus服务注册与启动"><span class="nav-number">2.8.</span> <span class="nav-text">Laravel Bus服务注册与启动</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#创建任务"><span class="nav-number">3.</span> <span class="nav-text">创建任务</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#queue设置"><span class="nav-number">3.1.</span> <span class="nav-text">queue设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#任务类的创建"><span class="nav-number">3.2.</span> <span class="nav-text">任务类的创建</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#任务事件"><span class="nav-number">4.</span> <span class="nav-text">任务事件</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#任务的分发"><span class="nav-number">5.</span> <span class="nav-text">任务的分发</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#分发服务"><span class="nav-number">5.1.</span> <span class="nav-text">分发服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#dispatch任务分发源码"><span class="nav-number">5.2.</span> <span class="nav-text">dispatch任务分发源码</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#背景知识"><span class="nav-number">2.</span> <span class="nav-text">背景知识</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis队列的数据结构"><span class="nav-number">2.1.</span> <span class="nav-text">Redis队列的数据结构</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Laravel队列服务的任务调度"><span class="nav-number">3.</span> <span class="nav-text">Laravel队列服务的任务调度</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Laravel队列服务的总体流程"><span class="nav-number">4.</span> <span class="nav-text">Laravel队列服务的总体流程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Laravel队列服务的注册与启动"><span class="nav-number">5.</span> <span class="nav-text">Laravel队列服务的注册与启动</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#registerManager注册门面"><span class="nav-number">5.1.</span> <span class="nav-text">registerManager注册门面</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#registerConnection底层队列连接服务"><span class="nav-number">5.2.</span> <span class="nav-text">registerConnection底层队列连接服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#registerWorker消费者服务注册"><span class="nav-number">5.3.</span> <span class="nav-text">registerWorker消费者服务注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Laravel-Bus服务注册与启动"><span class="nav-number">5.4.</span> <span class="nav-text">Laravel Bus服务注册与启动</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#创建任务"><span class="nav-number">6.</span> <span class="nav-text">创建任务</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#queue设置"><span class="nav-number">6.1.</span> <span class="nav-text">queue设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#任务类的创建"><span class="nav-number">6.2.</span> <span class="nav-text">任务类的创建</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#任务事件"><span class="nav-number">7.</span> <span class="nav-text">任务事件</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#任务的分发"><span class="nav-number">8.</span> <span class="nav-text">任务的分发</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#分发服务"><span class="nav-number">8.1.</span> <span class="nav-text">分发服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#dispatch任务分发源码"><span class="nav-number">8.2.</span> <span class="nav-text">dispatch任务分发源码</span></a></li></ol></li></ol></div>
             
 
           </div>
@@ -1006,7 +1009,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">26:45</span>
+    <span title="站点阅读时长">26:46</span>
   
 </div>
 
