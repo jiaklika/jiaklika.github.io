@@ -534,14 +534,12 @@
 <li>悲观并发控制实际上是“先取锁再访问”的保守策略，但影响效率。怎么理解？</li>
 </ul>
 <a id="more"></a>
-
 <p>来源：<a href="https://mp.weixin.qq.com/s/TZy8iIGDL3gHPhVxTnJDeQ" title="漫话：如何给女朋友解释什么是乐观锁与悲观锁" target="_blank" rel="noopener">漫话：如何给女朋友解释什么是乐观锁与悲观锁</a></p>
 <p>为什么加购物车的时候还有，但是付款的时候提示没有了呢？是因为下单减库存是用了乐观锁，属于并发控制的一种方式。</p>
 <h1 id="并发控制"><a href="#并发控制" class="headerlink" title="并发控制"></a>并发控制</h1><p>当程序中可能出现并发的情况时，我们就需要通过一定的手段来保证在并发情况下数据的准确性，通过这种手段保证了当用户和其他用户一起操作时，所得到的结果和他单独操作时得到的结果是一样的。</p>
 <p><span style="color:red;">这种手段就叫做并发控制。并发控制的目的是保证一个用户的工作不会对另一个用户的工作产生不合理的影响。</span></p>
 <p>没有做好并发控制，就可能导致脏读、幻读和不可重复读等问题。</p>
 <img src="/2019/05/23/MySQL乐观锁与悲观锁/1.webp">
-
 <p>我们常说的并发控制，一般都和数据库管理系统（DBMS）有关，在DBMS中的并发控制的任务是确保在多个事务同时存取数据库中同一数据时不破坏事务的隔离性和统一性以及数据库的统一性。</p>
 <p>实现并发控制的主要手段大致可以分为乐观并发控制和悲观并发控制两种。</p>
 <p>在开始介绍之前要明确一下：<span style="color:red;">无论是悲观锁还是乐观锁，都是人们定义出来的概念，可以认为是一种思想。</span>其实不仅仅是关系型数据库系统中有乐观锁和悲观锁的概念，像memcache、hibernate、tair等都有类似的概念。所以，不应该拿乐观锁、悲观锁和其他的数据库锁等进行对比。</p>
@@ -550,12 +548,10 @@
 <p><span style="color:red;">之所以叫做悲观锁，是因为这是一种对数据的修改抱有悲观态度的并发控制方式。我们一般认为数据被并发修改的概率比较大，所以需要在修改之前先加锁。</span></p>
 <p>悲观并发控制实际上是“先取锁再访问”的保守策略，为数据处理的安全提供了保证。</p>
 <img src="/2019/05/23/MySQL乐观锁与悲观锁/2.webp">
-
 <p><span style="color:red;">但是在效率方面，处理加锁的机制会让数据库产生额外的开销，还有增加产生死锁的机会；</span>另外，还会降低并行性，一个事务如果锁定了某行数据，其他事务就必须等待该事务处理完才可以处理那行数据。</p>
 <h1 id="乐观锁"><a href="#乐观锁" class="headerlink" title="乐观锁"></a>乐观锁</h1><p>乐观锁（ Optimistic Locking ） 是相对悲观锁而言的，乐观锁假设数据一般情况下不会造成冲突，所以在数据进行提交更新的时候，才会正式对数据的冲突与否进行检测，如果发现冲突了，则让返回用户错误的信息，让用户决定如何去做。</p>
 <p><span style="color:red;">相对于悲观锁，在对数据库进行处理的时候，乐观锁并不会使用数据库提供的锁机制。一般的实现乐观锁的方式就是记录数据版本。</span></p>
 <img src="/2019/05/23/MySQL乐观锁与悲观锁/3.webp">
-
 <p>乐观并发控制相信事务之间的数据竞争(data race)的概率是比较小的，因此尽可能直接做下去，直到提交的时候才去锁定，所以不会产生任何锁和死锁。</p>
 <h1 id="悲观锁实现方式"><a href="#悲观锁实现方式" class="headerlink" title="悲观锁实现方式"></a>悲观锁实现方式</h1><p>悲观锁的实现，往往依靠数据库提供的锁机制。在数据库中，悲观锁的流程如下：</p>
 <ul>
@@ -568,9 +564,7 @@
 <blockquote>
 <p>要使用悲观锁，我们必须关闭mysql数据库的自动提交属性，因为MySQL默认使用autocommit模式，也就是说，当你执行一个更新操作后，MySQL会立刻将结果进行提交。set autocommit=0;</p>
 </blockquote>
-<p>我们举一个简单的例子，如淘宝下单过程中扣减库存的需求说明一下如何使用悲观锁：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//0.开始事务</span><br><span class="line"><span class="keyword">begin</span>; </span><br><span class="line">//1.查询出商品库存信息</span><br><span class="line"><span class="keyword">select</span> quantity <span class="keyword">from</span> items <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span> <span class="keyword">for</span> <span class="keyword">update</span>;</span><br><span class="line">//2.修改商品库存为2</span><br><span class="line"><span class="keyword">update</span> items <span class="keyword">set</span> quantity=<span class="number">2</span> <span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">1</span>;</span><br><span class="line">//3.提交事务</span><br><span class="line"><span class="keyword">commit</span>;</span><br></pre></td></tr></table></figure>
-
+<p>我们举一个简单的例子，如淘宝下单过程中扣减库存的需求说明一下如何使用悲观锁：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//0.开始事务</span><br><span class="line"><span class="keyword">begin</span>; </span><br><span class="line">//1.查询出商品库存信息</span><br><span class="line"><span class="keyword">select</span> quantity <span class="keyword">from</span> items <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span> <span class="keyword">for</span> <span class="keyword">update</span>;</span><br><span class="line">//2.修改商品库存为2</span><br><span class="line"><span class="keyword">update</span> items <span class="keyword">set</span> quantity=<span class="number">2</span> <span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">1</span>;</span><br><span class="line">//3.提交事务</span><br><span class="line"><span class="keyword">commit</span>;</span><br></pre></td></tr></table></figure></p>
 <p>以上，在对id = 1的记录修改前，先通过for update的方式进行加锁，然后再进行修改。这就是比较典型的悲观锁策略。</p>
 <p>如果以上修改库存的代码发生并发，同一时间只有一个线程可以开启事务并获得id=1的锁，其它的事务必须等本次事务提交之后才能执行。这样我们可以保证当前的数据不会被其它事务修改。</p>
 <blockquote>
@@ -579,26 +573,18 @@
 <h1 id="乐观锁实现方式"><a href="#乐观锁实现方式" class="headerlink" title="乐观锁实现方式"></a>乐观锁实现方式</h1><p>使用乐观锁就不需要借助数据库的锁机制了。</p>
 <p>乐观锁的概念中其实已经阐述了他的具体实现细节：主要就是两个步骤：冲突检测和数据更新。其实现方式有一种比较典型的就是Compare and Swap(CAS)。</p>
 <p>CAS是项乐观锁技术，当多个线程尝试使用CAS同时更新同一个变量时，只有其中一个线程能更新变量的值，而其它线程都失败，失败的线程并不会被挂起，而是被告知这次竞争中失败，并可以再次尝试。</p>
-<p>比如前面的扣减库存问题，通过乐观锁可以实现如下：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//查询出商品库存信息，quantity = 3</span><br><span class="line"><span class="keyword">select</span> quantity <span class="keyword">from</span> items <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span></span><br><span class="line">//修改商品库存为<span class="number">2</span></span><br><span class="line"><span class="keyword">update</span> items <span class="keyword">set</span> quantity=<span class="number">2</span> <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span> <span class="keyword">and</span> quantity = <span class="number">3</span>;</span><br></pre></td></tr></table></figure>
-
+<p>比如前面的扣减库存问题，通过乐观锁可以实现如下：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//查询出商品库存信息，quantity = 3</span><br><span class="line"><span class="keyword">select</span> quantity <span class="keyword">from</span> items <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span></span><br><span class="line">//修改商品库存为<span class="number">2</span></span><br><span class="line"><span class="keyword">update</span> items <span class="keyword">set</span> quantity=<span class="number">2</span> <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span> <span class="keyword">and</span> quantity = <span class="number">3</span>;</span><br></pre></td></tr></table></figure></p>
 <p>以上，我们在更新之前，先查询一下库存表中当前库存数（quantity），然后在做update的时候，以库存数作为一个修改条件。当我们提交更新的时候，判断数据库表对应记录的当前库存数与第一次取出来的库存数进行比对，如果数据库表当前库存数与第一次取出来的库存数相等，则予以更新，否则认为是过期数据。</p>
 <p>以上更新语句存在一个比较重要的问题，即传说中的ABA问题。</p>
 <p>比如说一个线程one从数据库中取出库存数3，这时候另一个线程two也从数据库中库存数3，并且two进行了一些操作变成了2，然后two又将库存数变成3，这时候线程one进行CAS操作发现数据库中仍然是3，然后one操作成功。尽管线程one的CAS操作成功，但是不代表这个过程就是没有问题的。</p>
 <img src="/2019/05/23/MySQL乐观锁与悲观锁/4.webp">
-
-<p>有一个比较好的办法可以解决ABA问题，那就是通过一个单独的可以顺序递增的version字段。改为以下方式即可：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//查询出商品信息，version = 1</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">version</span> <span class="keyword">from</span> items <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span></span><br><span class="line">//修改商品库存为<span class="number">2</span></span><br><span class="line"><span class="keyword">update</span> items <span class="keyword">set</span> quantity=<span class="number">2</span>,<span class="keyword">version</span> = <span class="number">3</span> <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span> <span class="keyword">and</span> <span class="keyword">version</span> = <span class="number">2</span>;</span><br></pre></td></tr></table></figure>
-
+<p>有一个比较好的办法可以解决ABA问题，那就是通过一个单独的可以顺序递增的version字段。改为以下方式即可：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//查询出商品信息，version = 1</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">version</span> <span class="keyword">from</span> items <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span></span><br><span class="line">//修改商品库存为<span class="number">2</span></span><br><span class="line"><span class="keyword">update</span> items <span class="keyword">set</span> quantity=<span class="number">2</span>,<span class="keyword">version</span> = <span class="number">3</span> <span class="keyword">where</span> <span class="keyword">id</span>=<span class="number">1</span> <span class="keyword">and</span> <span class="keyword">version</span> = <span class="number">2</span>;</span><br></pre></td></tr></table></figure></p>
 <p>乐观锁每次在执行数据的修改操作时，都会带上一个版本号，一旦版本号和数据的版本号一致就可以执行修改操作并对版本号执行+1操作，否则就执行失败。因为每次操作的版本号都会随之增加，所以不会出现ABA问题，因为版本号只会增加不会减少。</p>
 <img src="/2019/05/23/MySQL乐观锁与悲观锁/5.webp">
-
 <p>除了version以外，还可以使用时间戳，因为时间戳天然具有顺序递增性。</p>
 <p>以上SQL其实还是有一定的问题的，就是<span style="color:red;">一旦发上高并发的时候，就只有一个线程可以修改成功，那么就会存在大量的失败。</span></p>
 <p>对于像淘宝这样的电商网站，高并发是常有的事，总让用户感知到失败显然是不合理的。所以，还是要想办法减少乐观锁的粒度的。</p>
-<p>有一条比较好的建议，可以减小乐观锁力度，最大程度的提升吞吐率，提高并发能力！如下：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//修改商品库存</span><br><span class="line"><span class="keyword">update</span> item </span><br><span class="line"><span class="keyword">set</span> quantity=quantity - <span class="number">1</span> </span><br><span class="line"><span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">1</span> <span class="keyword">and</span> quantity - <span class="number">1</span> &gt; <span class="number">0</span></span><br></pre></td></tr></table></figure>
-
+<p>有一条比较好的建议，可以减小乐观锁力度，最大程度的提升吞吐率，提高并发能力！如下：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//修改商品库存</span><br><span class="line"><span class="keyword">update</span> item </span><br><span class="line"><span class="keyword">set</span> quantity=quantity - <span class="number">1</span> </span><br><span class="line"><span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">1</span> <span class="keyword">and</span> quantity - <span class="number">1</span> &gt; <span class="number">0</span></span><br></pre></td></tr></table></figure></p>
 <p>以上SQL语句中，如果用户下单数为1，则通过quantity - 1 &gt; 0的方式进行乐观锁控制。</p>
 <p>以上update语句，在执行过程中，会在一次原子操作中自己查询一遍quantity的值，并将其扣减掉1。</p>
 <p><span style="color:red;">高并发环境下锁粒度把控是一门重要的学问，选择一个好的锁，在保证数据安全的情况下，可以大大提升吞吐率，进而提升性能。</span></p>
@@ -725,7 +711,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -868,6 +854,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -881,10 +871,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -956,7 +942,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1419,6 +1405,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

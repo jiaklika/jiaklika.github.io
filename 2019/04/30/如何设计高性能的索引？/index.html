@@ -539,40 +539,43 @@
 <li>回表就是通过辅助索引拿到主键id之后，要再去遍历聚集索引的B+树，这个过程就叫做回表。怎么理解？</li>
 </ul>
 <a id="more"></a>
-
 <p>上回我们主要研究了为什么使用索引，以及索引的数据结构。今天带你了解如何设计高性能的索引。</p>
 <p>其中，有这么一个点，说的是InnoDB引擎中使用的是聚簇索引，其主索引的实现树中的叶子结点存储的是完整的数据记录，而辅助索引中存储的则只是辅助键和主键的值。</p>
 <p>这样在用辅助索引进行查询时，会先查出主键的值，然后再去主索引中根据主键的值查询目标值。</p>
 <p>比如，假想一个表如下图存储了4行数据。其中Id作为主索引，Name作为辅助索引。</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
-<th align="left"><strong><center>Id</center></strong></th>
-<th align="left"><strong><center>Name</center></strong></th>
-<th align="left"><strong><center>Company</center></strong></th>
+<th style="text-align:left"><strong><center>Id</center></strong></th>
+<th style="text-align:left"><strong><center>Name</center></strong></th>
+<th style="text-align:left"><strong><center>Company</center></strong></th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="left">5</td>
-<td align="left">Gates</td>
-<td align="left">Microsoft</td>
+<tbody>
+<tr>
+<td style="text-align:left">5</td>
+<td style="text-align:left">Gates</td>
+<td style="text-align:left">Microsoft</td>
 </tr>
 <tr>
-<td align="left">7</td>
-<td align="left">Bezos</td>
-<td align="left">Amazon</td>
+<td style="text-align:left">7</td>
+<td style="text-align:left">Bezos</td>
+<td style="text-align:left">Amazon</td>
 </tr>
 <tr>
-<td align="left">11</td>
-<td align="left">Jobs</td>
-<td align="left">Apple</td>
+<td style="text-align:left">11</td>
+<td style="text-align:left">Jobs</td>
+<td style="text-align:left">Apple</td>
 </tr>
 <tr>
-<td align="left">14</td>
-<td align="left">Ellison</td>
-<td align="left">Oracle</td>
+<td style="text-align:left">14</td>
+<td style="text-align:left">Ellison</td>
+<td style="text-align:left">Oracle</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <p>对于聚簇索引，若使用主键索引进行查询，select * from tab where id = 14;这样的条件查找主键，则按照B+树的检索算法即可查找到对应的叶节点，之后获得行数据。</p>
 <p>若使用辅助索引进行查询，对Name列进行条件搜索，则需要两个步骤：</p>
 <ul>
@@ -581,7 +584,6 @@
 </ul>
 <p>上面这个过程称为<span style="color:red">回表</span>。</p>
 <img src="/2019/04/30/如何设计高性能的索引？/1.jpeg">
-
 <p><span style="color:red">回表：在数据中，当查询数据的时候，在索引中查找索引后，获得该行的rowid，根据rowid再查询表中数据，就是回表。</span></p>
 <p>显然，使用辅助索引出现了回表操作，这势必会影响查询性能，那有什么办法能够减少回表吗？</p>
 <h1 id="覆盖索引"><a href="#覆盖索引" class="headerlink" title="覆盖索引"></a><span style="color:#339AFF;">覆盖索引</span></h1><p>上面，我们查询的是select *，如果是根据Name查询Id呢？即select Id from tab where Name=’Jobs’。</p>
@@ -603,16 +605,11 @@
 <p>但是(col2,col3)上并没有。</p>
 <p>假定数据表有一个包含2列的联合索引（a, b），则索引的B+树结构可能如下：</p>
 <img src="/2019/04/30/如何设计高性能的索引？/2.jpeg">
-
 <p>键值都是排序的，通过叶子节点可以逻辑上顺序的读出所有数据。</p>
 <p>数据（1,1）（1,2）（2,1）（2,4）（3,1）（3,2）是按照（a，b）先比较a再比较b的顺序排列。</p>
 <p>所以从全局看，a是全局有序的，而b则不是。</p>
-<p>基于上面的结构，对于以下查询显然是可以使用（a，b）这个联合索引的：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> a=xxx <span class="keyword">and</span> b=xxx ;</span><br><span class="line"></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> a=xxx;</span><br></pre></td></tr></table></figure>
-
-<p>但是对于下面的sql是不能使用这个联合索引的，因为叶子节点的b值，1,2,1,4,1,2显然不是排序的。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> b=xxx</span><br></pre></td></tr></table></figure>
-
+<p>基于上面的结构，对于以下查询显然是可以使用（a，b）这个联合索引的：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> a=xxx <span class="keyword">and</span> b=xxx ;</span><br><span class="line"></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> a=xxx;</span><br></pre></td></tr></table></figure></p>
+<p>但是对于下面的sql是不能使用这个联合索引的，因为叶子节点的b值，1,2,1,4,1,2显然不是排序的。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">table</span> <span class="keyword">where</span> b=xxx</span><br></pre></td></tr></table></figure></p>
 <p>只要满足最左前缀，就可以利用索引来加速检索。这个最左前缀可以是联合索引的最左N个字段，也可以是字符串索引的最左M个字符。</p>
 <p><strong>注意</strong></p>
 <p>1、主键字段其实跟所有非主键索引建立了联合索引，只是说如果主键字段没有在联合索引中明确声明，只会在其他索引中处于最右边；</p>
@@ -638,21 +635,17 @@
 <p>存储引擎使用索引过滤不相关的数据，仅返回符合index condition条件的数据给server层。也是说数据过滤尽可能存储引擎层进行，而不是返回所有数据给server层，然后后再根据where条件进行过滤。</p>
 <h2 id="下推过程"><a href="#下推过程" class="headerlink" title="下推过程"></a><span style="color:#00ACC1;">下推过程</span></h2><p>优化器没有使用ICP时，数据访问和提取的过程如下：</p>
 <img src="/2019/04/30/如何设计高性能的索引？/3.jpeg">
-
 <p>①：MySQL Server发出读取数据的命令，调用存储引擎的索引读或全表表读。此处进行的是索引读。</p>
 <p>②、③：进入存储引擎，读取索引树，在索引树上查找，把满足条件的（红色的）从表记录中读出（步骤④，通常有IO）。</p>
 <p>⑤：从存储引擎返回标识的结果。</p>
 <p>以上，不仅要在索引行进行索引读取（通常是内存中，速度快。步骤③），还要进行进行步骤④，通常有IO。</p>
 <p>⑥：从存储引擎返回查找到的多条数据给MySQL Server，MySQL Server在⑦得到较多的元组。</p>
-<p>⑦–⑧：依据WHERE子句条件进行过滤，得到满足条件的数据。</p>
+<p>⑦—⑧：依据WHERE子句条件进行过滤，得到满足条件的数据。</p>
 <p>注意在MySQL Server层得到较多数据，然后才过滤，最终得到的是少量的、符合条件的数据。</p>
 <img src="/2019/04/30/如何设计高性能的索引？/4.jpeg">
-
 <p>在不支持ICP的系统下，索引仅仅作为data access使用。</p>
 <p>优化器使用ICP时：</p>
 <img src="/2019/04/30/如何设计高性能的索引？/5.jpeg">
-
-
 <p>①：MySQL Server发出读取数据的命令，过程同图一。</p>
 <p>②、③：进入存储引擎，读取索引树，在索引树上查找，把满足已经下推的条件的（红色的）从表记录中读出（步骤 ④，通常有 IO）；</p>
 <p>⑤：从存储引擎返回标识的结果。</p>
@@ -660,12 +653,9 @@
 <p>⑥：从存储引擎返回查找到的少量数据给MySQL Server，MySQL Server在⑦得到少量的数据。</p>
 <p>因此比较图一无ICP的方式，返回给MySQL Server层的即是少量的、 符合条件的数据。</p>
 <img src="/2019/04/30/如何设计高性能的索引？/6.jpeg">
-
 <p>在ICP优化开启时，在存储引擎端首先用索引过滤可以过滤的where条件，然后再用索引做data access，被index condition过滤掉的数据不必读取，也不会返回server端。</p>
 <p><strong>举例</strong></p>
-<p>比如：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> employees <span class="keyword">WHERE</span> first_name=<span class="string">'Mary'</span> <span class="keyword">AND</span> last_name <span class="keyword">LIKE</span> <span class="string">'%man'</span>;</span><br></pre></td></tr></table></figure>
-
+<p>比如：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> employees <span class="keyword">WHERE</span> first_name=<span class="string">'Mary'</span> <span class="keyword">AND</span> last_name <span class="keyword">LIKE</span> <span class="string">'%man'</span>;</span><br></pre></td></tr></table></figure></p>
 <p>在没有ICP时，首先通过索引前缀从存储引擎中读出所有first_name为Mary的记录，然后在server端用where筛选last_name的like条件；</p>
 <p>而启用ICP后，由于last_name的like筛选可以通过索引字段进行，那么存储引擎内部通过索引与where条件的对比来筛选掉不符合where条件的记录，这个过程不需要读出整条记录，同时只返回给server筛选后条记录，因此提高了查询性能。</p>
 <p><strong>注意事项</strong></p>
@@ -802,7 +792,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -945,6 +935,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -958,10 +952,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -1033,7 +1023,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1496,6 +1486,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

@@ -525,7 +525,6 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-
 <p>适合和一起查看。</p>
 <h1 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h1><p>AOP为Aspect Oriented Programming的缩写，意为：面向切面编程，通过动态代理等技术实现程序功能的统一维护的一种技术。AOP 是 OOP 的延续，也是 Hyperf 中的一个重要内容，是函数式编程的一种衍生范型。利用 AOP 可以对业务逻辑的各个部分进行隔离，从而使得业务逻辑各部分之间的耦合度降低，提高程序的可重用性，同时提高了开发的效率。</p>
 <p>用通俗的话来讲，就是在Hyperf里可以通过切面(Aspect) 介入到由hyperf/di管理的任意类的任意方法的执行流程中去，从而改变或加强原方法的功能，这就是 AOP。</p>
@@ -533,7 +532,6 @@
 <h1 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h1><p>相对于其它框架实现的 AOP 功能的使用方式，我们进一步简化了该功能的使用不做过细的划分，仅存在 环绕(Around) 一种通用的形式：</p>
 <p>切面(Aspect) 为对流程织入的定义类，包括要介入的目标，以及实现对原方法的修改加强处理<br>代理类(ProxyClass) ，每个被介入的目标类最终都会生成一个代理类，来达到执行 切面(Aspect) 方法的目的，而非通过原类<br>定义切面(Aspect)<br>每个切面(Aspect) 必须实现 Hyperf\Di\Aop\AroundInterface 接口，并提供public的$classes和$annotations 属性，为了方便使用，我们可以通过继承 Hyperf\Di\Aop\AbstractAspect 来简化定义过程，我们通过代码来描述一下。</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">App</span>\<span class="title">Aspect</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> <span class="title">App</span>\<span class="title">Service</span>\<span class="title">SomeClass</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">App</span>\<span class="title">Annotation</span>\<span class="title">SomeAnnotation</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Hyperf</span>\<span class="title">Di</span>\<span class="title">Annotation</span>\<span class="title">Aspect</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Hyperf</span>\<span class="title">Di</span>\<span class="title">Aop</span>\<span class="title">AbstractAspect</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Hyperf</span>\<span class="title">Di</span>\<span class="title">Aop</span>\<span class="title">ProceedingJoinPoint</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Aspect</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FooAspect</span> <span class="keyword">extends</span> <span class="title">AbstractAspect</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="comment">// 要切入的类，可以多个，亦可通过 :: 标识到具体的某个方法，通过 * 可以模糊匹配</span></span><br><span class="line">    <span class="keyword">public</span> $classes = [</span><br><span class="line">        SomeClass::class,</span><br><span class="line">        <span class="string">'App\Service\SomeClass::someMethod'</span>,</span><br><span class="line">        <span class="string">'App\Service\SomeClass::*Method'</span>,</span><br><span class="line">    ];</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 要切入的注解，具体切入的还是使用了这些注解的类，仅可切入类注解和类方法注解</span></span><br><span class="line">    <span class="keyword">public</span> $annotations = [</span><br><span class="line">        SomeAnnotation::class,</span><br><span class="line">    ];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">process</span><span class="params">(ProceedingJoinPoint $proceedingJoinPoint)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="comment">// 切面切入后，执行对应的方法会由此来负责</span></span><br><span class="line">        <span class="comment">// $proceedingJoinPoint 为连接点，通过该类的 process() 方法调用原方法并获得结果</span></span><br><span class="line">        <span class="comment">// 在调用前进行某些处理</span></span><br><span class="line">        $result = $proceedingJoinPoint-&gt;process();</span><br><span class="line">        <span class="comment">// 在调用后进行某些处理</span></span><br><span class="line">        <span class="keyword">return</span> $result;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p>每个 切面(Aspect) 必须定义 @Aspect 注解或在 config/autoload/aspects.php 内配置均可发挥作用。</p>
 <p>使用 @Aspect 注解时需 use Hyperf\Di\Annotation\Aspect; 命名空间；</p>
 <h1 id="代理类缓存"><a href="#代理类缓存" class="headerlink" title="代理类缓存"></a>代理类缓存</h1><p>所有被 AOP 影响的类，都会在./runtime/container/proxy/文件夹内生成对应的代理类缓存，服务启动时，如果类所对应的代理类缓存存在，则不会重新生成直接使用缓存，即使Aspect的切入范围发生了改变。不存在时，则会自动重新生成新的代理类缓存。</p>
@@ -658,7 +656,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -801,6 +799,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -814,10 +816,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -889,7 +887,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1352,6 +1350,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

@@ -512,7 +512,6 @@
 <li>什么是幻读？</li>
 </ul>
 <a id="more"></a>
-
 <p>“读现象”是多个事务并发执行时，在读取数据方面可能碰到的状况。了解它们有助于理解各隔离级别的含义。其中包括脏读、不可重复读和幻读。</p>
 <h1 id="事务隔离级别"><a href="#事务隔离级别" class="headerlink" title="事务隔离级别"></a><span style="color:#339AFF;">事务隔离级别</span></h1><p>在数据库中，事务是要满足ACID的，即满足原子性、一致性、持久性以及隔离性。</p>
 <p>在数据库事务的ACID四个属性中，隔离性是一个最常放松的一个。可以在数据操作过程中利用数据库的锁机制或者多版本并发控制机制获取更高的隔离等级。</p>
@@ -576,14 +575,12 @@
 </ul>
 <h1 id="InnoDB-常见的几种锁机制"><a href="#InnoDB-常见的几种锁机制" class="headerlink" title="InnoDB 常见的几种锁机制"></a>InnoDB 常见的几种锁机制</h1><p>1、共享锁和独占锁（Shared and Exclusive Locks），InnoDB通过共享锁和独占所两种方式实现了标准的行锁。共享锁（S锁）：允许事务获得锁后去读数据，独占锁（X锁）：允许事务获得锁后去更新或删除数据。一个事务获取的共享锁S后，允许其他事务获取S锁，此时两个事务都持有共享锁 S，但是不允许其他事务获取X锁。如果一个事务获取的独占锁（X），则不允许其他事务获取S或者X锁，必须等到该事务释放锁后才可以获取到。大家可以通过下面的SQL感受下。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># T1</span></span><br><span class="line"><span class="keyword">START</span> <span class="keyword">TRANSACTION</span> <span class="keyword">WITH</span> <span class="keyword">CONSISTENT</span> <span class="keyword">SNAPSHOT</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">category</span> <span class="keyword">WHERE</span> category_no = <span class="number">2</span> <span class="keyword">lock</span> <span class="keyword">in</span> <span class="keyword">SHARE</span> <span class="keyword">mode</span>; <span class="comment">#共享锁</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">category</span> <span class="keyword">WHERE</span> category_no = <span class="number">2</span> <span class="keyword">for</span> <span class="keyword">UPDATE</span>; <span class="comment">#独占锁</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment"># T2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">START</span> <span class="keyword">TRANSACTION</span> <span class="keyword">WITH</span> <span class="keyword">CONSISTENT</span> <span class="keyword">SNAPSHOT</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">category</span> <span class="keyword">WHERE</span> category_no = <span class="number">2</span> <span class="keyword">lock</span> <span class="keyword">in</span> <span class="keyword">SHARE</span> <span class="keyword">mode</span>; <span class="comment">#共享锁</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">UPDATE</span> <span class="keyword">category</span> <span class="keyword">set</span> category_name = <span class="string">'动漫'</span> <span class="keyword">WHERE</span> category_no = <span class="number">2</span>; <span class="comment">#独占锁</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br></pre></td></tr></table></figure>
-
 <p>意向锁（Intention Locks），上面说过InnoDB支持行锁和表锁，意向锁是一种表级锁，用来指示接下来的一个事务将要获取的是什么类型的锁（共享还是独占）。意向锁分为意向共享锁（IS）和意向独占锁（IX），依次表示接下来一个事务将会获得共享锁或者独占锁。意向锁不需要显示的获取，在我们获取共享锁或者独占锁的时候会自动的获取，意思也就是说，如果要获取共享锁或者独占锁，则一定是先获取到了意向共享锁或者意向独占锁。 意向锁不会锁住任何东西，除非有进行全表请求的操作，否则不会锁住任何数据。存在的意义只是用来表示有事务正在锁某一行的数据，或者将要锁某一行的数据。<br>原文：Intention locks are table-level locks that indicate which type of lock （shared or exclusive） a transaction requires later for a row in a table.</p>
 <p>记录锁（record Locks），锁住某一行，如果表存在索引，那么记录锁是锁在索引上的，如果表没有索引，那么InnoDB会创建一个隐藏的聚簇索引加锁。所以我们在进行查询的时候尽量采用索引进行查询，这样可以降低锁的冲突。</p>
 <p>间隙锁（Gap Locks），间隙锁是一种记录行与记录行之间存在空隙或在第一行记录之前或最后一行记录之后产生的锁。间隙锁可能占据的单行，多行或者是空记录。通常的情况是我们采用范围查找的时候，比如在学生成绩管理系统中，如果此时有学生成绩60，72，80，95，一个老师要查下成绩大于72的所有同学的信息，采用的语句是select * from student where grade &gt; 72 for update，这个时候InnoDB锁住的不仅是80，95，而是所有在72-80，80-95，以及95以上的所有记录。为什么会这样呢？实际上是因为如果不锁住这些行，那么如果另一个事务在此时插入了一条分数大于72的记录，那会导致第一次的事务两次查询的结果不一样，出现了幻读。所以为了在满足事务隔离级别的情况下需要锁住所有满足条件的行。</p>
 <p>Next-Key Locks，NK 是一种记录锁和间隙锁的组合锁。是2和3的组合形式，既锁住行也锁住间隙。并且采用的左开右闭的原则。InnoDB对于查询都是采用这种锁的。</p>
 <p>举个例子</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`a`</span> </span><br><span class="line">(</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">int</span>(<span class="number">10</span>) <span class="keyword">unsigned</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  <span class="string">`uid`</span> <span class="built_in">int</span>(<span class="number">10</span>) <span class="keyword">unsigned</span> <span class="keyword">DEFAULT</span> <span class="literal">NULL</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>),</span><br><span class="line">  <span class="keyword">KEY</span> <span class="string">`idx_uid`</span> (<span class="string">`uid`</span>) <span class="keyword">USING</span> BTREE</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span> AUTO_INCREMENT=<span class="number">1</span> <span class="keyword">DEFAULT</span> <span class="keyword">CHARSET</span>=utf8;</span><br><span class="line"></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`a`</span>(uid) <span class="keyword">VALUES</span> (<span class="number">1</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`a`</span>(uid) <span class="keyword">VALUES</span> (<span class="number">2</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`a`</span>(uid) <span class="keyword">VALUES</span> (<span class="number">3</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`a`</span>(uid) <span class="keyword">VALUES</span> (<span class="number">6</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="string">`a`</span>(uid) <span class="keyword">VALUES</span> (<span class="number">10</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment"># T1</span></span><br><span class="line"><span class="keyword">START</span> <span class="keyword">TRANSACTION</span> <span class="keyword">WITH</span> <span class="keyword">CONSISTENT</span> <span class="keyword">SNAPSHOT</span>; //1</span><br><span class="line"></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> a <span class="keyword">WHERE</span> uid = <span class="number">6</span> <span class="keyword">for</span> <span class="keyword">UPDATE</span>; //2</span><br><span class="line"></span><br><span class="line"><span class="keyword">COMMIT</span>;  //5</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># T2</span></span><br><span class="line"><span class="keyword">START</span> <span class="keyword">TRANSACTION</span> <span class="keyword">WITH</span> <span class="keyword">CONSISTENT</span> <span class="keyword">SNAPSHOT</span>;  //3</span><br><span class="line"></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INto</span> a(uid) <span class="keyword">VALUES</span>(<span class="number">11</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INto</span> a(uid) <span class="keyword">VALUES</span>(<span class="number">5</span>);  //4</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INto</span> a(uid) <span class="keyword">VALUES</span>(<span class="number">7</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INto</span> a(uid) <span class="keyword">VALUES</span>(<span class="number">8</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INto</span> a(uid) <span class="keyword">VALUES</span>(<span class="number">9</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> a <span class="keyword">WHERE</span> uid = <span class="number">6</span> <span class="keyword">for</span> <span class="keyword">UPDATE</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">ROLLBACK</span>;</span><br></pre></td></tr></table></figure>
-
 <p>按照上面 1，2，3，4的顺序执行会发现第4步被阻塞了，必须执行完第 5 步后才能插入成功。这里我们会很奇怪明明锁住的是uid=6的这一行，为什么不能插入 5 呢？原因就是这里采用了next-key的算法，锁住的是（3,10）整个区间。感兴趣的可以试一下。</p>
 
       
@@ -704,7 +701,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -847,6 +844,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -860,10 +861,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -935,7 +932,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1398,6 +1395,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

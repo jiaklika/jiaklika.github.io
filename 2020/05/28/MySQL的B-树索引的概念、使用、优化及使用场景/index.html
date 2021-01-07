@@ -525,64 +525,62 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-
 <h1 id="索引的管理"><a href="#索引的管理" class="headerlink" title="索引的管理"></a><span style="color:#339AFF;">索引的管理</span></h1><p>索引有很多种类型：普通索引、唯一索引、主键索引、组合索引、全文索引。</p>
 <p><strong>使用SHOW INDEX命令查看索引信息</strong></p>
 <p>如果想要查看表中的索引信息，可以使用命令SHOW INDEX，下面的例子，我们查看表table_index的索引信息。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SHOW</span> <span class="keyword">INDEX</span> <span class="keyword">FROM</span> table_index\G;</span><br></pre></td></tr></table></figure>
 
-
-
 <p>得到上面的信息，上面的信息什么意思呢？我们逐一介绍！</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
-<th align="left"><strong><center>字段</center></strong></th>
-<th align="left"><strong><center>解释</center></strong></th>
+<th style="text-align:left"><strong><center>字段</center></strong></th>
+<th style="text-align:left"><strong><center>解释</center></strong></th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="left">Table</td>
-<td align="left">索引所在的表</td>
+<tbody>
+<tr>
+<td style="text-align:left">Table</td>
+<td style="text-align:left">索引所在的表</td>
 </tr>
 <tr>
-<td align="left">Non_unique</td>
-<td align="left">非唯一索引，如果是0，代表唯一的，也就是说如果该列索引中不包括重复的值则为0，否则为1</td>
+<td style="text-align:left">Non_unique</td>
+<td style="text-align:left">非唯一索引，如果是0，代表唯一的，也就是说如果该列索引中不包括重复的值则为0，否则为1</td>
 </tr>
 <tr>
-<td align="left">Key_name</td>
-<td align="left">索引的名字，如果是主键的话，则为PRIMARY</td>
+<td style="text-align:left">Key_name</td>
+<td style="text-align:left">索引的名字，如果是主键的话，则为PRIMARY</td>
 </tr>
 <tr>
-<td align="left">Seq_in_index</td>
-<td align="left">索引中该列的位置，从1开始，如果是组合索引，那么按照字段在建立索引时的顺序排列</td>
+<td style="text-align:left">Seq_in_index</td>
+<td style="text-align:left">索引中该列的位置，从1开始，如果是组合索引，那么按照字段在建立索引时的顺序排列</td>
 </tr>
 <tr>
-<td align="left">Collation</td>
-<td align="left">列是以什么方式存储在索引中的。可以是A或者NULL，B+树索引总是A，排序的</td>
+<td style="text-align:left">Collation</td>
+<td style="text-align:left">列是以什么方式存储在索引中的。可以是A或者NULL，B+树索引总是A，排序的</td>
 </tr>
 <tr>
-<td align="left">Sub_part</td>
-<td align="left">是否列的部分被索引，如果只是前100行索引，就显示100，如果是整列，就显示NULL</td>
+<td style="text-align:left">Sub_part</td>
+<td style="text-align:left">是否列的部分被索引，如果只是前100行索引，就显示100，如果是整列，就显示NULL</td>
 </tr>
 <tr>
-<td align="left">Packed</td>
-<td align="left">关键字是否被压缩，如果没有，为NULL</td>
+<td style="text-align:left">Packed</td>
+<td style="text-align:left">关键字是否被压缩，如果没有，为NULL</td>
 </tr>
 <tr>
-<td align="left">Index_type</td>
-<td align="left">索引的类型，对于InnoDB只支持B+树索引，所以都是显示BTREE</td>
+<td style="text-align:left">Index_type</td>
+<td style="text-align:left">索引的类型，对于InnoDB只支持B+树索引，所以都是显示BTREE</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <h2 id="Cardinality关键字解析"><a href="#Cardinality关键字解析" class="headerlink" title="Cardinality关键字解析"></a><span style="color:#00ACC1;">Cardinality关键字解析</span></h2><p>在上面介绍了那么多个关键字的意思，但是Cardinality这个关键字非常的关键，优化器会根据这个值来判断是否使用这个索引。在B+树索引中，只有高选择性的字段才是有意义的，高选择性就是这个字段的取值范围很广，比如姓名字段，会有很多的名字，可选择性就高了。</p>
 <p>一般来说，判断是否需要使用索引，就可以通过Cardinality关键字来判断，如果非常接近1，说明有必要使用，如果非常小，那么就要考虑是否使用索引了。</p>
 <p>需要注意的一个问题是，这个关键字不是及时更新的，需要更新的话，需要使用ANALYZE TABLE，例如</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">analyze</span> <span class="keyword">table</span> table_index;</span><br></pre></td></tr></table></figure>
 
-
-
 <p>因为目前没有数据，所以，你会发现，这个值一直都是0，没有变化。</p>
-
 
 <p><strong>InoDB存储引擎Cardinality的策略</strong></p>
 <p>在InnoDB存储引擎中，这个关键字的更新发生在两个操作中：insert和update。但是，并不是每次都会更新，这样会增加负荷，所以，对于这个关键字的更新有它的策略：</p>
@@ -603,7 +601,6 @@
 <h2 id="在线数据定义"><a href="#在线数据定义" class="headerlink" title="在线数据定义"></a>在线数据定义</h2><p>MySQL5.6开始支持的在线数据定义操作就是：允许辅助索引创建的同时，还允许其他insert、update、delete这类DM操作，这就极大提高了数据库的可用性。</p>
 <p>所以，我们可以使用新的语法进行创建索引：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> table_name <span class="keyword">ADD</span> [<span class="keyword">UNIQUE</span>|FULLLTEXT] <span class="keyword">INDEX</span> index_name (<span class="keyword">column</span>(<span class="keyword">length</span>))</span><br><span class="line">[ALGORITHM = &#123;<span class="keyword">DEFAULT</span>|INPLACE|COPY&#125;]</span><br><span class="line">[<span class="keyword">LOCK</span> = &#123;<span class="keyword">DEFAULT</span>|<span class="keyword">NONE</span>|<span class="keyword">SHARED</span>|EXLUSIVE&#125;]</span><br></pre></td></tr></table></figure>
-
 <p>ALGORITHM指定创建或者删除索引的算法</p>
 <ul>
 <li>COPY：创建临时表的方式</li>
@@ -620,13 +617,10 @@
 <h1 id="B-树索引的使用"><a href="#B-树索引的使用" class="headerlink" title="B+树索引的使用"></a>B+树索引的使用</h1><h2 id="联合索引"><a href="#联合索引" class="headerlink" title="联合索引"></a>联合索引</h2><p>联合索引是指对表上的多个列进行索引，这一部分我们将通过几个例子来讲解联合索引的相关知识点。</p>
 <p>首先，我们先创建一张表以及为这张表创建联合索引。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> t_index(</span><br><span class="line">a <span class="built_in">char</span>(<span class="number">2</span>) <span class="keyword">not</span> <span class="literal">null</span> <span class="keyword">default</span> <span class="string">''</span>,</span><br><span class="line">b <span class="built_in">char</span>(<span class="number">2</span>) <span class="keyword">not</span> <span class="literal">null</span> <span class="keyword">default</span> <span class="string">''</span>,</span><br><span class="line">c <span class="built_in">char</span>(<span class="number">2</span>) <span class="keyword">not</span> <span class="literal">null</span> <span class="keyword">default</span> <span class="string">''</span>,</span><br><span class="line">d <span class="built_in">char</span>(<span class="number">2</span>) <span class="keyword">not</span> <span class="literal">null</span> <span class="keyword">default</span> <span class="string">''</span></span><br><span class="line">)<span class="keyword">engine</span> myisam <span class="keyword">charset</span> utf8;</span><br></pre></td></tr></table></figure>
-
 <p>创建联合索引</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> t_index <span class="keyword">add</span> <span class="keyword">index</span> abcd(a,b,c,d);</span><br></pre></td></tr></table></figure>
-
 <p>插入几条测试数据</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> t_index <span class="keyword">values</span>(<span class="string">'a'</span>,<span class="string">'b'</span>,<span class="string">'c'</span>,<span class="string">'d'</span>),</span><br><span class="line">(<span class="string">'a2'</span>,<span class="string">'b2'</span>,<span class="string">'c2'</span>,<span class="string">'d2'</span>),</span><br><span class="line">(<span class="string">'a3'</span>,<span class="string">'b3'</span>,<span class="string">'c3'</span>,<span class="string">'d3'</span>),</span><br><span class="line">(<span class="string">'a4'</span>,<span class="string">'b4'</span>,<span class="string">'c4'</span>,<span class="string">'d4'</span>),</span><br><span class="line">(<span class="string">'a5'</span>,<span class="string">'b5'</span>,<span class="string">'c5'</span>,<span class="string">'d5'</span>),</span><br><span class="line">(<span class="string">'a6'</span>,<span class="string">'b6'</span>,<span class="string">'c6'</span>,<span class="string">'d6'</span>);</span><br></pre></td></tr></table></figure>
-
 <p>到这一步，我们已经基本准备好了需要的数据，我们可以进行更深一步的联合索引的探讨。</p>
 <h2 id="我们什么时候需要创建联合索引呢"><a href="#我们什么时候需要创建联合索引呢" class="headerlink" title="我们什么时候需要创建联合索引呢"></a>我们什么时候需要创建联合索引呢</h2><p>索引建立的主要目的就是为了提高查询的效率，那么联合索引的目的也是类似的，联合索引的目的就是为了提高存在多个查询条件的情况下的效率，就如上面建立的表一样，有多个字段，当我们需要利用多个字段进行查询的时候，我们就需要利用到联合索引了。</p>
 <h2 id="什么时候联合索引才会发挥作用呢"><a href="#什么时候联合索引才会发挥作用呢" class="headerlink" title="什么时候联合索引才会发挥作用呢"></a>什么时候联合索引才会发挥作用呢</h2><p>有时候，我们会用联合索引，但是，我们并不清楚其原理，不知道什么时候联合索引会起到作用，什么时候又是会失效的？</p>
@@ -635,22 +629,14 @@
 <p>下面，我们用几个例子来看看这个原则。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t_index <span class="keyword">WHERE</span> a = <span class="string">'a'</span> \G;</span><br></pre></td></tr></table></figure>
 
-
-
 <p>我们看看这条语句的结果，首先，我们看到使用了索引，因为<strong>查询条件中带有最左边的列a</strong>，那么利用了几个索引呢？这个我们需要看key_len这个字段，我们知道utf8编码的一个字符3个字节，而我们使用的数据类型是 char(2)，占两个字节，索引就是2*3等于6个字节，所以只有一个索引起到了作用。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t_index <span class="keyword">WHERE</span> b = <span class="string">'b2'</span> \G;</span><br></pre></td></tr></table></figure>
-
-
 
 <p>这个语句我们可以看出，这个没有使用索引，因为possible_keys为空，而且，从查询的行数 rows可以看出为6（我们测试数据总共6条），说明进行了全盘扫描的，说明这种情况是不符合最左匹配原则，所以不会使用索引查询。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t_index <span class="keyword">WHERE</span> a = <span class="string">'a2'</span> <span class="keyword">AND</span> b = <span class="string">'b2'</span> <span class="keyword">ORDER</span> <span class="keyword">BY</span> d \G;</span><br></pre></td></tr></table></figure>
 
-
-
 <p>这种情况又有点不一样了，我们使用了一个排序，可以看出使用了索引，通过key_len为12可以得到使用了2个索引a、b，另外在Extra选项中可以看到使用了Using filesort，也就是文件排序，这里使用文件排序的原因是这样的：上面的查询使用了a、b索引，但是当我们用d字段来排序时，（a，d）或者（b，d）这两个索引是没有排序的，联合索引的使用有一个好处，就是索引的下一个字段是会自动排序的，在这里的这种情况来说，c字段就是排序的，但是d是不会，如果我们用c来排序就会得到不一样的结果。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t_index <span class="keyword">WHERE</span> a = <span class="string">'a2'</span> <span class="keyword">AND</span> b = <span class="string">'b2'</span> <span class="keyword">ORDER</span> <span class="keyword">BY</span> c \G;</span><br></pre></td></tr></table></figure>
-
-
 
 <p>是不是可以看到，当我们用c进行排序的时候，因为使用了a、b索引，所以c就自动排序了，所以也就不用filesort了。</p>
 <p>讲到这里，我相信通过上面的几个例子，对于联合索引的相关知识已经非常的透彻清晰了，最后，我们再来聊几个常见的问题。</p>
@@ -667,8 +653,6 @@
 </blockquote>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> <span class="keyword">count</span>(*) <span class="keyword">from</span> t_index \G;</span><br></pre></td></tr></table></figure>
 
-
-
 <p>如果是myisam引擎，Extra列会输出 Select tables optimized away语句，myisam引擎已经保存了记录的总数，直接返回结果，就不需要覆盖索引优化了。</p>
 <p>如果是InnoDB引擎，Extra列会输出 Using index语句，说明InnoDB引擎优化器使用了覆盖索引操作。</p>
 <h2 id="索引提示"><a href="#索引提示" class="headerlink" title="索引提示"></a>索引提示</h2><p>MySQL数据库支持索引提示功能，索引提示功能就是我们可以显示的告诉优化器使用哪个索引，一般有下面两种情况可能使用到索引提示功能（INDEX HINT）：</p>
@@ -678,21 +662,14 @@
 </ul>
 <p>这里我们接着上面的例子来讲解，首先，我们先为上面的t_index表添加几个索引；</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> t_index <span class="keyword">add</span> <span class="keyword">index</span> a (a);</span><br><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> t_index <span class="keyword">add</span> <span class="keyword">index</span> b (b);</span><br><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> t_index <span class="keyword">add</span> <span class="keyword">index</span> c (c);</span><br></pre></td></tr></table></figure>
-
 <p>接着，我们执行下面的语句；</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t_index <span class="keyword">WHERE</span> a = <span class="string">'a'</span> <span class="keyword">AND</span> b = <span class="string">'b'</span> <span class="keyword">AND</span> c = <span class="string">'c'</span> \G;</span><br></pre></td></tr></table></figure>
-
-
 
 <p>你会发现这条语句就可以使用三个索引，这个时候，我们可以显示的使用索引提示来使用a这个索引，如下：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t_index <span class="keyword">USE</span> <span class="keyword">INDEX</span>(a) <span class="keyword">WHERE</span> a = <span class="string">'a'</span> <span class="keyword">AND</span> b = <span class="string">'b'</span> <span class="keyword">AND</span> c = <span class="string">'c'</span> \G;</span><br></pre></td></tr></table></figure>
 
-
-
 <p>这样就显示的使用索引a了，如果这种方式有时候优化器还是没有选择你想要的索引，那么，我们可以另外一种方式 FORCE INDEX。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t_index <span class="keyword">FORCE</span> <span class="keyword">INDEX</span>(a) <span class="keyword">WHERE</span> a = <span class="string">'a'</span> <span class="keyword">AND</span> b = <span class="string">'b'</span> <span class="keyword">AND</span> c = <span class="string">'c'</span> \G;</span><br></pre></td></tr></table></figure>
-
-
 
 <p>这种方式则一定会选择你想要的索引。</p>
 <h2 id="索引优化"><a href="#索引优化" class="headerlink" title="索引优化"></a>索引优化</h2><p><strong>Multi-Range Read优化</strong></p>
@@ -705,16 +682,13 @@
 </ul>
 <p>我们可以使用参数 optimizer_switch中的标记来控制是否开启Multi-Range Read优化。下面的方式将设置为总是开启状态：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SET</span> @@optimizer_switch=<span class="string">'mrr=on,mrr_cost_based=off'</span>;</span><br></pre></td></tr></table></figure>
-
 <p><strong>Index Condition Pushdown（ICP）优化</strong></p>
 <p>这种优化方式也是从MySQL5.6开始支持的，不支持这种方式之前，当进行索引查询时，首先我们先根据索引查找记录，然后再根据where条件来过滤记录。然而，当支持ICP优化后，MySQL数据库会在取出索引的同时，判断是否可以进行where条件过滤，也就是将where过滤部分放在了存储引擎层，大大减少了上层SQL对记录的索取。</p>
 <p>ICP支持range、ref、eq_ref、ref_or_null类型的查询，当前支持MyISAM和InnoDB存储引擎。</p>
 <p>我们可以使用下面语句开启ICP：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> @@optimizer_switch = <span class="string">"index_condition_pushdown=on"</span></span><br></pre></td></tr></table></figure>
-
 <p>或者关闭：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> @@optimizer_switch = <span class="string">"index_condition_pushdown=off"</span></span><br></pre></td></tr></table></figure>
-
 <p>当开启了ICP之后，在执行计划Extra可以看到 Using index condition提示。</p>
 <h1 id="索引的特点、优点、缺点及适用场景"><a href="#索引的特点、优点、缺点及适用场景" class="headerlink" title="索引的特点、优点、缺点及适用场景"></a><span style="color:#339AFF;">索引的特点、优点、缺点及适用场景</span></h1><h2 id="索引的特点"><a href="#索引的特点" class="headerlink" title="索引的特点"></a><span style="color:#00ACC1;">索引的特点</span></h2><ul>
 <li>可以加快数据库的检索速度</li>
@@ -761,7 +735,6 @@
 </li>
 </ul>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> t_index <span class="keyword">where</span> a <span class="keyword">is</span> <span class="literal">null</span> \G</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li>经常出现在关键字order by、group by、distinct后面的字段</li>
 <li>在union等集合操作的结果集字段</li>
@@ -898,7 +871,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1041,6 +1014,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -1054,10 +1031,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -1129,7 +1102,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1592,6 +1565,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

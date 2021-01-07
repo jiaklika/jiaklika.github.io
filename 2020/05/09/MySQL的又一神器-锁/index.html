@@ -525,7 +525,6 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-
 <h1 id="什么是锁"><a href="#什么是锁" class="headerlink" title="什么是锁"></a><span style="color:#339AFF;">什么是锁</span></h1><h2 id="锁的概述"><a href="#锁的概述" class="headerlink" title="锁的概述"></a><span style="color:#00ACC1;">锁的概述</span></h2><p>对于MySQL来说，锁是一个很重要的特性，数据库的锁是为了支持对共享资源进行并发访问，提供数据的完整性和一致性，这样才能保证在高并发的情况下，访问数据库的时候，数据不会出现问题。</p>
 <h2 id="锁的两个概念"><a href="#锁的两个概念" class="headerlink" title="锁的两个概念"></a><span style="color:#00ACC1;">锁的两个概念</span></h2><p>在数据库中，lock和latch都可以称为锁，但是意义却不同。</p>
 <p>Latch一般称为<span style="color:red">闩锁</span>（轻量级的锁），因为其要求锁定的时间必须非常短。若持续的时间长，则应用的性能会非常差，在InnoDB引擎中，Latch又可以分为<span style="color:red">mutex</span>（互斥量）和<span style="color:red">rwlock</span>（读写锁）。其目的是用来保证并发线程操作临界资源的正确性，并且通常没有死锁检测的机制。</p>
@@ -544,7 +543,6 @@
 <p><strong>特点</strong>：开销大，加锁慢；会出现死锁；锁定粒度最小，发生锁冲突的概率最低，并发度也最高。</p>
 <p>比较表锁我们可以发现，这两种锁的特点基本都是相反的，而从锁的角度来说，表级锁更适合于以查询为主，只有少量按索引条件更新数据的应用，如Web应用；而行级锁则更适合于有大量按索引条件并发更新少量不同数据，同时又有并发查询的应用，如一些在线事务处理（OLTP）系统。</p>
 <p>MySQL不同引擎支持的锁的粒度</p>
-
 
 <h2 id="锁的类型"><a href="#锁的类型" class="headerlink" title="锁的类型"></a><span style="color:#00ACC1;">锁的类型</span></h2><p>InnoDB存储引擎中存在着不同类型的锁，下面一一介绍一下。</p>
 <p><strong>S or X（共享锁、排他锁）</strong></p>
@@ -565,14 +563,11 @@
 <li>S or X（共享锁、排他锁）的兼容性</li>
 </ul>
 
-
 <ul>
 <li>IS or IX（共享、排他）意向锁的兼容性</li>
 </ul>
 
-
 <h1 id="前面小结"><a href="#前面小结" class="headerlink" title="前面小结"></a><span style="color:#339AFF;">前面小结</span></h1><p>这里用一个思维导图把前面的概念做一个小结。</p>
-
 
 <h1 id="一致性非锁定读和一致性锁定读"><a href="#一致性非锁定读和一致性锁定读" class="headerlink" title="一致性非锁定读和一致性锁定读"></a><span style="color:#339AFF;">一致性非锁定读和一致性锁定读</span></h1><h2 id="一致性锁定读（Locking-Reads）"><a href="#一致性锁定读（Locking-Reads）" class="headerlink" title="一致性锁定读（Locking Reads）"></a><span style="color:#00ACC1;">一致性锁定读（Locking Reads）</span></h2><p>在一个事务中查询数据时，普通的SELECT语句不会对查询的数据进行加锁，其他事务仍可以对查询的数据执行更新和删除操作。因此，InnoDB提供了两种类型的锁定读来保证额外的安全性：</p>
 <ul>
@@ -583,28 +578,19 @@
 <p>SELECT … FOR UPDATE：会对查询的行及相关联的索引记录加X锁，其他事务请求的S锁或X锁都会被阻塞。当事务提交或回滚后，通过这两个语句添加的锁都会被释放。注意：只有在自动提交被禁用时，SELECT FOR UPDATE才可以锁定行，若开启自动提交，则匹配的行不会被锁定。</p>
 <h2 id="一致性非锁定读"><a href="#一致性非锁定读" class="headerlink" title="一致性非锁定读"></a><span style="color:#00ACC1;">一致性非锁定读</span></h2><p>一致性非锁定读（consistent nonlocking read）是指InnoDB存储引擎通过多版本控制（MVVC）读取当前数据库中行数据的方式。如果读取的行正在执行DELETE或UPDATE操作，这时读取操作不会因此去等待行上锁的释放。相反地，InnoDB会去读取行的一个快照。所以，非锁定读机制大大提高了数据库的并发性。</p>
 
-
 <p>一致性非锁定读是InnoDB默认的读取方式，即读取不会占用和等待行上的锁。在事务隔离级别<span style="color:red">READ COMMITTED</span>和<span style="color:red">REPEATABLE READ</span>下，InnoDB使用一致性非锁定读。</p>
 <p>然而，对于快照数据的定义却不同。在<span style="color:red">READ COMMITTED</span>事务隔离级别下，一致性非锁定读总是<strong>读取被锁定行的最新一份快照数据</strong>。而在<span style="color:red">REPEATABLE READ</span>事务隔离级别下，则<strong>读取事务开始时的行数据版本</strong>。</p>
 <p>下面我们通过一个简单的例子来说明一下这两种方式的区别。</p>
 <p>首先创建一张表;</p>
 
-
-<p>插入一条数据；</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> lock_test <span class="keyword">values</span>(<span class="number">1</span>);</span><br></pre></td></tr></table></figure>
-
-<p>查看隔离级别；</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br></pre></td></tr></table></figure>
-
-
+<p>插入一条数据；<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> lock_test <span class="keyword">values</span>(<span class="number">1</span>);</span><br></pre></td></tr></table></figure></p>
+<p>查看隔离级别；<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br></pre></td></tr></table></figure></p>
 
 <p>下面分为两种事务进行操作。</p>
 <p>在<span style="color:red">REPEATABLE READ</span>事务隔离级别下；</p>
 
-
 <p>在REPEATABLE READ事务隔离级别下，读取事务开始时的行数据，所以当会话B修改了数据之后，通过以前的查询，还是可以查询到数据的。</p>
 <p>在<span style="color:red">READ COMMITTED</span>事务隔离级别下;</p>
-
 
 <p>在<span style="color:red">READ COMMITTED</span>事务隔离级别下，读取该行版本最新的一个快照数据，所以，由于B会话修改了数据，并且提交了事务，所以，A读取不到数据了。</p>
 <h1 id="行锁的算法"><a href="#行锁的算法" class="headerlink" title="行锁的算法"></a><span style="color:#339AFF;">行锁的算法</span></h1><p>InnoDB存储引擎有3种行锁的算法，其分别是：</p>
@@ -616,27 +602,20 @@
 <p><strong>Record Lock</strong>：总是会去锁住索引记录，如果InnoDB存储引擎表在建立的时候没有设置任何一个索引，那么这时InnoDB存储引擎会使用隐式的主键来进行锁定。</p>
 <p>Next-Key Lock：结合了Gap Lock和Record Lock的一种锁定算法，在Next-Key Lock算法下，InnoDB对于行的查询都是采用这种锁定算法。举个例子10，20，30，那么该索引可能被Next-Key Locking的区间为：</p>
 
-
 <p>除了Next-Key Locking，还有Previous-Key Locking技术，这种技术跟Next-Key Lock正好相反，锁定的区间是区间范围和前一个值。同样上述的值，使用Previous-Key Locking技术，那么可锁定的区间为：</p>
-
 
 <p>不是所有索引都会加上Next-key Lock的，这里有一种<strong>特殊的情况</strong>，在查询的列是唯一索引（包含主键索引）的情况下，<span style="color:red">Next-key Lock</span>会降级为<span style="color:red">Record Lock</span>。</p>
 <p>接下来，我们来通过一个例子解释一下。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="keyword">test</span> (</span><br><span class="line">    x <span class="built_in">INT</span>,</span><br><span class="line">    y <span class="built_in">INT</span>,</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span>(x),    // x是主键索引</span><br><span class="line">    <span class="keyword">KEY</span>(y)    // y是普通索引</span><br><span class="line">);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">test</span> <span class="keyword">select</span> <span class="number">3</span>, <span class="number">2</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">test</span> <span class="keyword">select</span> <span class="number">5</span>, <span class="number">3</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">test</span> <span class="keyword">select</span> <span class="number">7</span>, <span class="number">6</span>;</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> <span class="keyword">test</span> <span class="keyword">select</span> <span class="number">10</span>, <span class="number">8</span>;</span><br></pre></td></tr></table></figure>
-
-<p>我们现在会话A中执行如下语句；</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">test</span> <span class="keyword">WHERE</span> y = <span class="number">3</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span></span><br></pre></td></tr></table></figure>
-
+<p>我们现在会话A中执行如下语句；<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">test</span> <span class="keyword">WHERE</span> y = <span class="number">3</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span></span><br></pre></td></tr></table></figure></p>
 <p>我们分析一下这时候的加锁情况。</p>
 <ul>
 <li>对于主键x</li>
 </ul>
 
-
 <ul>
 <li>辅助索引y</li>
 </ul>
-
 
 <p>用户可以通过以下两种方式来显示的关闭Gap Lock：</p>
 <ul>
@@ -650,11 +629,9 @@
 <h1 id="锁带来的问题"><a href="#锁带来的问题" class="headerlink" title="锁带来的问题"></a><span style="color:#339AFF;">锁带来的问题</span></h1><h2 id="脏读"><a href="#脏读" class="headerlink" title="脏读"></a><span style="color:#00ACC1;">脏读</span></h2><p><strong>脏读</strong>：在不同的事务下，当前事务可以读到另外事务未提交的数据。另外我们需要注意的是默认的MySQL隔离级别是<span style="color:red">REPEATABLE READ</span>是不会发生脏读的，脏读发生的条件是需要事务的隔离级别为<span style="color:red">READ UNCOMMITTED</span>，所以如果出现脏读，可能就是这种隔离级别导致的。</p>
 <p>下面我们通过一个例子看一下。</p>
 
-
 <p>从上面这个例子可以看出，当我们的事务的隔离级别为<span style="color:red">READ UNCOMMITTED</span>的时候，在会话A还没有提交时，会话B就能够查询到会话A没有提交的数据。</p>
 <h2 id="不可重复读"><a href="#不可重复读" class="headerlink" title="不可重复读"></a><span style="color:#00ACC1;">不可重复读</span></h2><p><strong>不可重复读</strong>：是指在一个事务内多次读取同一集合的数据，但是多次读到的数据是不一样的，这就违反了数据库事务的一致性的原则。但是，这跟脏读还是有区别的，脏读的数据是没有提交的，但是不可重复读的数据是已经提交的数据。</p>
 <p>我们通过下面的例子来看一下这种问题的发生。</p>
-
 
 <p>从上面的例子可以看出，在A的一次会话中，由于会话B插入了数据，导致两次查询的结果不一致，所以就出现了不可重复读的问题。</p>
 <p>我们需要注意的是不可重复读读取的数据是已经提交的数据，事务的隔离级别为<span style="color:red">READ COMMITTED</span>，这种问题我们是可以接受的。</p>
@@ -782,7 +759,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -925,6 +902,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -938,10 +919,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -1013,7 +990,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1476,6 +1453,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

@@ -525,10 +525,7 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-
-
 <h1 id="生命周期概览"><a href="#生命周期概览" class="headerlink" title="生命周期概览"></a><span style="color:#339AFF;">生命周期概览</span></h1>    
-
 <h2 id="第一件事"><a href="#第一件事" class="headerlink" title="第一件事"></a><span style="color:#00ACC1;">第一件事</span></h2><p>Laravel应用的所有请求入口都是public/index.php文件，所有请求都会被web服务器（Apache/Nginx）导向这个文件。index.php文件包含的代码并不多，但是，这里是加载框架其它部分的起点。</p>
 <p>index.php文件载入Composer生成的自动加载设置，然后从bootstrap/app.php脚本获取Laravel应用实例，<span style="color:red">Laravel的第一个动作就是创建服务容器实例。</span></p>
 <h2 id="HTTP-Console内核"><a href="#HTTP-Console内核" class="headerlink" title="HTTP/Console内核"></a><span style="color:#00ACC1;">HTTP/Console内核</span></h2><p>接下来，请求被发送到HTTP内核或Console内核（分别用于处理Web请求和Artisan命令），这取决于进入应用的请求类型。这两个内核是所有请求都要经过的中央处理器，现在，就让我们聚焦在位于app/Http/Kernel.php的HTTP内核。</p>
@@ -542,30 +539,19 @@
 <p>对Laravel应用如何通过服务提供者构建和启动有一个牢固的掌握非常有价值，当然，应用默认的服务提供者存放在app/Providers目录下。</p>
 <p>默认情况下，AppServiceProvider是空的，这里是添加自定义启动和服务容器绑定的最佳位置，当然，对大型应用，你可能希望创建多个服务提供者，每一个都有着更加细粒度的启动。</p>
 <h1 id="总体流程"><a href="#总体流程" class="headerlink" title="总体流程"></a><span style="color:#339AFF;">总体流程</span></h1>
-
 <p>Web服务器对HTTP请求的处理流程大体上都是这样的：在某个端口监听请求，请求进入后运行程序，然后将程序运行结果以响应的形式发送出去。</p>
 <p>基于Laravel框架构建的Web应用处理HTTP请求的流程也是如此。所有HTTP请求都会被转发到单入口文件public/index.php，处理HTTP请求的核心代码如下（忽略HTTP请求处理之外的代码）：</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$app = <span class="keyword">new</span> Illuminate\Foundation\Application(</span><br><span class="line">    realpath(<span class="keyword">__DIR__</span>.<span class="string">'/../'</span>)</span><br><span class="line">);    </span><br><span class="line"></span><br><span class="line"><span class="comment">// 绑定处理HTTP请求的接口实现到服务容器</span></span><br><span class="line">$app-&gt;singleton(</span><br><span class="line">    Illuminate\Contracts\Http\Kernel::class,</span><br><span class="line">    App\Http\Kernel::class</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 从服务容器中解析处理HTTP请求的Kernel实例</span></span><br><span class="line">$kernel = $app-&gt;make(Illuminate\Contracts\Http\Kernel::class);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 处理HTTP请求的核心代码</span></span><br><span class="line">$response = $kernel-&gt;handle(</span><br><span class="line">    $request = Illuminate\Http\Request::capture()</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 发送响应</span></span><br><span class="line">$response-&gt;send();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 终止程序，做一些善后及清理工作</span></span><br><span class="line">$kernel-&gt;terminate($request, $response);</span><br></pre></td></tr></table></figure>
-
 <p>在上面这段程序中，首先会创建一个Application实例，作为全局的服务容器，然后将处理请求的核心类Kernel实现实例绑定到该容器中，以便后续通过它处理HTTP请求。我们通过服务器捕获请求并将其传递给Kernel实例进行处理，处理结果是准备好的响应实例，调用该响应实例的send()方法即可将其发送给发起请求的客户端。最后，我们执行Kernel实例上的terminate()终止程序，退出脚本。</p>
 <p>以上就是Laravel框架处理HTTP请求的一般流程，所有核心逻辑都位于$kernel-&gt;handle()方法调用中。下面我们就来一探究竟。</p>
 <h1 id="服务容器"><a href="#服务容器" class="headerlink" title="服务容器"></a><span style="color:#339AFF;">服务容器</span></h1><p>Laravel框架提供了一个功能强大的服务容器，用于管理类之间的依赖关系，关于其底层原理还可以参考学徒到工匠系列中的介绍，这里我们就不深入展开了。服务容器封装了绑定到某个接口的对应实现类的实例化过程，你可以在需要对应实现实例的时候通过接口从容器中获取。</p>
-<p>在上面的代码中，$app对应的就是服务容器实例，并且在我们获取到该实例后就注册了Kernel接口及其实现类到容器中：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$app-&gt;singleton(</span><br><span class="line">    Illuminate\Contracts\Http\Kernel::class,</span><br><span class="line">    App\Http\Kernel::class</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
-
-<p>singleton方法会以单例方式在服务容器中将App\Http\Kernel实例绑定到Illuminate\Contracts\Http\Kernel接口，后续我们要获取App\Http\Kernel实例，就可以通过Illuminate\Contracts\Http\Kernel接口从服务容器中获取，获取方法是$app-&gt;make()：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$kernel = $app-&gt;make(Illuminate\Contracts\Http\Kernel::class);</span><br></pre></td></tr></table></figure>
-
-<h1 id="回到Kernel"><a href="#回到Kernel" class="headerlink" title="回到Kernel"></a><span style="color:#339AFF;">回到Kernel</span></h1><p>下面我们就正式进入$kernel-&gt;handle()方法内部看看HTTP请求是被如何处理的。打开Illuminate\Foundation\Http\Kernel（App\Http\Kernel的父类），查看handle方法，可以看到核心处理逻辑通过sendRequestThroughRouter方法实现：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">sendRequestThroughRouter</span><span class="params">($request)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;app-&gt;instance(<span class="string">'request'</span>, $request);</span><br><span class="line"></span><br><span class="line">    Facade::clearResolvedInstance(<span class="string">'request'</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">$this</span>-&gt;bootstrap();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">new</span> Pipeline(<span class="keyword">$this</span>-&gt;app))</span><br><span class="line">                -&gt;send($request)</span><br><span class="line">                -&gt;through(<span class="keyword">$this</span>-&gt;app-&gt;shouldSkipMiddleware() ? [] : <span class="keyword">$this</span>-&gt;middleware)</span><br><span class="line">                -&gt;then(<span class="keyword">$this</span>-&gt;dispatchToRouter());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在发送请求到路由之前，先调用bootstrap()方法运用应用的启动类：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> $bootstrappers = [</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\LoadConfiguration::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\HandleExceptions::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\RegisterFacades::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\RegisterProviders::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\BootProviders::class,</span><br><span class="line">];</span><br></pre></td></tr></table></figure>
-
+<p>在上面的代码中，$app对应的就是服务容器实例，并且在我们获取到该实例后就注册了Kernel接口及其实现类到容器中：<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$app-&gt;singleton(</span><br><span class="line">    Illuminate\Contracts\Http\Kernel::class,</span><br><span class="line">    App\Http\Kernel::class</span><br><span class="line">);</span><br></pre></td></tr></table></figure></p>
+<p>singleton方法会以单例方式在服务容器中将App\Http\Kernel实例绑定到Illuminate\Contracts\Http\Kernel接口，后续我们要获取App\Http\Kernel实例，就可以通过Illuminate\Contracts\Http\Kernel接口从服务容器中获取，获取方法是$app-&gt;make()：<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$kernel = $app-&gt;make(Illuminate\Contracts\Http\Kernel::class);</span><br></pre></td></tr></table></figure></p>
+<h1 id="回到Kernel"><a href="#回到Kernel" class="headerlink" title="回到Kernel"></a><span style="color:#339AFF;">回到Kernel</span></h1><p>下面我们就正式进入$kernel-&gt;handle()方法内部看看HTTP请求是被如何处理的。打开Illuminate\Foundation\Http\Kernel（App\Http\Kernel的父类），查看handle方法，可以看到核心处理逻辑通过sendRequestThroughRouter方法实现：<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">sendRequestThroughRouter</span><span class="params">($request)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">$this</span>-&gt;app-&gt;instance(<span class="string">'request'</span>, $request);</span><br><span class="line"></span><br><span class="line">    Facade::clearResolvedInstance(<span class="string">'request'</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">$this</span>-&gt;bootstrap();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">new</span> Pipeline(<span class="keyword">$this</span>-&gt;app))</span><br><span class="line">                -&gt;send($request)</span><br><span class="line">                -&gt;through(<span class="keyword">$this</span>-&gt;app-&gt;shouldSkipMiddleware() ? [] : <span class="keyword">$this</span>-&gt;middleware)</span><br><span class="line">                -&gt;then(<span class="keyword">$this</span>-&gt;dispatchToRouter());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在发送请求到路由之前，先调用bootstrap()方法运用应用的启动类：<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> $bootstrappers = [</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\LoadConfiguration::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\HandleExceptions::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\RegisterFacades::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\RegisterProviders::class,</span><br><span class="line">    \Illuminate\Foundation\Bootstrap\BootProviders::class,</span><br><span class="line">];</span><br></pre></td></tr></table></figure></p>
 <p>这些个启动类在路由解析之前执行，相当于对整个应用进行初始化。通过类名就能窥探出对应的操作意图，分别是加载环境变量和全局配置、配置异常处理逻辑、注册门面和服务提供者（根据config/app.php中的providers和alias配置值）、以及执行所有已注册服务提供者的boot方法，具体的实现逻辑我这里就不一一展开的，你可以自己去看下。</p>
 <p>然后就是真正的HTTP请求处理了：</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> (<span class="keyword">new</span> Pipeline(<span class="keyword">$this</span>-&gt;app))</span><br><span class="line">            -&gt;send($request)</span><br><span class="line">            -&gt;through(<span class="keyword">$this</span>-&gt;app-&gt;shouldSkipMiddleware() ? [] : <span class="keyword">$this</span>-&gt;middleware)</span><br><span class="line">            -&gt;then(<span class="keyword">$this</span>-&gt;dispatchToRouter());</span><br></pre></td></tr></table></figure>
-
 <p>Laravel框架以管道模式来处理HTTP请求，首先通过全局中间件对请求进行处理，如果返回false直接退出，不会做路由解析处理。</p>
 <p>全局中间件都校验通过才会将请求分发到路由器进行处理，路由器会将请求URL路径与应用注册的所有路由进行匹配，如果有匹配的路由，则先收集该路由所分配的所有路由中间件，通过这些路由中间件对请求进行过滤，所有路由中间件校验通过才会运行对应的匿名函数或控制器方法，执行相应的请求处理逻辑，最后准备好待发送给客户端的响应。</p>
 <h1 id="终止Kernel"><a href="#终止Kernel" class="headerlink" title="终止Kernel"></a><span style="color:#339AFF;">终止Kernel</span></h1><p>响应准备就绪后，就会通过$response-&gt;send()发送给发起请求的客户端，之后还要运行$kernel-&gt;terminate()做一些善后清理工作，并最终退出脚本。这些善后清理工作主要包括运行终止中间件，以及注册到服务容器的一些终止回调：</p>
@@ -688,7 +674,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -831,6 +817,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -844,10 +834,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -919,7 +905,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1382,6 +1368,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

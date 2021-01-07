@@ -532,8 +532,6 @@
 <li>watch要在multi前面吗？</li>
 </ul>
 <a id="more"></a>
-
-
 <h1 id="Redis事务"><a href="#Redis事务" class="headerlink" title="Redis事务"></a><span style="color:#339AFF;">Redis事务</span></h1><h2 id="Redis事务介绍"><a href="#Redis事务介绍" class="headerlink" title="Redis事务介绍"></a><span style="color:#00ACC1;">Redis事务介绍</span></h2><ul>
 <li>1.redis事务可以一次执行多个命令，本质是一组命令的集合。</li>
 <li>2.一个事务中的所有命令都会序列化，按顺序串行化的执行而不会被其他命令插入。</li>
@@ -548,9 +546,7 @@
 <p>注：Redis事务在遇到指令失败后，后面的指令会继续执行。</p>
 </blockquote>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Multi命令用于标记一个事务块的开始</span></span><br><span class="line"><span class="comment"># 事务块内的多条命令会按照先后顺序被放进一个队列当中，最后由EXEC命令原子性（atomic）的执行</span></span><br><span class="line">&gt; multi <span class="comment">#（开始一个redis事务）</span></span><br><span class="line">incr books</span><br><span class="line">incr books</span><br><span class="line">&gt; <span class="built_in">exec</span> <span class="comment">#（执行事务）</span></span><br><span class="line">&gt; discard <span class="comment">#（丢弃事务）</span></span><br></pre></td></tr></table></figure>
-
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">multi_test</span><span class="params">()</span>:</span></span><br><span class="line">    r = redis.Redis(host=<span class="string">'127.0.0.1'</span>)</span><br><span class="line">    pipe = r.pipeline()</span><br><span class="line">    pipe.multi()             <span class="comment"># 开启事务</span></span><br><span class="line">    pipe.set(<span class="string">'key2'</span>, <span class="number">400</span>)    <span class="comment"># 存储子命令</span></span><br><span class="line">    pipe.execute()           <span class="comment"># 执行事务</span></span><br><span class="line"></span><br><span class="line">    print(<span class="string">"第一次事务提交后的结果"</span> + r.get(<span class="string">'key2'</span>).decode(<span class="string">"utf-8"</span>))</span><br><span class="line"></span><br><span class="line">    pipe.multi()  <span class="comment"># 开启事务</span></span><br><span class="line">    pipe.set(<span class="string">'key2'</span>, <span class="number">100</span>)  <span class="comment"># 存储子命令</span></span><br><span class="line"></span><br><span class="line">    print(<span class="string">"第二次未提交事务的结果"</span> + r.get(<span class="string">"key2"</span>).decode(<span class="string">"utf-8"</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment">#第一次事务提交后的结果400</span></span><br><span class="line"><span class="comment">#第二次未提交事务的结果400</span></span><br></pre></td></tr></table></figure>
-
 <blockquote>
 <p>注：mysql的rollback与redis的discard的区别</p>
 <ul>
@@ -568,30 +564,24 @@
 <li>3.watch只会在数据被其他客户端抢先修改了的情况下通知执行命令的这个客户端（通过WatchError异常），但不会阻止其他客户端对数据的修改。</li>
 </ul>
 <h2 id="watch-multi实现乐观锁"><a href="#watch-multi实现乐观锁" class="headerlink" title="watch+multi实现乐观锁"></a><span style="color:#00ACC1;">watch+multi实现乐观锁</span></h2><img src="/2020/07/30/Redis分布式锁解决超卖问题/1.png">
-
 <img src="/2020/07/30/Redis分布式锁解决超卖问题/2.png">
-
 <h1 id="setnx指令（redis的分布式锁）"><a href="#setnx指令（redis的分布式锁）" class="headerlink" title="setnx指令（redis的分布式锁）"></a><span style="color:#339AFF;">setnx指令（redis的分布式锁）</span></h1><ul>
 <li>1.分布式锁本质是占一个坑，当别的进程也要来占坑时发现已经被占，就会放弃或者稍后重试。</li>
 <li>2.占坑一般使用setnx（set if not exists）指令，只允许一个客户端占坑。</li>
 <li>3.先来先占，用完了在调用del指令释放坑。</li>
 </ul>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt; setnx lock:codehole <span class="literal">true</span></span><br><span class="line">.... <span class="keyword">do</span> something critical ....</span><br><span class="line">&gt; del lock:codehole</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li>4.但是这样有一个问题，如果逻辑执行到中间出现异常，可能导致del指令没有被调用，这样就会陷入死锁，锁永远无法释放。</li>
 <li>5.为了解决死锁问题，我们拿到锁时可以加上一个expire过期时间，这样即使出现异常，当到达过期时间也会自动释放锁。</li>
 </ul>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&gt; setnx lock:codehole <span class="literal">true</span></span><br><span class="line">&gt; expire lock:codehole 5</span><br><span class="line">.... <span class="keyword">do</span> something critical ....</span><br><span class="line">&gt; del lock:codehole</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li>6.这样又有一个问题，setnx和expire是两条指令而不是原子指令，如果两条指令之间进程挂掉依然会出现死锁。</li>
 <li>7.为了治理上面乱象，在redis2.8中加入了set指令的扩展参数，使setnx和expire指令可以一起执行。</li>
 </ul>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="built_in">set</span> lock:codehole <span class="literal">true</span> ex 5 nx</span><br><span class="line"><span class="string">''</span><span class="string">' do something '</span><span class="string">''</span></span><br><span class="line">&gt; del lock:codehole</span><br></pre></td></tr></table></figure>
-
 <h1 id="Redis解决超卖问题"><a href="#Redis解决超卖问题" class="headerlink" title="Redis解决超卖问题"></a><span style="color:#339AFF;">Redis解决超卖问题</span></h1><h2 id="使用Redis的watch-multi指令实现"><a href="#使用Redis的watch-multi指令实现" class="headerlink" title="使用Redis的watch+multi指令实现"></a><span style="color:#00ACC1;">使用Redis的watch+multi指令实现</span></h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#! /usr/bin/env python</span></span><br><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> redis</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">sale</span><span class="params">(rs)</span>:</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        <span class="keyword">with</span> rs.pipeline() <span class="keyword">as</span> p:</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                p.watch(<span class="string">'apple'</span>)                   <span class="comment"># 监听key值为apple的数据数量改变</span></span><br><span class="line">                count = int(rs.get(<span class="string">'apple'</span>))</span><br><span class="line">                print(<span class="string">'拿取到了苹果的数量: %d'</span> % count)</span><br><span class="line"></span><br><span class="line">                p.multi()                          <span class="comment"># 事务开始</span></span><br><span class="line">                <span class="keyword">if</span> count&gt; <span class="number">0</span> :                      <span class="comment"># 如果此时还有库存</span></span><br><span class="line">                    p.set(<span class="string">'apple'</span>, count - <span class="number">1</span>)</span><br><span class="line">                    p.execute()                    <span class="comment"># 执行事务</span></span><br><span class="line">                p.unwatch()</span><br><span class="line">                <span class="keyword">break</span>                              <span class="comment"># 当库存成功减一或没有库存时跳出执行循环</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">except</span> Exception <span class="keyword">as</span> e:                 <span class="comment"># 当出现watch监听值出现修改时，WatchError异常抛出</span></span><br><span class="line">                print(<span class="string">'[Error]: %s'</span> % e)</span><br><span class="line">                <span class="keyword">continue</span>                           <span class="comment"># 继续尝试执行</span></span><br><span class="line"></span><br><span class="line">rs = redis.Redis(host=<span class="string">'127.0.0.1'</span>, port=<span class="number">6379</span>)      <span class="comment"># 连接redis</span></span><br><span class="line">rs.set(<span class="string">'apple'</span>,<span class="number">1000</span>)                               <span class="comment"># 首先在redis中设置某商品apple对应数量value值为1000</span></span><br><span class="line">sale(rs)</span><br></pre></td></tr></table></figure>
-
 <p>1）原理</p>
 <ul>
 <li>1.当用户购买时，通过WATCH监听用户库存，如果库存在watch监听后发生改变，就会捕获异常而放弃对库存减一操作；</li>
@@ -624,28 +614,28 @@
 <li>2.而其他进程无法持有锁继续工作，为了解决这样的问题，可以在获取锁的时候加上锁的超时功能。</li>
 </ul>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> redis</span><br><span class="line"><span class="keyword">import</span> uuid</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1.初始化连接函数</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_conn</span><span class="params">(host,port=<span class="number">6379</span>)</span>:</span></span><br><span class="line">    rs = redis.Redis(host=host, port=port)</span><br><span class="line">    <span class="keyword">return</span> rs</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 构建redis锁</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">acquire_lock</span><span class="params">(rs, lock_name, expire_time=<span class="number">10</span>)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    rs: 连接对象</span></span><br><span class="line"><span class="string">    lock_name: 锁标识</span></span><br><span class="line"><span class="string">    acquire_time: 过期超时时间</span></span><br><span class="line"><span class="string">    return -&gt; False 获锁失败 or True 获锁成功</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    identifier = str(uuid.uuid4())</span><br><span class="line">    end = time.time() + expire_time</span><br><span class="line">    <span class="keyword">while</span> time.time() &lt; end:</span><br><span class="line">        <span class="comment"># 当获取锁的行为超过有效时间，则退出循环，本次取锁失败，返回False</span></span><br><span class="line">        <span class="keyword">if</span> rs.setnx(lock_name, identifier): <span class="comment"># 尝试取得锁</span></span><br><span class="line">            <span class="keyword">return</span> identifier</span><br><span class="line">        <span class="comment"># time.sleep(.001)</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 释放锁</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">release_lock</span><span class="params">(rs, lockname, identifier)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    rs: 连接对象</span></span><br><span class="line"><span class="string">    lockname: 锁标识</span></span><br><span class="line"><span class="string">    identifier: 锁的value值，用来校验</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    <span class="keyword">if</span> rs.get(lockname).decode() == identifier:  <span class="comment"># 防止其他进程同名锁被误删</span></span><br><span class="line">        rs.delete(lockname)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span>            <span class="comment"># 删除锁</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span>           <span class="comment"># 删除失败</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#有过期时间的锁</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">acquire_expire_lock</span><span class="params">(rs, lock_name, expire_time=<span class="number">10</span>, locked_time=<span class="number">10</span>)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">    rs: 连接对象</span></span><br><span class="line"><span class="string">    lock_name: 锁标识</span></span><br><span class="line"><span class="string">    acquire_time: 过期超时时间</span></span><br><span class="line"><span class="string">    locked_time: 锁的有效时间</span></span><br><span class="line"><span class="string">    return -&gt; False 获锁失败 or True 获锁成功</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    identifier = str(uuid.uuid4())</span><br><span class="line">    end = time.time() + expire_time</span><br><span class="line">    <span class="keyword">while</span> time.time() &lt; end:</span><br><span class="line">        <span class="comment"># 当获取锁的行为超过有效时间，则退出循环，本次取锁失败，返回False</span></span><br><span class="line">        <span class="keyword">if</span> rs.setnx(lock_name, identifier): <span class="comment"># 尝试取得锁</span></span><br><span class="line">            <span class="comment"># print('锁已设置: %s' % identifier)</span></span><br><span class="line">            rs.expire(lock_name, locked_time)</span><br><span class="line">            <span class="keyword">return</span> identifier</span><br><span class="line">        time.sleep(<span class="number">.001</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="string">'''在业务函数中使用上面的锁'''</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">sale</span><span class="params">(rs)</span>:</span></span><br><span class="line">    start = time.time()            <span class="comment"># 程序启动时间</span></span><br><span class="line">    <span class="keyword">with</span> rs.pipeline() <span class="keyword">as</span> p:</span><br><span class="line">        <span class="string">'''</span></span><br><span class="line"><span class="string">        通过管道方式进行连接</span></span><br><span class="line"><span class="string">        多条命令执行结束，一次性获取结果</span></span><br><span class="line"><span class="string">        '''</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> <span class="number">1</span>:</span><br><span class="line">            lock = acquire_lock(rs, <span class="string">'lock'</span>)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> lock: <span class="comment"># 持锁失败</span></span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">#开始监测"lock"</span></span><br><span class="line">            p.watch(<span class="string">"lock"</span>)</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                <span class="comment">#开启事务</span></span><br><span class="line">                p.multi()</span><br><span class="line">                count = int(rs.get(<span class="string">'apple'</span>)) <span class="comment"># 取量</span></span><br><span class="line">                p.set(<span class="string">'apple'</span>, count<span class="number">-1</span>)      <span class="comment"># 减量</span></span><br><span class="line">                <span class="comment"># time.sleep(5)</span></span><br><span class="line">                <span class="comment">#提交事务</span></span><br><span class="line">                p.execute()</span><br><span class="line">                print(<span class="string">'当前库存量: %s'</span> % count)</span><br><span class="line">                <span class="comment">#成功则跳出循环</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">except</span>:</span><br><span class="line">                <span class="comment">#事务失败对应处理</span></span><br><span class="line">                print(<span class="string">"修改数据失败"</span>)</span><br><span class="line"></span><br><span class="line">            <span class="comment">#无论成功与否最终都需要释放锁</span></span><br><span class="line">            <span class="keyword">finally</span>:</span><br><span class="line"></span><br><span class="line">                res = release_lock(rs, <span class="string">'lock'</span>, lock)</span><br><span class="line">                <span class="comment">#释放锁成功，</span></span><br><span class="line">                <span class="keyword">if</span> res:</span><br><span class="line">                    print(<span class="string">"删除锁成功"</span>)</span><br><span class="line">                <span class="comment">#释放锁失败，强制删除</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    print(<span class="string">"删除锁失败,强制删除锁"</span>)</span><br><span class="line">                    res = rs.delete(<span class="string">'lock'</span>)</span><br><span class="line">                    print(res)</span><br><span class="line"></span><br><span class="line">        print(<span class="string">'[time]: %.2f'</span> % (time.time() - start))</span><br><span class="line"></span><br><span class="line">rs = redis.Redis(host=<span class="string">'127.0.0.1'</span>, port=<span class="number">6379</span>)      <span class="comment"># 连接redis</span></span><br><span class="line"><span class="comment"># rs.set('apple',1000)                               # # 首先在redis中设置某商品apple 对应数量value值为1000</span></span><br><span class="line">sale(rs)</span><br></pre></td></tr></table></figure>
-
 <blockquote>
 <p>优化锁无法释放的问题，为锁添加过期时间</p>
 </blockquote>
-<pre><code class="python"><span class="function"><span class="keyword">def</span> <span class="title">acquire_expire_lock</span><span class="params">(rs, lock_name, expire_time=<span class="number">10</span>, locked_time=<span class="number">10</span>)</span>:</span>
-    <span class="string">'''</span>
-<span class="string">    rs: 连接对象</span>
-<span class="string">    lock_name: 锁标识</span>
-<span class="string">    acquire_time: 过期超时时间</span>
-<span class="string">    locked_time: 锁的有效时间</span>
-<span class="string">    return -&gt; False 获锁失败 or True 获锁成功</span>
-<span class="string">    '''</span>
+<pre><code class="lang-python">def acquire_expire_lock(rs, lock_name, expire_time=10, locked_time=10):
+    &#39;&#39;&#39;
+    rs: 连接对象
+    lock_name: 锁标识
+    acquire_time: 过期超时时间
+    locked_time: 锁的有效时间
+    return -&gt; False 获锁失败 or True 获锁成功
+    &#39;&#39;&#39;
     identifier = str(uuid.uuid4())
     end = time.time() + expire_time
-    <span class="keyword">while</span> time.time() &lt; end:
-        <span class="comment"># 当获取锁的行为超过有效时间，则退出循环，本次取锁失败，返回False</span>
-        <span class="keyword">if</span> rs.setnx(lock_name, identifier): <span class="comment"># 尝试取得锁</span>
-            <span class="comment"># print('锁已设置: %s' % identifier)</span>
+    while time.time() &lt; end:
+        # 当获取锁的行为超过有效时间，则退出循环，本次取锁失败，返回False
+        if rs.setnx(lock_name, identifier): # 尝试取得锁
+            # print(&#39;锁已设置: %s&#39; % identifier)
             rs.expire(lock_name, locked_time)
-            <span class="keyword">return</span> identifier
-        time.sleep(<span class="number">.001</span>)
-    <span class="keyword">return</span> <span class="literal">False</span></code></pre>
+            return identifier
+        time.sleep(.001)
+    return False
+</code></pre>
 
       
     </div>
@@ -765,7 +755,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -908,6 +898,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -921,10 +915,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -996,7 +986,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1459,6 +1449,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

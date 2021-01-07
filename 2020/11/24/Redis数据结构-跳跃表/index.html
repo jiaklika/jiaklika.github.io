@@ -532,29 +532,23 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-
 <p><a href="https://www.cnblogs.com/hunternet/p/11248192.html" target="_blank" rel="noopener">原文地址</a></p>
 <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a><span style="color:#339AFF;">前言</span></h1><p>跳跃表是一种有序的数据结构，它通过在每个节点中维持多个指向其他节点的指针，从而达到快速访问节点的目的。这么说，我们可能很难理解，我们可以先回忆一下链表。</p>
 <h1 id="跳跃表"><a href="#跳跃表" class="headerlink" title="跳跃表"></a><span style="color:#339AFF;">跳跃表</span></h1><h2 id="什么是跳跃表"><a href="#什么是跳跃表" class="headerlink" title="什么是跳跃表"></a><span style="color:#00ACC1;">什么是跳跃表</span></h2><p>对于一个单链表来讲，即便链表中存储的数据是有序的，如果我们要想在其中查找某个数据，也只能从头到尾遍历链表。这样查找效率就会很低，时间复杂度会很高，是O(n)。</p>
 <img src="/2020/11/24/Redis数据结构-跳跃表/单链表.png">
-
 <p>如果我们想要提高其查找效率，可以考虑在链表上建索引的方式。每两个结点提取一个结点到上一级，我们把抽出来的那一级叫作索引。</p>
 <img src="/2020/11/24/Redis数据结构-跳跃表/一层跳跃表.png">
-
 <p>这个时候，我们假设要查找节点8，我们可以先在索引层遍历，当遍历到索引层中值为7的结点时，发现下一个节点是9，那么要查找的节点8肯定就在这两个节点之间。我们下降到链表层继续遍历就找到了8这个节点。原先我们在单链表中找到8这个节点要遍历8个节点，而现在有了一级索引后只需要遍历五个节点。</p>
 <p>从这个例子里，我们看出，加了一层索引之后，查找一个结点需要遍历的结点个数减少了，也就是说查找效率提高了，同理再加一级索引。</p>
 <img src="/2020/11/24/Redis数据结构-跳跃表/二层跳跃表.png">
-
 <p>从图中我们可以看出，查找效率又有提升。在例子中我们的数据很少，当有大量的数据时，我们可以增加多级索引，其查找效率可以得到明显提升。</p>
 <img src="/2020/11/24/Redis数据结构-跳跃表/跳跃表.png">
-
 <p>像这种链表加多级索引的结构，就是跳跃表！</p>
 <h1 id="Redis跳跃表"><a href="#Redis跳跃表" class="headerlink" title="Redis跳跃表"></a><span style="color:#339AFF;">Redis跳跃表</span></h1><p>Redis使用跳跃表作为有序集合键的底层实现之一，如果一个有序集合包含的元素数量比较多，又或者有序集合中元素的成员是比较长的字符串时，Redis就会使用跳跃表来作为有序集合键的底层实现。</p>
 <p>这里我们需要思考一个问题——为什么元素数量比较多或者成员是比较长的字符串的时候Redis要使用跳跃表来实现？</p>
 <p>从上面我们可以知道，跳跃表在链表的基础上增加了多级索引以提升查找的效率，但其是一个空间换时间的方案，必然会带来一个问题——索引是占内存的。原始链表中存储的有可能是很大的对象，而索引结点只需要存储关键值和几个指针，并不需要存储对象，因此当节点本身比较大或者元素数量比较多的时候，其优势必然会被放大，而缺点则可以忽略。</p>
 <h2 id="Redis中跳跃表的实现"><a href="#Redis中跳跃表的实现" class="headerlink" title="Redis中跳跃表的实现"></a><span style="color:#00ACC1;">Redis中跳跃表的实现</span></h2><p>Redis的跳跃表由zskiplistNode和zskiplist两个结构定义，其中zskiplistNode结构用于表示跳跃表节点，而zskiplist结构则用于保存跳跃表节点的相关信息，比如节点的数量，以及指向表头节点和表尾节点的指针等等。</p>
 <img src="/2020/11/24/Redis数据结构-跳跃表/Redis跳跃表.png">
-
 <p>上图展示了一个跳跃表示例，其中最左边的是skiplist结构，该结构包含以下属性。</p>
 <ul>
 <li><p>header：指向跳跃表的表头节点，通过这个指针程序定位表头节点的时间复杂度就为O(1)</p>
@@ -586,59 +580,62 @@
 </ul>
 <p>各个节点中的o1、o2和o3是节点所保存的成员对象。在同一个跳跃表中，各个节点保存的成员对象必须是唯一的，但是多个节点保存的分值却可以是相同的:分值相同的节点将按照成员对象在字典序中的大小来进行排序，成员对象较小的节点会排在前面（靠近表头的方向），而成员对象较大的节点则会排在后面（靠近表尾的方向）。</p>
 <img src="/2020/11/24/Redis数据结构-跳跃表/zskiplistNode.png">
-
-<h2 id="Redis跳跃表常用操作的时间复杂度"><a href="#Redis跳跃表常用操作的时间复杂度" class="headerlink" title="Redis跳跃表常用操作的时间复杂度"></a><span style="color:#00ACC1;">Redis跳跃表常用操作的时间复杂度</span></h2><table>
+<h2 id="Redis跳跃表常用操作的时间复杂度"><a href="#Redis跳跃表常用操作的时间复杂度" class="headerlink" title="Redis跳跃表常用操作的时间复杂度"></a><span style="color:#00ACC1;">Redis跳跃表常用操作的时间复杂度</span></h2><div class="table-container">
+<table>
 <thead>
 <tr>
-<th align="left"><strong><center>操作</center></strong></th>
-<th align="left"><strong><center>时间复杂度</center></strong></th>
+<th style="text-align:left"><strong><center>操作</center></strong></th>
+<th style="text-align:left"><strong><center>时间复杂度</center></strong></th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="left">创建一个跳跃表</td>
-<td align="left">O(1)</td>
+<tbody>
+<tr>
+<td style="text-align:left">创建一个跳跃表</td>
+<td style="text-align:left">O(1)</td>
 </tr>
 <tr>
-<td align="left">释放给定跳跃表以及其中包含的节点</td>
-<td align="left">O(N)</td>
+<td style="text-align:left">释放给定跳跃表以及其中包含的节点</td>
+<td style="text-align:left">O(N)</td>
 </tr>
 <tr>
-<td align="left">添加给定成员和分值的新节点</td>
-<td align="left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
+<td style="text-align:left">添加给定成员和分值的新节点</td>
+<td style="text-align:left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
 </tr>
 <tr>
-<td align="left">删除除跳跃表中包含给定成员和分值的节点</td>
-<td align="left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
+<td style="text-align:left">删除除跳跃表中包含给定成员和分值的节点</td>
+<td style="text-align:left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
 </tr>
 <tr>
-<td align="left">返回给定成员和分值的节点再表中的排位</td>
-<td align="left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
+<td style="text-align:left">返回给定成员和分值的节点再表中的排位</td>
+<td style="text-align:left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
 </tr>
 <tr>
-<td align="left">返回在给定排位上的节点</td>
-<td align="left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
+<td style="text-align:left">返回在给定排位上的节点</td>
+<td style="text-align:left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
 </tr>
 <tr>
-<td align="left">给定一个分值范围，返回跳跃表中第一个符合这个范围的节点</td>
-<td align="left">O(1)</td>
+<td style="text-align:left">给定一个分值范围，返回跳跃表中第一个符合这个范围的节点</td>
+<td style="text-align:left">O(1)</td>
 </tr>
 <tr>
-<td align="left">给定一个分值范围，返回跳跃表中最后一个符合这个范围的节点</td>
-<td align="left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
+<td style="text-align:left">给定一个分值范围，返回跳跃表中最后一个符合这个范围的节点</td>
+<td style="text-align:left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
 </tr>
 <tr>
-<td align="left">给定一个分值范围，除跳跃表中所有在这个范围之内的节点</td>
-<td align="left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
+<td style="text-align:left">给定一个分值范围，除跳跃表中所有在这个范围之内的节点</td>
+<td style="text-align:left">平均O(logN)，最坏O(logN)（N为跳跃表的长度）</td>
 </tr>
 <tr>
-<td align="left">给定一个排位范围，鼎除跳跃表中所有在这个范围之内的节点</td>
-<td align="left">O(N)，N为被除节点数量</td>
+<td style="text-align:left">给定一个排位范围，鼎除跳跃表中所有在这个范围之内的节点</td>
+<td style="text-align:left">O(N)，N为被除节点数量</td>
 </tr>
 <tr>
-<td align="left">给定一个分值范围（range），比如0到15，20到28，诸如此类，如果跳氏表中有至少一个节点的分值在这个范間之内，那么返回1，否则返回0</td>
-<td align="left">O(N)，N为被除节点数量</td>
+<td style="text-align:left">给定一个分值范围（range），比如0到15，20到28，诸如此类，如果跳氏表中有至少一个节点的分值在这个范間之内，那么返回1，否则返回0</td>
+<td style="text-align:left">O(N)，N为被除节点数量</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <h1 id="本文重点"><a href="#本文重点" class="headerlink" title="本文重点"></a><span style="color:#339AFF;">本文重点</span></h1><ul>
 <li>跳跃表基于单链表加索引的方式实现。</li>
 <li>跳跃表以空间换时间的方式提升了查找速度。</li>
@@ -766,7 +763,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -909,6 +906,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -922,10 +923,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -997,7 +994,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1460,6 +1457,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

@@ -525,24 +525,17 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-
 <p>在Laravel的源码当中，作者多次使用到了PHP SPL中的ArrayAccess接口，那么这个ArrayAccess接口到底有什么作用呢？我会用一个简单的例子跟大家说明。</p>
 <p>请看下面的这段代码，Foo类实现了ArrayAccess接口中的四个方法，请仔细看这些方法内部的实现代码。看到了吗？这些代码是干什么用的，回答就是这些代码没有用，随便你怎么写，你想写什么就写什么。接口中这四个方法的内部的实现跟方法名字其实没有任何关系。啊！这。。。实际的作用是取决于你的调用。</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Foo</span> <span class="keyword">implements</span> <span class="title">ArrayAccess</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">offsetExists</span><span class="params">( $offset )</span> </span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">"这里是 offsetExists() 方法 你输入的参数是 &#123;$offset&#125;"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">offsetGet</span><span class="params">( $offset )</span> </span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">"这里是 offsetGet() 方法 你输入的参数是 $offset"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">offsetSet</span><span class="params">( $offset, $value )</span> </span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">"这里是 offsetSet() 方法 你输入的 &#123;$offset&#125;=&#123;$value&#125;"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">offsetUnset</span><span class="params">( $offset )</span> </span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">"这里是 offsetUnset() 方法 你输入的参数是 &#123;$offset&#125;"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p>好，我们调用一下看看。</p>
-<p>我们使用isset这个函数去调用$foo[‘how’]，那么实际上是调用了offsetExists这个方法，也就是说$foo[‘xxxx’]这种结构去调用哪个ArrayAccess的方法是取决于你是如何调用的$foo[‘xxxx’]。而方法内部的实现代码你想怎么写就怎么写。在这里一旦你使用isset去调用了这种结构，系统就会去调用offsetExists这个方法，在本例中方法里面有什么，仅仅是echo了一句话。为什么var_dump($t); 会输出false呢？因为在我们实现的这个offsetExists方法里面，没有任何的返回值，没有返回值当然就是null了，也就是false了。</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$foo = <span class="keyword">new</span> Foo();</span><br><span class="line">$t = <span class="keyword">isset</span>($foo[<span class="string">'how'</span>]);<span class="comment">// 输出: 这里是 offsetExists() 方法 你输入的参数是 how</span></span><br><span class="line">var_dump($t);<span class="comment">// 输出: boolean false</span></span><br></pre></td></tr></table></figure>
-
-<p>接着看看这种$foo[‘xxxx’]结构还可以怎样被调用，不如我们这次直接使用$foo[‘xxxx’]看看。原来直接使用$foo[‘xxxx’]这种结构也可以调用一个方法啊，从输出当中得知调用了offsetGet方法，同样也获取到了参数。</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$foo = <span class="keyword">new</span> Foo();</span><br><span class="line">$foo[<span class="string">'what'</span>];<span class="comment">// 输出: 这里是 offsetGet() 方法 你输入的参数是 what</span></span><br></pre></td></tr></table></figure>
-
-<p>继续看还能怎么调用到其他的方法，我们给这个结构赋值看看，果然赋值的操作当然是调用offsetSet方法了，同样的方法内部的实现代码仍然还是你想写什么就写什么。</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$foo = <span class="keyword">new</span> Foo();</span><br><span class="line">$foo[<span class="string">'when'</span>] = <span class="string">'today'</span>;<span class="comment">// 输出: 这里是 offsetSet() 方法 你输入的 when=today</span></span><br></pre></td></tr></table></figure>
-
+<p>我们使用isset这个函数去调用$foo[‘how’]，那么实际上是调用了offsetExists这个方法，也就是说$foo[‘xxxx’]这种结构去调用哪个ArrayAccess的方法是取决于你是如何调用的$foo[‘xxxx’]。而方法内部的实现代码你想怎么写就怎么写。在这里一旦你使用isset去调用了这种结构，系统就会去调用offsetExists这个方法，在本例中方法里面有什么，仅仅是echo了一句话。为什么var_dump($t); 会输出false呢？因为在我们实现的这个offsetExists方法里面，没有任何的返回值，没有返回值当然就是null了，也就是false了。<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$foo = <span class="keyword">new</span> Foo();</span><br><span class="line">$t = <span class="keyword">isset</span>($foo[<span class="string">'how'</span>]);<span class="comment">// 输出: 这里是 offsetExists() 方法 你输入的参数是 how</span></span><br><span class="line">var_dump($t);<span class="comment">// 输出: boolean false</span></span><br></pre></td></tr></table></figure></p>
+<p>接着看看这种$foo[‘xxxx’]结构还可以怎样被调用，不如我们这次直接使用$foo[‘xxxx’]看看。原来直接使用$foo[‘xxxx’]这种结构也可以调用一个方法啊，从输出当中得知调用了offsetGet方法，同样也获取到了参数。<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$foo = <span class="keyword">new</span> Foo();</span><br><span class="line">$foo[<span class="string">'what'</span>];<span class="comment">// 输出: 这里是 offsetGet() 方法 你输入的参数是 what</span></span><br></pre></td></tr></table></figure></p>
+<p>继续看还能怎么调用到其他的方法，我们给这个结构赋值看看，果然赋值的操作当然是调用offsetSet方法了，同样的方法内部的实现代码仍然还是你想写什么就写什么。<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$foo = <span class="keyword">new</span> Foo();</span><br><span class="line">$foo[<span class="string">'when'</span>] = <span class="string">'today'</span>;<span class="comment">// 输出: 这里是 offsetSet() 方法 你输入的 when=today</span></span><br></pre></td></tr></table></figure></p>
 <p>最后一个了，看方法名字也知道是通过unset方法才能被调用了。</p>
-<pre><code class="php">$foo = <span class="keyword">new</span> Foo();
-<span class="keyword">unset</span>($foo[<span class="string">'wow'</span>]);<span class="comment">// 输出: 这里是 offsetUnset() 方法 你输入的参数是 wow</span></code></pre>
+<pre><code class="lang-php">$foo = new Foo();
+unset($foo[&#39;wow&#39;]);// 输出: 这里是 offsetUnset() 方法 你输入的参数是 wow
+</code></pre>
 <h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a><span style="color:#339AFF;">总结</span></h1><p>好了，总结一下吧：</p>
 <p>如果你的类实现了ArrayAccess接口，那么这个类的对象就可以使用$foo[‘xxx’]这种结构了。</p>
 <p>$foo[‘xxx’] 对应调用offsetGet方法。</p>
@@ -669,7 +662,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -812,6 +805,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -825,10 +822,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -900,7 +893,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1363,6 +1356,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

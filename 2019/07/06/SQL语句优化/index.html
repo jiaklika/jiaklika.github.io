@@ -529,8 +529,6 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-
-
 <p>SQL语句优化的首要任务是了解SQL语句的频率，分析当前的应用是查询操作频繁还是更新操作频繁。一条频繁执行但是性能糟糕的SQL语句可能对整个应用产生严重的负面影响，例如消耗过多的服务器内存资源，消耗过多的网络带宽。</p>
 <p>如果当前的应用更新操作较为频繁，需要解决更新操作带来的并发问题，例如锁等待、死锁问题。可以采用InnoDB存储引擎引入行级锁缩小锁的粒度，解决更新操作的并发问题。读者可以参考事务与锁机制章节的内容，这里不再赘述。</p>
 <p>如果当前的应用查询操作较为频繁，此时需要借助explain命令分析select语句，了解select语句的执行情况，分析select语句的性能瓶颈，进而对select语句进行重新设计或者对表结构进行重新设计（例如添加索引或者拆分表），让查询优化器能够更好地工作，提升查询性能，这是本节着重讲解的内容。</p>
@@ -540,7 +538,6 @@
 <p>图1 Queries与Questions</p>
 </blockquote>
 <img src="/2019/07/06/SQL语句优化/1.jpg">
-
 <ul>
 <li>Questions：MySQL服务执行的MySQL语句数量，仅仅包含MySQL客户机发送到MySQL服务器的MySQL语句，存储程序中的MySQL语句不包含在内。该状态变量不统计com_ping、com_statistics、com_stmt_prepare、com_stmt_close以及com_stmt_reset命令。</li>
 <li>Queries：MySQL服务执行的MySQL语句数量，包括存储程序中的MySQL语句。该状态变量不统计com_ping以及com_statistics命令。</li>
@@ -592,21 +589,17 @@
 <p>表1 线程的常用状态</p>
 </blockquote>
 <img src="/2019/07/06/SQL语句优化/1.jpg">
-
 <p>另外，还可以使用MySQL命令“show status like ‘uptime’;”查询当前MySQL服务实例的工作时间，使用MySQL命令“show status like ‘slow_queries’;”查询当前MySQL服务实例执行的慢查询的次数等信息。</p>
 <h1 id="分析select语句"><a href="#分析select语句" class="headerlink" title="分析select语句"></a>分析select语句</h1><p>有的应用对select语句的性能要求较高，此时单纯依靠开发者的直觉设计select语句，可能导致“理想”与“现实”出现偏差。可以使用explain命令或desc命令分析select语句的执行计划，从而了解select语句的执行情况，进而分析select语句的性能瓶颈，然后对select语句进行重新设计或者对表结构进行重新设计（例如添加索引或者拆分表），让查询优化器能够更好地工作，提升查询性能。explain的语法格式非常简单（desc语法格式与explain的语法格式相同），如下所示：</p>
 <p>explain select语句</p>
 <blockquote>
 <p>说明<br>desc命令通常用于获取表结构的相关信息。而explain命令通常用于获取查询的执行计划，例如，多个表进行 join 连接运算时，这些表如何连接、连接顺序如何等信息都可以通过explain命令获取。在MySQL 5.7中，使用explain命令还可以获取select、delete、insert、replace以及update等语句的执行计划。然而，一般而言，由于select语句对MySQL的性能影响较大，通常使用explain命令获取select语句的执行计划。explain命令返回了一行或者多行记录，包括了select语句中用到的各个表的信息。</p>
 </blockquote>
-<p>例如，查询姓“张”学生的信息，可以使用下面的SQL语句。使用explain对该SQL语句进行分析，如图2所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'张_'</span>\G</span><br></pre></td></tr></table></figure>
-
+<p>例如，查询姓“张”学生的信息，可以使用下面的SQL语句。使用explain对该SQL语句进行分析，如图2所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'张_'</span>\G</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图2 分析select语句</p>
 </blockquote>
 <img src="/2019/07/06/SQL语句优化/2.jpg">
-
 <p>explain命令的返回信息说明如下。</p>
 <ul>
 <li>id：查询的序列号。</li>
@@ -658,80 +651,41 @@
 </ul>
 </li>
 </ul>
-<p>Full scan on NULL key：子查询中的一种优化方式，主要在遇到无法通过索引访问NULL 值的时候使用。<br>Impossible WHERE noticed after reading const tables：MySQL 查询优化器通过收集到的统计信息判断出不可能存在的结果。<br>No tables：查询语句中使用不包含任何FROM的子句。<br>Select tables optimized away：当使用某些聚合函数来访问某个索引字段的时候，MySQL 查询优化器会通过索引直接一次定位到所需的数据行，完成整个查询。当然，前提是在查询语句中不能有group by操作。<br>使用下面的SQL语句在student表的student_name字段创建两个普通索引，其中name_index1索引仅仅对学生的“姓”创建了索引。然后重新使用explain命令分析两条select语句，如图14-69所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">index</span> name_index <span class="keyword">on</span> student (student_name);</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">index</span> name_index1 <span class="keyword">on</span> student (student_name(<span class="number">1</span>));</span><br><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'张％'</span>\G</span><br><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">use</span> <span class="keyword">index</span> (name_index1) <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'张％'</span>\G</span><br></pre></td></tr></table></figure>
-
+<p>Full scan on NULL key：子查询中的一种优化方式，主要在遇到无法通过索引访问NULL 值的时候使用。<br>Impossible WHERE noticed after reading const tables：MySQL 查询优化器通过收集到的统计信息判断出不可能存在的结果。<br>No tables：查询语句中使用不包含任何FROM的子句。<br>Select tables optimized away：当使用某些聚合函数来访问某个索引字段的时候，MySQL 查询优化器会通过索引直接一次定位到所需的数据行，完成整个查询。当然，前提是在查询语句中不能有group by操作。<br>使用下面的SQL语句在student表的student_name字段创建两个普通索引，其中name_index1索引仅仅对学生的“姓”创建了索引。然后重新使用explain命令分析两条select语句，如图14-69所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">index</span> name_index <span class="keyword">on</span> student (student_name);</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">index</span> name_index1 <span class="keyword">on</span> student (student_name(<span class="number">1</span>));</span><br><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'张％'</span>\G</span><br><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">use</span> <span class="keyword">index</span> (name_index1) <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'张％'</span>\G</span><br></pre></td></tr></table></figure></p>
 <p>图14-69 分析select语句<br>从图中可以分析，第一条select语句执行时使用了name_index索引检索了student表，第二条select语句由于指定使用索引name_index1，执行时使用了name_index1索引检索了student表（注意两个索引的长度key_len的值不相同）。</p>
-<h1 id="索引与select语句"><a href="#索引与select语句" class="headerlink" title="索引与select语句"></a>索引与select语句</h1><p>有时数据库表即使存在了合理的索引，不良的select语句也可能导致索引无法使用，对于InnoDB表而言，这样不仅会降低检索性能，还会导致行级锁升级为表级锁。因此，为了提升select语句的性能，合理的select语句与良好的索引结构缺一不可。<br>（1）对索引关键字字段使用了函数将导致索引无法使用。<br>下面的SQL语句同样实现了查询姓“张”学生的信息，使用explain或desc对该SQL语句进行分析，如图14-70所示。可以看到：由于type为ALL，并且rows的值为6（总共有6条学生信息），可以得知该select语句进行的是全表扫描，当学生表中的记录非常多时，该select语句会导致MySQL的性能瓶颈。事实上，where条件语句后的索引字段加上了函数处理的话，将不能使用索引。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> <span class="keyword">substring</span>(student_name,<span class="number">1</span>,<span class="number">1</span>)=<span class="string">'张'</span>\G</span><br></pre></td></tr></table></figure>
-
+<h1 id="索引与select语句"><a href="#索引与select语句" class="headerlink" title="索引与select语句"></a>索引与select语句</h1><p>有时数据库表即使存在了合理的索引，不良的select语句也可能导致索引无法使用，对于InnoDB表而言，这样不仅会降低检索性能，还会导致行级锁升级为表级锁。因此，为了提升select语句的性能，合理的select语句与良好的索引结构缺一不可。<br>（1）对索引关键字字段使用了函数将导致索引无法使用。<br>下面的SQL语句同样实现了查询姓“张”学生的信息，使用explain或desc对该SQL语句进行分析，如图14-70所示。可以看到：由于type为ALL，并且rows的值为6（总共有6条学生信息），可以得知该select语句进行的是全表扫描，当学生表中的记录非常多时，该select语句会导致MySQL的性能瓶颈。事实上，where条件语句后的索引字段加上了函数处理的话，将不能使用索引。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> <span class="keyword">substring</span>(student_name,<span class="number">1</span>,<span class="number">1</span>)=<span class="string">'张'</span>\G</span><br></pre></td></tr></table></figure></p>
 <p>▲图14-70 索引与select语句（1）<br>（2）对索引字段进行模糊查询时，模式的第一个字符是通配符时，将导致索引无法使用。<br>下面的SQL语句实现了查询姓名中含有“张”的学生信息，使用explain或desc对该SQL语句进行分析，如图14-71所示。同样，该select语句会导致MySQL的性能瓶颈。事实上,模糊查询时，查询模式的第一个字符是通配符时，将不能使用索引。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'％张％'</span>\G</span><br></pre></td></tr></table></figure>
-
-<p>▲图14-71 索引与select语句（2）<br>3）违反最左前缀原则的select语句，将导致索引无法使用。<br>例如，下面的SQL语句首先在teacher表的（teacher_name、teacher_contact）组合字段创建一个组合索引name_contact，然后查询teacher_contact值为“11000000000”的教师信息，执行结果如图14-72所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">index</span> name_contact <span class="keyword">on</span> teacher (teacher_name,teacher_contact);</span><br><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> teacher <span class="keyword">where</span> teacher_contact=<span class="string">'11000000000'</span>\G</span><br></pre></td></tr></table></figure>
-
-<p>上面的select语句并没有使用组合索引name_contact，原因是该select语句违反了最左前缀原则。下面的select语句适用于最左前缀原则，因此使用了组合索引name_contact，执行结果如图14-73所示。<br>explain select * from teacher where teacher_name=’张老师’\G<br>4）使用不等于（not操作符、！=或者&lt;&gt;）作为查询条件，将导致索引无法使用。<br>例如查询不是姓“张”学生的信息，可以使用下面的SQL语句。使用explain或desc对该SQL语句进行分析，执行结果如图14-74所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">desc <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">not</span> <span class="keyword">like</span> <span class="string">'张_'</span>\G</span><br></pre></td></tr></table></figure>
-
-<p>图14-72 索引与select语句（3）<br>▲图14-73 索引与select语句（4）<br>5）检索值的数据类型与索引字段不同，虽然MySQL能够进行数据类型转换，但却不会使用索引。<br>例如，下面的两条select语句从student表中检索出学号为“2012001”的学生信息，使用explain或desc对这两条select语句进行分析，第二条select语句没有使用索引，如图14-75所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">desc <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_no=<span class="string">'2012001'</span>\G</span><br><span class="line"><span class="keyword">desc</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_no=<span class="number">2012001</span>\G</span><br></pre></td></tr></table></figure>
-
+<p>▲图14-71 索引与select语句（2）<br>3）违反最左前缀原则的select语句，将导致索引无法使用。<br>例如，下面的SQL语句首先在teacher表的（teacher_name、teacher_contact）组合字段创建一个组合索引name_contact，然后查询teacher_contact值为“11000000000”的教师信息，执行结果如图14-72所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">index</span> name_contact <span class="keyword">on</span> teacher (teacher_name,teacher_contact);</span><br><span class="line"><span class="keyword">explain</span> <span class="keyword">select</span> * <span class="keyword">from</span> teacher <span class="keyword">where</span> teacher_contact=<span class="string">'11000000000'</span>\G</span><br></pre></td></tr></table></figure></p>
+<p>上面的select语句并没有使用组合索引name_contact，原因是该select语句违反了最左前缀原则。下面的select语句适用于最左前缀原则，因此使用了组合索引name_contact，执行结果如图14-73所示。<br>explain select * from teacher where teacher_name=’张老师’\G<br>4）使用不等于（not操作符、！=或者&lt;&gt;）作为查询条件，将导致索引无法使用。<br>例如查询不是姓“张”学生的信息，可以使用下面的SQL语句。使用explain或desc对该SQL语句进行分析，执行结果如图14-74所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">desc <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">not</span> <span class="keyword">like</span> <span class="string">'张_'</span>\G</span><br></pre></td></tr></table></figure></p>
+<p>图14-72 索引与select语句（3）<br>▲图14-73 索引与select语句（4）<br>5）检索值的数据类型与索引字段不同，虽然MySQL能够进行数据类型转换，但却不会使用索引。<br>例如，下面的两条select语句从student表中检索出学号为“2012001”的学生信息，使用explain或desc对这两条select语句进行分析，第二条select语句没有使用索引，如图14-75所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">desc <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_no=<span class="string">'2012001'</span>\G</span><br><span class="line"><span class="keyword">desc</span> <span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_no=<span class="number">2012001</span>\G</span><br></pre></td></tr></table></figure></p>
 <p>▲图14-74 索引与select语句(5)</p>
 <p>图14-75 索引与select语句（6）</p>
-<h1 id="分页与select"><a href="#分页与select" class="headerlink" title="分页与select"></a>分页与select</h1><p>对于MySQL而言，只需要指定select语句limit关键字start与length的值，就可以轻松地实现分页功能。但是如果考虑性能因素，当start的值比较大的时候，MySQL的分页性能会明显下降。下面的操作步骤意在说明start的取值与MySQL分页性能之间的关系。<br>步骤1：准备海量测试数据。<br>假设某个新闻发布系统存在新闻表news，主键是news_id，创建news 表的create table 语句如下所示。title表示新闻的标题，content表示新闻的内容，publish_time表示新闻的发布时间。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> news(</span><br><span class="line">news_id <span class="built_in">int</span> auto_increment primary <span class="keyword">key</span>,</span><br><span class="line">title <span class="built_in">char</span>(<span class="number">100</span>) <span class="keyword">not</span> <span class="literal">null</span>,</span><br><span class="line"><span class="keyword">content</span> <span class="built_in">text</span>,</span><br><span class="line">publish_time datetime</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
-
-<p>下面的MySQL语句负责创建存储过程insert_n()，该存储过程的功能是向news表中插入n条新闻信息。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">delimiter $$</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">procedure</span> insert_n(n <span class="built_in">int</span>)</span><br><span class="line">modifies <span class="keyword">sql</span> <span class="keyword">data</span></span><br><span class="line"><span class="keyword">begin</span></span><br><span class="line"><span class="keyword">declare</span> <span class="keyword">start</span> <span class="built_in">int</span> <span class="keyword">default</span> <span class="number">0</span>;</span><br><span class="line">while <span class="keyword">start</span>&lt;n <span class="keyword">do</span></span><br><span class="line"><span class="keyword">set</span> <span class="keyword">start</span> = <span class="keyword">start</span> + <span class="number">1</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> news <span class="keyword">values</span>(<span class="keyword">start</span>,<span class="string">'title'</span>,<span class="string">'content'</span>,<span class="keyword">now</span>());</span><br><span class="line"><span class="keyword">end</span> <span class="keyword">while</span>;</span><br><span class="line"><span class="keyword">end</span>;</span><br><span class="line"></span><br><span class="line">$$</span><br><span class="line">delimiter ;</span><br></pre></td></tr></table></figure>
-
-<p>下面的MySQL语句负责调用存储过程insert_n()，向news表插入百万级别的新闻信息。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">call</span> insert_n(<span class="number">1000000</span>);</span><br></pre></td></tr></table></figure>
-
+<h1 id="分页与select"><a href="#分页与select" class="headerlink" title="分页与select"></a>分页与select</h1><p>对于MySQL而言，只需要指定select语句limit关键字start与length的值，就可以轻松地实现分页功能。但是如果考虑性能因素，当start的值比较大的时候，MySQL的分页性能会明显下降。下面的操作步骤意在说明start的取值与MySQL分页性能之间的关系。<br>步骤1：准备海量测试数据。<br>假设某个新闻发布系统存在新闻表news，主键是news_id，创建news 表的create table 语句如下所示。title表示新闻的标题，content表示新闻的内容，publish_time表示新闻的发布时间。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> news(</span><br><span class="line">news_id <span class="built_in">int</span> auto_increment primary <span class="keyword">key</span>,</span><br><span class="line">title <span class="built_in">char</span>(<span class="number">100</span>) <span class="keyword">not</span> <span class="literal">null</span>,</span><br><span class="line"><span class="keyword">content</span> <span class="built_in">text</span>,</span><br><span class="line">publish_time datetime</span><br><span class="line">);</span><br></pre></td></tr></table></figure></p>
+<p>下面的MySQL语句负责创建存储过程insert_n()，该存储过程的功能是向news表中插入n条新闻信息。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">delimiter $$</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">procedure</span> insert_n(n <span class="built_in">int</span>)</span><br><span class="line">modifies <span class="keyword">sql</span> <span class="keyword">data</span></span><br><span class="line"><span class="keyword">begin</span></span><br><span class="line"><span class="keyword">declare</span> <span class="keyword">start</span> <span class="built_in">int</span> <span class="keyword">default</span> <span class="number">0</span>;</span><br><span class="line">while <span class="keyword">start</span>&lt;n <span class="keyword">do</span></span><br><span class="line"><span class="keyword">set</span> <span class="keyword">start</span> = <span class="keyword">start</span> + <span class="number">1</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> news <span class="keyword">values</span>(<span class="keyword">start</span>,<span class="string">'title'</span>,<span class="string">'content'</span>,<span class="keyword">now</span>());</span><br><span class="line"><span class="keyword">end</span> <span class="keyword">while</span>;</span><br><span class="line"><span class="keyword">end</span>;</span><br><span class="line"></span><br><span class="line">$$</span><br><span class="line">delimiter ;</span><br></pre></td></tr></table></figure></p>
+<p>下面的MySQL语句负责调用存储过程insert_n()，向news表插入百万级别的新闻信息。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">call</span> insert_n(<span class="number">1000000</span>);</span><br></pre></td></tr></table></figure></p>
 <p>主机执行该存储过程共用了将近 30 分钟的时间，如图14-76所示。<br>▲图14-76 批量插入百万条数据所需要的时间<br>步骤2：数据库用户需要分页浏览其中的10条新闻信息。<br>假设数据库用户分页浏览新闻内容时，每一页最多容纳 10 条新闻信息，当前页的第一条新闻的news_id是900001，最后一条新闻的news_id应该是900010。对于该应用，数据库开发人员可能使用下列方法实现。</p>
-<p>方法一：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">limit</span> <span class="number">900000</span>,<span class="number">10</span>;</span><br></pre></td></tr></table></figure>
-
-<p>方法二：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">order</span> <span class="keyword">by</span> news_id <span class="keyword">limit</span> <span class="number">900000</span>,<span class="number">10</span>;</span><br></pre></td></tr></table></figure>
-
-<p>方法三：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&gt;<span class="number">900000</span> <span class="keyword">order</span> <span class="keyword">by</span> news_id <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure>
-
-<p>或者</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&gt;<span class="number">900000</span> <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure>
-
+<p>方法一：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">limit</span> <span class="number">900000</span>,<span class="number">10</span>;</span><br></pre></td></tr></table></figure></p>
+<p>方法二：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">order</span> <span class="keyword">by</span> news_id <span class="keyword">limit</span> <span class="number">900000</span>,<span class="number">10</span>;</span><br></pre></td></tr></table></figure></p>
+<p>方法三：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&gt;<span class="number">900000</span> <span class="keyword">order</span> <span class="keyword">by</span> news_id <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure></p>
+<p>或者<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&gt;<span class="number">900000</span> <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure></p>
 <p>比较这3种方法的执行时间，如图14-77、图14-78、图14-79所示。第三种方法耗费的时间最短，大概是0.05秒；前面的两个方法执行时间大致相当，耗时最长，大概是4秒多钟的时间（耗费的时间是第三种方法的80倍）。如果多个数据库用户同时分页浏览新闻信息，第三种方法的性能优势更加明显。</p>
 <p>图14-77 方法一的执行时间<br>▲图14-78 方法二的执行时间<br>▲图14-79 方法三的执行时间</p>
 <p>分析：limit 900000,10的意思是扫描满足条件的900010行记录，扔掉前面的900000行记录，返回最后的10行记录。对于方法一的select语句而言，实际上执行的是全表扫描，如图14-80所示；对于方法二的select语句而言，使用聚簇索引（或者主键索引）扫描前900010行记录；对于方法三的select语句而言，使用聚簇索引（或者主键索引）进行范围扫描，扫描201394行记录。可以看出：方法三的分页性能更加优越。<br>结论：在进行分页时，如果使用聚簇索引（或者主键索引）进行范围扫描，性能更加优越。</p>
-<p>扩展：同样的道理，假设数据库用户分页浏览新闻内容时，每一页最多容纳 10 条新闻信息，当前页的第一条新闻的news_id是900001，最后一条新闻的news_id是900010。那么当前页的下一页可以使用下面的select语句实现。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&gt;<span class="number">900010</span> <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure>
-
-<p>或者</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&gt;<span class="number">900010</span> <span class="keyword">order</span> <span class="keyword">by</span> news_id <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure>
-
-<p>当前页的上一页可以使用下面的select语句实现。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&lt;<span class="number">900000</span> <span class="keyword">order</span> <span class="keyword">by</span> news_id <span class="keyword">desc</span> <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure>
-
+<p>扩展：同样的道理，假设数据库用户分页浏览新闻内容时，每一页最多容纳 10 条新闻信息，当前页的第一条新闻的news_id是900001，最后一条新闻的news_id是900010。那么当前页的下一页可以使用下面的select语句实现。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&gt;<span class="number">900010</span> <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure></p>
+<p>或者<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&gt;<span class="number">900010</span> <span class="keyword">order</span> <span class="keyword">by</span> news_id <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure></p>
+<p>当前页的上一页可以使用下面的select语句实现。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> news <span class="keyword">where</span> news_id&lt;<span class="number">900000</span> <span class="keyword">order</span> <span class="keyword">by</span> news_id <span class="keyword">desc</span> <span class="keyword">limit</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure></p>
 <h1 id="SQL语句其他注意事项"><a href="#SQL语句其他注意事项" class="headerlink" title="SQL语句其他注意事项"></a>SQL语句其他注意事项</h1><p>SQL语句的编写是一门艺术，在编写SQL语句时，首先应该确保SQL语句能够正确地执行，除此以外，还要考虑SQL语句的效率。下面介绍几点在编写SQL语句时应该注意的问题。</p>
-<p>1）获取了不需要的字段。<br>如果应用程序并不需要表的所有字段，避免使用“*”可以减轻MySQL服务器内存压力以及网络带宽压力。<br>2）同一功能的SQL语句，书写格式尽量保持统一。<br>例如查询学生的所有信息，如果A、B程序员分别写为：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student;（中间多了空格）</span><br></pre></td></tr></table></figure>
-
+<p>1）获取了不需要的字段。<br>如果应用程序并不需要表的所有字段，避免使用“*”可以减轻MySQL服务器内存压力以及网络带宽压力。<br>2）同一功能的SQL语句，书写格式尽量保持统一。<br>例如查询学生的所有信息，如果A、B程序员分别写为：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student;（中间多了空格）</span><br></pre></td></tr></table></figure></p>
 <p>上面两个select语句功能完全相同，并且它们产生的结果以及执行的时间是一样的。但是如果考虑到缓存因素（例如查询缓存Query Cache 开启时），功能相同的两条select语句可能导致查询缓存失效。原因在于：查询缓存匹配的过程是一个区分大小写的hash查找，在缓存中两个相似的查询哪怕是一个单字节不一样，也不会匹配。</p>
 <p>3）使用存储程序。<br>存储程序在解析时，自动检查语法错误、权限以及所有对象的依赖性。而等到执行的时候，会直接执行，而不会进行上述检查，这也是存储程序执行效率高的主要原因。当存储程序所依赖的对象发生了变化，MySQL会自动将存储程序的状态设置为INVALID，而存储程序的状态如果是INVALID，则会在下次执行的时候尝试重新解析。<br>4）使用预处理prepared statement。<br>使用预处理prepared statement可以提升SQL语句的性能，原因在于预处理中的SQL语句只需要解析一次，之后执行SQL语句时，就不需要再进行解析操作。如果需要多次执行同一个SQL语句，可以使用预处理prepared statement提升SQL语句的性能。<br>5）根据齿轮原则，多个表进行join连接运算时，使用小结果集启动大结果集。<br>6）当查询结果集只有一行数据时使用limit 1，可以提前终止查询语句的执行。</p>
 <p>7）使用连接（join）来代替子查询<br>连接（join）之所以更有效率一些，是因为连接（join）不需要在内存中使用临时表，而子查询需要在内存中创建临时表来完成，逻辑上需要两个步骤的查询工作。<br>14.6.7 profiling性能分析工具<br>通过慢查询日志可以得知哪些SQL语句执行效率低下，通过explain命令可以得知SQL语句的执行计划、索引使用等信息。如果这些信息还不够详细，可以通过profiling性能分析工具得到更准确的SQL执行消耗系统资源的信息。<br>profiling是另一个常用的性能分析工具，profiling能够显示SQL语句执行过程中消耗各种系统资源的信息。通过分析这些信息可以及时发现不良的SQL语句，从而对其进行调优。例如，通过profiling工具可以查看SQL语句的执行时间、System lock 以及Table lock花费的时间等信息，这对定位一条I/O或CPU消耗严重的SQL语句非常重要。默认情况下，profiling是关闭的。</p>
-<p>1）使用下面的set命令开启profiling</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> profiling=<span class="number">1</span>;</span><br></pre></td></tr></table></figure>
-
-<p>2）使用下面的SQL语句查询姓“张”学生的信息。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'张％'</span>;</span><br></pre></td></tr></table></figure>
-
+<p>1）使用下面的set命令开启profiling<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> profiling=<span class="number">1</span>;</span><br></pre></td></tr></table></figure></p>
+<p>2）使用下面的SQL语句查询姓“张”学生的信息。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student <span class="keyword">where</span> student_name <span class="keyword">like</span> <span class="string">'张％'</span>;</span><br></pre></td></tr></table></figure></p>
 <p>3）使用MySQL命令“show profiles;”查看所有SQL语句的执行时间（Duration 的单位为秒），执行结果如图14-81所示。</p>
 <p>4）使用MySQL命令“show profile for query 1;”查询Query_ID 值为1 的SQL语句的具体执行时间，如图14-82所示。</p>
 <p>▲图14-82 profiling性能分析工具</p>
-<p>5）测试完毕以后，关闭profiling。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> profiling=<span class="number">0</span>;</span><br></pre></td></tr></table></figure>
-
+<p>5）测试完毕以后，关闭profiling。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> profiling=<span class="number">0</span>;</span><br></pre></td></tr></table></figure></p>
 
       
     </div>
@@ -851,7 +805,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -994,6 +948,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -1007,10 +965,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -1082,7 +1036,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1545,6 +1499,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 

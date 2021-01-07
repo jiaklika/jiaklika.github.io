@@ -551,14 +551,12 @@
 <li>为什么使用间隙锁能避免幻读现象？</li>
 </ul>
 <a id="more"></a>
-
 <p>事务的首要任务是保证一系列更新语句的原子性，锁的首要任务是解决多用户并发访问可能导致的数据不一致问题。如果事务与事务之间存在并发操作，此时可以通过事务之间的隔离级别实现事务的隔离性，从而实现事务间数据的并发访问。</p>
 <h1 id="事务的ACID特性"><a href="#事务的ACID特性" class="headerlink" title="事务的ACID特性"></a><span style="color:#339AFF;">事务的ACID特性</span></h1><p>事务的ACID特性由原子性（atomicity）、一致性（consistency）、隔离性（isolation）和持久性（durabilily）4个英文单词的首字母组成（如图1所示）。</p>
 <blockquote>
 <p>图1 事务的ACID特性</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/1.jpg">
-
 <p><strong>1．原子性（atomicity）</strong></p>
 <p>原子性用于标识事务是否完全地完成。一个事务的任何更新都要在系统上完全完成，如果由于某种原因出错，事务不能完成它的全部任务，那么系统将返回到事务开始前的状态。回顾银行转账业务，如果在转帐的过程中出现错误，那么整个事务将被回滚。只有事务中的所有修改操作成功执行，事务的更新才被写入外存（例如硬盘），并使更新永久化。</p>
 <p><strong>2．一致性（consistency）</strong></p>
@@ -581,7 +579,6 @@
 <p>表1 事务的隔离级别与并发问题</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/2.jpg">
-
 <p><strong>脏读（dirty read）</strong>：一个事务可以读到另一个事务未提交的数据，脏读问题显然违背了事务的隔离性原则。</p>
 <p><strong>不可重复读（non-repeatable read）</strong>：同一个事务内，两条相同的查询语句的查询结果不一致。</p>
 <p><strong>幻读（phantom read）</strong>：同一个事务内，两条相同的查询语句的查询结果应该相同。但是，如果另一个事务同时提交了新数据，当本事务再更新时，就会“惊奇地”发现这些新数据，貌似之前读到的数据是“鬼影”一样的幻觉。</p>
@@ -590,54 +587,35 @@
 <p>图2 查看MySQL的事务隔离级别</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/3.jpg">
-
-<h1 id="设置事务的隔离级别"><a href="#设置事务的隔离级别" class="headerlink" title="设置事务的隔离级别"></a><span style="color:#339AFF;">设置事务的隔离级别</span></h1><p>InnoDB支持4种事务隔离级别，在InnoDB存储引擎中，可以使用以下命令设置事务的隔离级别。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> &#123; <span class="keyword">global</span> | <span class="keyword">session</span> &#125; <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> &#123;</span><br><span class="line">    <span class="keyword">read</span> uncommitted | <span class="keyword">read</span> committed | repeatable <span class="keyword">read</span> | <span class="keyword">serializable</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
+<h1 id="设置事务的隔离级别"><a href="#设置事务的隔离级别" class="headerlink" title="设置事务的隔离级别"></a><span style="color:#339AFF;">设置事务的隔离级别</span></h1><p>InnoDB支持4种事务隔离级别，在InnoDB存储引擎中，可以使用以下命令设置事务的隔离级别。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> &#123; <span class="keyword">global</span> | <span class="keyword">session</span> &#125; <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> &#123;</span><br><span class="line">    <span class="keyword">read</span> uncommitted | <span class="keyword">read</span> committed | repeatable <span class="keyword">read</span> | <span class="keyword">serializable</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>合理地设置事务的隔离级别，可以有效避免脏读、不可重复读、幻读等并发问题。</p>
 <p><strong>场景描述1</strong>：脏读现象。</p>
 <p>将事务的隔离级别设置为read uncommitted可能出现脏读、不可重复读以及幻读等问题，以脏读现象为例。</p>
-<p>步骤1：打开MySQL客户机A，执行下面的SQL语句，首先将account表的存储引擎设置为InnoDB，然后将当前MySQL会话的事务隔离级别设置为read uncommitted，接着开启事务，查询account表中的所有记录，执行结果如图3所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> <span class="keyword">account</span> <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> uncommitted;</span><br><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span>;</span><br></pre></td></tr></table></figure>
-
+<p>步骤1：打开MySQL客户机A，执行下面的SQL语句，首先将account表的存储引擎设置为InnoDB，然后将当前MySQL会话的事务隔离级别设置为read uncommitted，接着开启事务，查询account表中的所有记录，执行结果如图3所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> <span class="keyword">account</span> <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> uncommitted;</span><br><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span>;</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图3 将事务的隔离级别设置为read uncommitted</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/4.jpg">
-
-<p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为read uncommitted，然后开启事务，接着将account表中account_no=1的账户增加1000元钱。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> uncommitted;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">update</span> <span class="keyword">account</span> <span class="keyword">set</span> balance=balance+<span class="number">1000</span> <span class="keyword">where</span> account_no=<span class="number">1</span>;</span><br></pre></td></tr></table></figure>
-
-<p>步骤3：在MySQL客户机A上执行下面的SQL语句，查询account表中的所有记录，执行结果如图4所示。从图中可以看出，MySQL客户机A看到了MySQL客户机B尚未提交的更新结果，造成脏读现象。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span>;</span><br></pre></td></tr></table></figure>
-
+<p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为read uncommitted，然后开启事务，接着将account表中account_no=1的账户增加1000元钱。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> uncommitted;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">update</span> <span class="keyword">account</span> <span class="keyword">set</span> balance=balance+<span class="number">1000</span> <span class="keyword">where</span> account_no=<span class="number">1</span>;</span><br></pre></td></tr></table></figure></p>
+<p>步骤3：在MySQL客户机A上执行下面的SQL语句，查询account表中的所有记录，执行结果如图4所示。从图中可以看出，MySQL客户机A看到了MySQL客户机B尚未提交的更新结果，造成脏读现象。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span>;</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图4 read uncommitted隔离级别可能造成脏读问题</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/5.jpg">
-
 <p>步骤4：关闭MySQL客户机A与MySQL客户机B，由于MySQL客户机A与MySQL客户机B的事务没有提交，因此，account表中的数据没有发生变化，“甲”账户的余额依然是200元。</p>
 <p><strong>场景描述2</strong>：不可重复读现象。</p>
 <p>将事务的隔离级别设置为read committed可以避免脏读现象，但可能出现不可重复读以及幻读等现象，以不可重复读现象为例。</p>
-<p>步骤1：打开MySQL客户机A，执行下面的SQL语句，首先将account表的存储引擎设置为InnoDB，然后将当前MySQL会话的事务隔离级别设置为read committed，接着开启事务，查询account表中的所有记录，执行结果如图5所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> <span class="keyword">account</span> <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> committed;</span><br><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span>;</span><br></pre></td></tr></table></figure>
-
+<p>步骤1：打开MySQL客户机A，执行下面的SQL语句，首先将account表的存储引擎设置为InnoDB，然后将当前MySQL会话的事务隔离级别设置为read committed，接着开启事务，查询account表中的所有记录，执行结果如图5所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> <span class="keyword">account</span> <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> committed;</span><br><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span>;</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图5 将事务的隔离级别设置为read committed</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/6.jpg">
-
-<p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为read committed，然后开启事务，接着将account表中account_no=1的账户增加1000元钱，最后提交事务。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> committed;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">update</span> <span class="keyword">account</span> <span class="keyword">set</span> balance=balance+<span class="number">1000</span> <span class="keyword">where</span> account_no=<span class="number">1</span>;</span><br><span class="line"><span class="keyword">commit</span>;</span><br></pre></td></tr></table></figure>
-
-<p>步骤3：在MySQL客户机A上执行下面的SQL语句，查询account表中的所有记录，执行结果如图6所示。两次查询结果对比可以看出，MySQL客户机A在同一个事务中两次执行“select * from account;”的结果不相同，造成不可重复读现象。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span>;</span><br></pre></td></tr></table></figure>
-
+<p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为read committed，然后开启事务，接着将account表中account_no=1的账户增加1000元钱，最后提交事务。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> committed;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">update</span> <span class="keyword">account</span> <span class="keyword">set</span> balance=balance+<span class="number">1000</span> <span class="keyword">where</span> account_no=<span class="number">1</span>;</span><br><span class="line"><span class="keyword">commit</span>;</span><br></pre></td></tr></table></figure></p>
+<p>步骤3：在MySQL客户机A上执行下面的SQL语句，查询account表中的所有记录，执行结果如图6所示。两次查询结果对比可以看出，MySQL客户机A在同一个事务中两次执行“select * from account;”的结果不相同，造成不可重复读现象。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span>;</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图6 read committed隔离级别可能造成不可重复读</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/7.jpg">
-
 <blockquote>
 <p>说明<br>不可重复读现象与脏读现象的区别在于，脏读现象是读取了其他事务未提交的数据；而不可重复读现象读到的是其他事务已经提交（commit）的数据。</p>
 </blockquote>
@@ -646,36 +624,25 @@
 <p>将事务的隔离级别设置为repeatable read可以避免脏读以及不可重复读现象，但可能出现幻读现象。</p>
 <p>步骤1：打开MySQL客户机A，执行下面的SQL语句，首先将account表的存储引擎设置为InnoDB，然后将当前MySQL会话的事务隔离级别设置为repeatable read，接着开启事务，查询account表中是否存在account_no=100的账户信息，执行结果如图7所示。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> <span class="keyword">account</span> <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> repeatable <span class="keyword">read</span>;</span><br><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span> <span class="keyword">where</span> account_no=<span class="number">100</span>;</span><br></pre></td></tr></table></figure>
-
 <blockquote>
 <p>图7 事务的隔离级别设置为repeatable read</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/8.jpg">
-
-<p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为repeatable read，接着开启事务，然后向account表中添加一条“己”账户信息，并将account_no赋值为100，最后提交事务，执行结果如图8所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> repeatable <span class="keyword">read</span>;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">100</span>,<span class="string">'己'</span>,<span class="number">5000</span>);</span><br><span class="line"><span class="keyword">commit</span>;</span><br></pre></td></tr></table></figure>
-
+<p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为repeatable read，接着开启事务，然后向account表中添加一条“己”账户信息，并将account_no赋值为100，最后提交事务，执行结果如图8所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> repeatable <span class="keyword">read</span>;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">100</span>,<span class="string">'己'</span>,<span class="number">5000</span>);</span><br><span class="line"><span class="keyword">commit</span>;</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图8 向account表中添加一条“己”账户信息</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/9.jpg">
-
-<p>步骤3：接着在MySQL客户机A上执行下面的SQL语句，查询account表中是否存在account_no=100的账户信息，执行结果如图9所示。从图中可以看出，account 表中不存在account_no=100的账户信息。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span> <span class="keyword">where</span> account_no=<span class="number">100</span>;</span><br></pre></td></tr></table></figure>
-
+<p>步骤3：接着在MySQL客户机A上执行下面的SQL语句，查询account表中是否存在account_no=100的账户信息，执行结果如图9所示。从图中可以看出，account 表中不存在account_no=100的账户信息。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span> <span class="keyword">where</span> account_no=<span class="number">100</span>;</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图9 查询account表中是否存在account_no=100的账户信息</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/10.jpg">
-
-<p>步骤4：由于MySQL客户机A检测到account表中不存在account_no=100的账户信息，因此MySQL客户机A就可以向account表中插入一条account_no=100的账户信息。在MySQL客户机A上执行下面的insert语句，向account表中添加一条“庚”的账户信息，并将account_no赋值为100，执行结果如图10所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">100</span>,<span class="string">'庚'</span>,<span class="number">5000</span>);</span><br></pre></td></tr></table></figure>
-
+<p>步骤4：由于MySQL客户机A检测到account表中不存在account_no=100的账户信息，因此MySQL客户机A就可以向account表中插入一条account_no=100的账户信息。在MySQL客户机A上执行下面的insert语句，向account表中添加一条“庚”的账户信息，并将account_no赋值为100，执行结果如图10所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">100</span>,<span class="string">'庚'</span>,<span class="number">5000</span>);</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图10 repeatable read隔离级别可能造成幻读问题</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/11.jpg">
-
 <p>从运行结果可以看出，account表中确实存在account_no=100的账户信息，但由于repeatable read（可重复读）隔离级别使用了“障眼法”，使得MySQL客户机A无法查询到account_no=100的账户信息，这种现象称为幻读现象。</p>
 <blockquote>
 <p>说明<br>幻读现象与不可重复读现象不同之处在于，幻读现象读不到其他事务已经提交（commit）的数据，而不可重复读现象读到的是其他事务已经提交（commit）的数据。</p>
@@ -684,62 +651,46 @@
 <p>避免幻读现象的方法有两个。</p>
 <p>方法一：保持事务的隔离级别repeatable read不变，利用间隙锁的特点，对查询结果集施加共享锁（lock in share mode）或者排他锁（for update）。这种方法要求数据库开发人员了解间隙锁的特点。</p>
 <p>方法二：将事务的隔离级别设置为serializable，可以避免幻读现象，这种方法最为简单，先以方法二为例。</p>
-<p>步骤1：打开MySQL客户机A，执行下面的SQL语句，首先将account表的存储引擎设置为InnoDB，然后将当前MySQL会话的事务隔离级别设置为serializable，接着开启事务，查询account表中是否存在account_no=200的账户信息，执行结果如图11所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> <span class="keyword">account</span> <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">serializable</span>;</span><br><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span> <span class="keyword">where</span> account_no=<span class="number">200</span>;</span><br></pre></td></tr></table></figure>
-
+<p>步骤1：打开MySQL客户机A，执行下面的SQL语句，首先将account表的存储引擎设置为InnoDB，然后将当前MySQL会话的事务隔离级别设置为serializable，接着开启事务，查询account表中是否存在account_no=200的账户信息，执行结果如图11所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> <span class="keyword">account</span> <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">serializable</span>;</span><br><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span> <span class="keyword">where</span> account_no=<span class="number">200</span>;</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图11 将事务的隔离级别设置为serializable</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/12.jpg">
-
-<p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为serializable，然后开启事务，接着向account表中添加一条“庚”的账户信息，并将account_no赋值为200，执行结果如图12所示。从图中可以看出，MySQL客户机B发生锁等待现象，降低了事务间的并发访问性能（虽然解决了幻读问题）。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">serializable</span>;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">200</span>,<span class="string">'庚'</span>,<span class="number">5000</span>);</span><br></pre></td></tr></table></figure>
-
+<p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为serializable，然后开启事务，接着向account表中添加一条“庚”的账户信息，并将account_no赋值为200，执行结果如图12所示。从图中可以看出，MySQL客户机B发生锁等待现象，降低了事务间的并发访问性能（虽然解决了幻读问题）。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">serializable</span>;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">200</span>,<span class="string">'庚'</span>,<span class="number">5000</span>);</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图12 serializable隔离级别可以防止幻读问题说明</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/13.jpg">
-
 <p>由于InnoDB存储引擎发生了锁等待超时引发的错误异常，InnoDB存储引擎回滚引发了该错误异常的事务，因此，“庚”的账户信息并没有添加到account表中。</p>
 <p>将事务隔离级别设置为serializable，可以有效避免幻读现象。然而，serializable隔离级别会降低MySQL的并发访问性能，因此，不建议将事务的隔离级别设置为serializable。</p>
 <h1 id="使用间隙锁避免幻读现象"><a href="#使用间隙锁避免幻读现象" class="headerlink" title="使用间隙锁避免幻读现象"></a><span style="color:#339AFF;">使用间隙锁避免幻读现象</span></h1><p>MySQL默认的事务隔离级别为repeatable read。为了保持事务的隔离级别repeatable read不变，利用间隙锁的特点对查询结果集施加共享锁（lock in share mode）或者排他锁（for update），同样可以避免幻读现象，同时也不至于降低MySQL的并发访问性能。当然这种方法首先要求数据库开发人员了解InnoDB间隙锁的特点。</p>
 <p><strong>场景描述5</strong>：将事务的隔离级别设置为repeatable read，可以避免脏读以及不可重复读现象，但可能出现幻读现象。通过引入间隙锁，可以避免幻读现象。</p>
 <p>步骤1：打开MySQL客户机A，执行下面的SQL语句，首先将account表的存储引擎设置为InnoDB，然后将当前MySQL会话的事务隔离级别设置为repeatable read，接着开启事务，查询account表中是否存在account_no=200的账户信息，执行结果如图13所示。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> <span class="keyword">account</span> <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> repeatable <span class="keyword">read</span>;</span><br><span class="line"><span class="keyword">select</span> @@tx_isolation;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span> <span class="keyword">where</span> account_no=<span class="number">200</span> <span class="keyword">lock</span> <span class="keyword">in</span> <span class="keyword">share</span> <span class="keyword">mode</span>;</span><br></pre></td></tr></table></figure>
-
 <blockquote>
 <p>图13 将事务的隔离级别设置为repeatable read</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/14.jpg">
-
-
 <blockquote>
 <p>说明<br>虽然account表中不存在account_no=200的账户信息，但最后一条 select语句为account_no=200的账户信息施加了间隙锁（共享锁）。</p>
 </blockquote>
 <p>步骤2：打开MySQL客户机B，执行下面的SQL语句，首先将当前MySQL会话的事务隔离级别设置为repeatable read，接着开启事务，然后向account表中添加一条“庚”的账户信息，并将account_no赋值为200。insert语句将被阻塞，执行结果如图14所示。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> <span class="keyword">session</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> repeatable <span class="keyword">read</span>;</span><br><span class="line"><span class="keyword">start</span> <span class="keyword">transaction</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">200</span>,<span class="string">'庚'</span>,<span class="number">5000</span>);</span><br></pre></td></tr></table></figure>
-
 <blockquote>
 <p>图14 使用间隙锁锁定account_no=200的账户，insert语句被阻塞</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/15.jpg">
-
 <p>步骤3：接着在MySQL客户机A上执行下面的SQL语句，查询account表中是否存在account_no=200的账户信息，执行结果如图15所示。从图中可以看出，account表中不存在account_no=200的账户信息。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">account</span> <span class="keyword">where</span> account_no=<span class="number">200</span>;<span class="keyword">lock</span> <span class="keyword">in</span> <span class="keyword">share</span> <span class="keyword">mode</span></span><br></pre></td></tr></table></figure>
-
 <blockquote>
 <p>图15 查询account表中是否存在account_no=200的账户信息</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/16.jpg">
-
-<p>步骤4：由于MySQL客户机A检测到account表中不存在account_no=200的账户信息，因此MySQL客户机A就可以向account表中插入一条account_no=200的账户信息。在MySQL客户机A上执行下面的insert语句，向account表中添加一条“庚”的账户信息，并将account_no赋值为200，执行结果如图16所示。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">200</span>,<span class="string">'庚'</span>,<span class="number">5000</span>);</span><br></pre></td></tr></table></figure>
-
+<p>步骤4：由于MySQL客户机A检测到account表中不存在account_no=200的账户信息，因此MySQL客户机A就可以向account表中插入一条account_no=200的账户信息。在MySQL客户机A上执行下面的insert语句，向account表中添加一条“庚”的账户信息，并将account_no赋值为200，执行结果如图16所示。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> <span class="keyword">account</span> <span class="keyword">values</span>(<span class="number">200</span>,<span class="string">'庚'</span>,<span class="number">5000</span>);</span><br></pre></td></tr></table></figure></p>
 <blockquote>
 <p>图16 成功添加account_no=200的账户信息</p>
 </blockquote>
 <img src="/2018/11/27/MySQL事务的ACID特性/17.jpg">
-
 <p>从运行结果可以看出，当MySQL的事务隔离级别是repeatable read时，数据库开发人员可以利用间隙锁的特点，避免幻读现象。</p>
 <h1 id="事务与锁机制注意事项"><a href="#事务与锁机制注意事项" class="headerlink" title="事务与锁机制注意事项"></a><span style="color:#339AFF;">事务与锁机制注意事项</span></h1><p>使用事务与锁机制还应该注意以下内容。</p>
 <ul>
@@ -770,9 +721,7 @@
 <p>12．“选课系统”应该使用哪种粒度的锁机制？为什么？</p>
 <p>13．为InnoDB表施加行级锁的语法格式是什么？</p>
 <p>14．请列举现实生活中的“资源竞争”问题，如何使用锁机制解决此类“资源竞争”问题？</p>
-<p>15．完成调课功能的replace_course_proc()存储过程以及完成选课功能choose_proc()存储过程使用了行级锁解决了“资源竞争”问题，能不能将存储过程中下面的select语句写在“start transaction;”语句之前，以便缩短行级锁的生命周期？</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> state <span class="keyword">into</span> <span class="keyword">status</span> <span class="keyword">from</span> course <span class="keyword">where</span> course_no=c_no;</span><br></pre></td></tr></table></figure>
-
+<p>15．完成调课功能的replace_course_proc()存储过程以及完成选课功能choose_proc()存储过程使用了行级锁解决了“资源竞争”问题，能不能将存储过程中下面的select语句写在“start transaction;”语句之前，以便缩短行级锁的生命周期？<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> state <span class="keyword">into</span> <span class="keyword">status</span> <span class="keyword">from</span> course <span class="keyword">where</span> course_no=c_no;</span><br></pre></td></tr></table></figure></p>
 <p>16．InnoDB什么时候使用间隙锁，什么时候使用记录锁？间隙锁与记录锁之间的区别是什么？</p>
 <p>17．锁等待与死锁之间是什么关系？</p>
 <p>18．请解释事务的ACID特性。</p>
@@ -899,7 +848,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">180</span>
+                    <span class="site-state-item-count">181</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1042,6 +991,10 @@
                 
                 
                   <li>
+                    <a href="/2021/01/07/markdown1/" title="markdown1" target="_blank">markdown1</a>
+                  </li>
+                
+                  <li>
                     <a href="/2021/01/03/2-我对金融市场运行规律的认识/" title="2-我对金融市场运行规律的认识" target="_blank">2-我对金融市场运行规律的认识</a>
                   </li>
                 
@@ -1055,10 +1008,6 @@
                 
                   <li>
                     <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/scrollspy/" title target="_blank"></a>
-                  </li>
-                
-                  <li>
-                    <a href="/2020/12/08/既然有HTTP请求，为什么还要用RPC调用？/第3章 Python的图表绘制 _ 车斌的技术博客_files/pisces/" title target="_blank"></a>
                   </li>
                 
               </ul>
@@ -1130,7 +1079,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">30:28</span>
+    <span title="站点阅读时长">30:24</span>
   
 </div>
 
@@ -1593,6 +1542,13 @@
   
 
   
+  
+
+  
+  
+
+  
+
 
   
 
