@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-08-21T15:06:27.551Z">
+<meta property="og:updated_time" content="2021-09-06T07:18:27.999Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第12章 “避坑”与技巧">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2021-08-21 23:06:27" itemprop="dateModified" datetime="2021-08-21T23:06:27+08:00">2021-08-21</time>
+                <time title="修改时间：2021-09-06 15:18:27" itemprop="dateModified" datetime="2021-09-06T15:18:27+08:00">2021-09-06</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">16k</span>
               
 
               
@@ -503,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">15 分钟</span>
               
             </div>
           
@@ -528,6 +528,63 @@
 <li>总结一下，这章作者最主要想表达什么观点？</li>
 </ul>
 <a id="more"></a>
+<p>任何编程语言都不是完美的，Go语言也是如此。Go语言的某些特性在使用时如果不注意，也会造成一些错误，我们习惯上将这些造成错误的设计称为“坑”。</p>
+<p>Go语言的一些设计也具有与其他编程语言不一样的特性，能优雅、简单、高效地解决一些其他语言难以解决的问题。</p>
+<p>本章将会对Go语言设计上可能发生错误的地方及Go语言本身的使用技巧进行总结和归纳。</p>
+<h1 id="合理地使用并发特性"><a href="#合理地使用并发特性" class="headerlink" title="合理地使用并发特性"></a>合理地使用并发特性</h1><p>Go语言原生支持并发是被众人津津乐道的特性。goroutine早期是Inferno操作系统的一个试验性特性，而现在这个特性与操作系统一起，将开发变得越来越简单。</p>
+<p>很多刚开始使用Go语言开发的人都很喜欢使用并发特性，而没有考虑并发是否真正能解决他们的问题。</p>
+<h2 id="了解goroutine的生命期时再创建goroutine"><a href="#了解goroutine的生命期时再创建goroutine" class="headerlink" title="了解goroutine的生命期时再创建goroutine"></a>了解goroutine的生命期时再创建goroutine</h2><p>在Go语言中，开发者习惯将并发内容与goroutine一对应地创建goroutine。开发者很少会考虑goroutine在什么时候能退出和控制goroutine生命期，这就会造成goroutine失控的情况。下面来看一段代码。</p>
+<blockquote>
+<p>代码12-1 失控的goroutine（具体文件：../chapter12/overcreatechan/overcreatechan.go）</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"runtime"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 一段耗时的计算函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">consumer</span><span class="params">(ch <span class="keyword">chan</span> <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 无限获取数据的循环</span></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 从通道获取数据</span></span><br><span class="line">        data := &lt;-ch</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 打印数据</span></span><br><span class="line">        fmt.Println(data)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建一个传递数据用的通道</span></span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 空变量，什么也不做</span></span><br><span class="line">        <span class="keyword">var</span> dummy <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取输入，模拟进程持续运行</span></span><br><span class="line">        fmt.Scan(&amp;dummy)</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 启动并发执行consumer函数</span></span><br><span class="line">        <span class="keyword">go</span> consumer(ch)</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 输出现在的goroutine数量</span></span><br><span class="line">        fmt.Println(<span class="string">"goroutines:"</span>, runtime.NumGoroutine())</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码说明如下：</p>
+<ul>
+<li>第9行，consumer()函数模拟平时业务中放到goroutine中执行的耗时操作。该函数从其他goroutine中获取和接收数据或者指令，处理后返回结果。</li>
+<li>第12行，需要通过无限循环不停地获取数据。</li>
+<li>第15行，每次从通道中获取数据。</li>
+<li>第18行，模拟处理完数据后的返回数据。</li>
+<li>第26行，创建一个整型通道。</li>
+<li>第34行，使用fimt.Scan()函数接收数据时，需要提供变量地址。如果输入匹配的变量类型，将会成功赋值给变量。</li>
+<li>第37行，启动并发执行consumer()函数，并传入ch通道。</li>
+<li>第40行，每启动一个goroutine，使用runtime.NumGoroutine检查进程创建的goroutine 数量总数。</li>
+</ul>
+<p>运行程序，每输入一个字符串+回车，将会创建一个goroutine，结果如下：<br>a</p>
+<p>注意，结果中a、b、c为通过键盘输入的字符，其他为打印字符。<br>这个程序实际在模拟一个进程根据需要创建goroutine的情况。运行后，问题已经被暴露出来：随着输入的字符串越来越多，goroutine将会无限制地被创建，但并不会结束。这种情况如果发生在生产环境中，将会造成内存大量分配，最终使进程崩溃。现实的情况也许比这段代码更加隐蔽：也许你设置了一个退出的条件，但是条件永远不会被满足或者触发。<br>为了避免这种情况，在这个例子中，需要为consumer()函数添加合理的退出条件，修改代码后如下：</p>
+<p>代码中加粗部分是新添加的代码，具体说明如下：<br>。第17行，为无限循环设置退出条件，这里设置0为退出。<br>·第41行，当命令行输入quit时，进入退出处理的流程。<br>。第43行，runtime.NumGoroutine返回一个进程的所有goroutine数，main()的goroutine也被算在里面。因此需要扣除main()的goroutine数。剩下的goroutine为实际创建的goroutine数，对这些goroutine进行遍历。<br>。第44行，并发开启的goroutine都在竞争获取通道中的数据，因此只要知道有多少个goroutine需要退出，就给通道里发多少个0。<br>修改程序并运行，结果如下：</p>
+<p>12.1.2 避免在不必要的地方使用通道<br>通道（channel）和map、切片一样，也是由Go源码编写而成。为了保证两个goroutine并发访问的安全性，通道也需要做一些锁操作，因此通道其实并不比锁高效。<br>下面的例子展示套接字的接收和并发管理。对于TCP来说，一般是接收过程创建goroutine并发处理。当套接字结束时，就要正常退出这些goroutine。<br>.326.<br>第12章“避坑”与技巧<br>本节完整例子参见以下代码示例。<br>代码12-2退出通知（具体文件：…/chapter12/exitnotifylexitnotify.go）<br>1.套接字接收部分<br>套接字在连接后，就需要不停地接收数据，代码如下：<br>￥￥￥￥1.0</p>
+<p>代码说明如下：<br>·第2行传入的net.Conn是套接字的接口，exitChan为退出发送同步通道。 ·第5行为套接字的接收数据创建一个缓冲。<br>·第8行构建一个接收的循环，不停地接收数据。<br>·第11行，从套接字中取出数据。这个例子中，不关注具体接收到的数据，只是关注错误，这里将接收到的字节数做匿名处理。<br>。第14行，当套接字调用了Close方法时，会触发错误，这时需要结束接收循环。 ·第21行，结束函数时，与函数绑定的goroutine会同时结束，此时需要通知main() 的goroutine。<br>2.连接、关闭、同步goroutine主流程部分<br>下面代码中尝试使用套接字的TCP协议连接一个网址，连接上后，进行数据接收，等待一段时间后主动关闭套接字，等待套接字所在的goroutine自然结束，代码如下：</p>
+<p>代码说明如下：<br>·第4行，使用net.Dial发起TCP协议的连接，调用函数就会发送阻塞直到连接超时或者连接完成。<br>·第7行，如果连接发生错误，将会打印错误并退出。<br>·第13行，创建一个通道用于退出信号同步，这个通道会在接收用的goroutine中使用。 。第16行，并发执行接收函数，传入套接字和用于退出通知的通道。<br>。第19行，接收需要一个过程，使用time.Sleep()等待一段时间。<br>。第22行，主动关闭套接字，此时会触发套接字接收错误。<br>·第25行，从exit通道接收退出数据，也就是等待接收goroutine结束。<br>在这个例子中，goroutine退出使用通道来通知，这种做法可以解决问题，但是实际上通道中的数据并没有完全使用。<br>3.优化：使用等待组替代通道简化同步<br>通道的内部实现代码在Go语言开发包的src/runtime/chan.go中，经过分析后大概了解到通道也是用常见的互斥量等进行同步。因此通道虽然是一个语言级特性，但也不是被神化的特性，通道的运行和使用都要比传统互斥量、等待组（sync.WaitGroup）有一定的消耗。所以在这个例子中，更建议使用等待组来实现同步，调整后的代码如下：</p>
+<p>调整后的代码说明如下：<br>·第45行，声明退出同步用的等待组。<br>·第48行，为等待组的计数器加1，表示需要完成一个任务。 ·第51行，将等待组的指针传入接收函数。<br>·第60行，等待等待组的完成，完成后打印提示。<br>·第30行，接收完成后，使用wg.Done()方法将等待组计数器减一。<br>12.2反射：性能和灵活性的双刃剑<br>现在的一些流行设计思想需要建立在反射基础上，如控制反转（Inversion Of Control，IOC）和依赖注入（Dependency Injection，DI）。Go语言中非常有名的Web框架martini(<a href="https://github.com/go-martini/martini)就是通过依赖注入技术进行中间件的实现，例如使用martini框架搭建的http的服务器如下：" target="_blank" rel="noopener">https://github.com/go-martini/martini)就是通过依赖注入技术进行中间件的实现，例如使用martini框架搭建的http的服务器如下：</a><br>01 package main<br>02<br>03import”github.com/go-martini/martini”<br>04<br>05<br>func main(){<br>06<br>m := martini.classic()<br>07<br>m.Get(“/“, func() string{<br>08<br>return “Hello world!”<br>09<br>})<br>10<br>m.Run()<br>11}<br>第7行，响应路径“”的代码使用一个闭包实现。如果希望获得Go语言中提供的请求和响应接口，可以直接修改为：<br>m.Get(“/“, func(res http.ResponseWriter, req *http.Request) string { //响应处理代码……<br>})<br>martini的底层会自动通过识别Get获得的闭包参数情况，通过动态反射调用这个函数并传入需要的参数。martini的设计广受好评，但同时也有人指出，其运行效率较低。其中最主要的因素是大量使用了反射。<br>虽然一般情况下，I/O的延迟远远大于反射代码所造成的延迟。但是，更低的响应速度和更低的CPU占用依然是Web服务器追求的目标。因此，反射在带来灵活性的同时，也带上了性能低下的桎梏。</p>
+<p>要用好反射这把双刃剑，就需要详细了解反射的性能。下面的一些基准测试从多方面对比了原生调用和反射调用的区别。<br>1.结构体成员赋值对比<br>反射经常被使用在结构体上，因此结构体的成员访问性能就成为了关注的重点。下面例子中使用一个被实例化的结构体，访问它的成员，然后使用Go语言的基准化测试可以迅速测试出结果。<br>代码12-3反射性能测试（具体文件：…/chapter12/reflecttest/reflect test.go）<br>01//声明一个结构体，拥有一个字段<br>02 type data struct {<br>03<br>Hpint<br>04}<br>05<br>06 func BenchmarkNativeAssign (b *testing.B){<br>07<br>08<br>//实例化结构体<br>09<br>v:=data{Hp:2}<br>10<br>11<br>//停止基准测试的计时器<br>12<br>b.StopTimer()<br>13<br>//重置基准测试计时器数据<br>14<br>b.ResetTimer()<br>15<br>16<br>//重新启动基准测试计时器<br>17<br>b.StartTimer()<br>18<br>19<br>//根据基准测试数据进行循环测试<br>20<br>fori :=0;i&lt;b.N;if+{<br>21<br>22<br>//结构体成员赋值测试<br>23<br>v.Hp=3<br>24<br>25<br>26}<br>代码说明如下：<br>·第2行，声明一个普通结构体，拥有一个成员变量。<br>·第6行，使用基准化测试的入口。<br>·第9行，实例化data结构体，并给Hp成员赋值。<br>·第12~17行，由于测试的重点必须放在赋值上，因此需要极大程度地降低其他代码的干扰，于是在赋值完成后，将基准测试的计时器复位并重新开始。<br>·第20行，将基准测试提供的测试数量用于循环中。<br>·第23行，测试的核心代码：结构体赋值。<br>上面代码展示的是原生结构体的赋值过程，下面的代码分析使用反射访问结构体成员</p>
+<p>代码说明如下：<br>·第6行，取v的地址并转为反射值对象。此时值对象里的类型为<em>data，使用值的Elem()方法取元素，获得data的反射值对象。<br>·第9行，使用FieldByName()根据名字取出成员的反射值对象。<br>·第11~13行，重置基准测试计时器。<br>。第18行，使用反射值对象的SetInt()方法，给data结构的“Hp”字段设置数值3。 这段代码中使用了反射值对象的SetInt()方法，这个方法的源码如下：<br>func(v Value)SetInt(x int64){<br>v.mustBeAssignable()<br>switch k :=v.kind();k{<br>default:<br>panic(&amp;ValueError{“reflect.value.SetInt”, v.kind()})<br>caseInt:
+</em>(<em>int)(v.ptr)=int(x)<br>case Int8:
+</em>(<em>int8) (v.ptr)=int8(x)<br>case Int16:
+</em>(<em>intl6) (v.ptr)= int16(x)<br>case Int32:
+</em>(<em>int32) (v.ptr)=int32(x)<br>caseInt64:
+</em>(*int64) (v.ptr)=x<br>}<br>了<br>可以发现，整个设置过程都是指针转换及赋值，没有遍历及内存操作等相对耗时的算法。</p>
+<p>2.结构体成员搜索并赋值对比<br>21 func BenchmarkReflectFindFieldAndAssign(b *testing.B){<br>22<br>23<br>v:=data{Hp:2}<br>24<br>25<br>vv :=reflect.value0f(&amp;v).Elem()<br>26<br>27<br>b.StopTimer()<br>28<br>b.ResetTimer()<br>29<br>b.StartTimer()<br>30<br>31<br>fori:=0;i&lt;b.N;i++{<br>32<br>33<br>//测试结构体成员的查找和设置成员的性能<br>34<br>vv.FieldByName (“Hp”).SetInt(3)<br>35<br>36<br>37}<br>这段代码将反射值对象的FieldByName()方法与SetInt()方法放在循环里进行检测，主要对比测试FieldByName()方法对性能的影响。FieldByName()方法源码如下：<br>01 func (v Value) FieldByName(name string) Value {<br>02<br>v.mustBe(Struct)<br>03<br>if f, ok :=v.typ.FieldByName(name);ok{<br>04<br>return v.FieldByIndex(f.Index)<br>05<br>11<br>06<br>return Value{}<br>07 }<br>底层代码说明如下：<br>·第3行，通过名字查询类型对象，这里有一次遍历过程。<br>·第4行，找到类型对象后，使用FieldBylndex()继续在值中查找，这里又是一次遍历。经过底层代码分析得出，随着结构体字段数量和相对位置的变化，FieldByName()方法比较严重的低效率问题。<br>3.调用函数对比<br>反射的函数调用，也是使用反射中容易忽视的性能点，下面展示对普通函数的调用过程。<br>人光</p>
+<p>代码说明如下：<br>·第2行，一个普通的只有一个参数的函数。<br>·第10行，对原生函数调用的性能测试。<br>·第17行，根据函数名取出反射值对象。<br>·第25行，使用reflect.ValueOf（2）将2构造为反射值对象，因为反射函数调用的参数必须全是反射值对象，再使用【reflect.Value构造多个参数列表传给反射值对象的Cal()方法进行调用。<br>反射函数调用的参数构造过程非常复杂，构建很多对象会造成很大的内存回收负担。Call()方法内部就更为复杂，需要将参数列表的每个值从reflect.Value类型转换为内存。调用完毕后，还要将函数返回值重新转换为reflect.Value类型返回。因此，反射调用函数的性能堪忧。<br>4.基准测试结果对比<br>测试结果如下：<br>01 $ gotest -v -bench=.<br>02 goos:linux<br>03 goarch:amd64<br>04 BenchmarkNativeAssign-4<br>2000000000<br>0.32ns/op<br>05 BenchmarkReflectAssign-4<br>300000000<br>4.42ns/op<br>06 BenchmarkReflectFindFieldAndAssign-4 20000000<br>91.6ns/op<br>07 BenchmarkNativeCall-4<br>2000000000<br>0.33ns/op<br>08BenchmarkReflectcall-4<br>10000000<br>163ns/op<br>09 PASS<br>结果分析如下：<br>。第4行，原生的结构体成员赋值，每一步操作耗时0.32纳秒，这是参考基准。<br>·第5行，使用反射的结构体成员赋值，操作耗时4.42纳秒，比原生赋值多消耗13 倍的性能。</p>
+<p>·第6行，反射查找结构体成员且反射赋值，操作耗时91.6纳秒，扣除反射结构体成员赋值的4.42纳秒还富余，性能大概是原生的272倍。这个测试结果与代码分析结果很接近。SetInt的性能可以接受，但FieldByName（的性能就非常低。<br>·第7行，原生函数调用，性能与原生访问结构体成员接近。<br>·第8行，反射函数调用，性能差到“爆棚”，花费了163纳秒，操作耗时比原生多消耗494倍。<br>经过基准测试结果的数值分析及对比，最终得出以下结论：<br>·能使用原生代码时，尽量避免反射操作。<br>。提前缓冲反射值对象，对性能有很大的帮助。<br>·避免反射函数调用，实在需要调用时，先提前缓冲函数参数列表，并且尽量少地使用返回值。<br>12.3接口的nil判断<br>nil在Go语言中只能被赋值给指针和接口。接口在底层的实现有两个部分：type和data。在源码中，显式地将nil赋值给接口时，接口的type和data都将为nil。此时，接口与nil值判断是相等的。但如果将一个带有类型的nil赋值给接口时，只有data为nil，而type为nil，此时，接口与nil判断将不相等。<br>1.接口与nil不相等<br>下面代码使用MyImplement（实现fmt包中的Stringer接口，这个接口的定义如下：type stringer interface {<br>String() string<br>}<br>在GetStringer()函数中将返回这个接口。通过*MyImplement指针变量置为nil提供GetStringer的返回值。在main()中，判断GetStringer与nil是否相等，代码如下：</p>
+<p>代码说明如下：<br>·第9行，实现fmt.Stringer的String（方法。<br>·第21行，s变量此时被fmt.Stringer接口包装后，实际类型为<em>MyImplement，值为nil的接口。<br>·第27行，使用GetStringer()的返回值与nil判断时，虽然接口里的value为nil，但type带有</em>MyImplement信息，使用==判断相等时，依然不为nil。<br>2.发现nil类型值返回时直接返回ni<br>为了避免这类误判的问题，可以在函数返回时，发现带有nil的指针时直接返回nil，代码如下：<br>func GetStringer() fmt.stringer {<br>var s *MyImplement = nil<br>if s== nil{<br>return nil<br>}<br>returns<br>}<br>12.4map的多键索引一多个数值条件可以同时查询<br>在大多数的编程语言中，映射容器的键必须以单一值存在。这种映射方法经常被用在诸如信息检索上，如根据通讯簿的名字进行检索。但随着查询条件越来越复杂，检索也会变得越发困难。下面例子中涉及通讯簿的结构，结构如下：</p>
+<p>并且准备好了一堆原始数据，需要算法实现构建索引和查询的过程，代码如下：func main(){<br>list:=[]*Profile{<br>{Name：”张三”Age：30，Married：true}，<br>{Name：”李四”，Age：21}，<br>{Name：”王麻子”，Age：21}，<br>}<br>buildIndex(list)<br>queryData（”张三”，30）<br>的<br>需要用算法实现buildIndex()构建索引函数及queryData()查询数据函数，查询到结果后将数据打印出来。<br>下面，分别基于传统的基于哈希值的多键索引和利用map特性的多键索引进行查询。<br>12.4.1基于哈希值的多键索引及查询<br>传统的数据索引过程是将输入的数据做特征值。这种特征值有几种常见做法：·将特征使用某种算法转为整数，即哈希值，使用整型值做索引。<br>·将特征转为字符串，使用字符串做索引。<br>数据都基于特征值构建好索引后，就可以进行查询。查询时，重复这个过程，将查询条件转为特征值，使用特征值进行查询得到结果。<br>本节代码请参考以下代码示例。<br>代码12-4基于哈希的传统多键索引和查询（具体文件：../chapter12/classic/classic.go）<br>1.字符串转哈希值<br>本例中，查询键（classicQueryKey）的特征值需要将查询键中每一个字段转换为整型，字符串也需要转换为整型值，这里使用一种简单算法将字符串转换为需要的哈希值，代码如下：调设设设设调调设设调调竞【</p>
+<p>代码说明如下：<br>·第1行传入需要计算哈希值的字符串。<br>·第4行，根据字符串的长度，遍历这个字符串的每一个字符，以ASCI码为单位。 ·第9行，c变量的类型为uint8，将其转为int类型并累加。<br>哈希算法有很多，这里只是选用一种大家便于理解的算法。哈希算法的选用的标准是尽量减少重复键的发生，俗称“哈希冲撞”，即同样两个字符串的哈希值重复率降到最低。2.查询键<br>有了哈希算法函数后，将哈希函数用在查询键结构中。查询键结构如下：<br>01<br>//查询键<br>02<br>type classicQueryKey struct{<br>03<br>Name string<br>//要查询的名字<br>04<br>Age int<br>//要查询的年龄<br>05<br>}<br>06<br>07//计算查询键的哈希值<br>08 func (c <em>classicQueryKey) hash() int{<br>09<br>//将名字的Hash和年龄哈希合并<br>10<br>return simpleHash(c.Name) + c.Age</em>1000000<br>11 }<br>代码说明如下：<br>·第2行，声明查询键的结构，查询键包含需要索引和查询的字段。<br>·第8行，查询键的成员方法哈希，通过调用这个方法获得整个查询键的哈希值。·第10行，查询键哈希的计算方法：使用simpleHash()函数根据给定的名字字符串获得其哈希值。同时将年龄乘以1000000与名字哈希值相加。<br>哈希值构建过程如图12-1所示</p>
+<p>3.构建索引<br>本例需要快速查询，因此需要提前对已有的数据构建索引。前面已经准备好了数据查询键，使用查询键获得哈希即可对数据进行快速索引，参考下面的代码：<br>01//创建哈希值到数据的索引关系<br>02 var mapper = make (map[int][]<em>Profile)<br>03<br>04 //构建数据索引<br>o5 func buildIndex(list []</em>Profile){<br>06<br>07<br>//遍历所有的数据<br>08<br>for__, profile := range list{<br>09<br>10<br>//构建数据的查询索引<br>11<br>key := classicQueryKeyiprofile.Name, profile.Age}<br>12<br>13<br>//计算数据的哈希值，取出已经存在的记录<br>14<br>existValue := mapper[key.hash()]<br>15<br>16<br>//将当前数据添加到已经存在的记录切片中<br>17<br>existvalue = append(existValue, profile)<br>18<br>19<br>//将切片重新设置到映射中<br>20<br>mapper [key.hash()]= existValue<br>21<br>22}<br>代码说明如下：<br>·第2行，实例化一个map，键类型为整型，保存哈希值；值类型为*Profile，为通讯簿的数据格式。<br>·第5行，构建索引函数入口，传入数据切片。<br>·第8行，遍历数据切片的所有数据元素。<br>·第11行，使用查询键（classicQueryKey）来辅助计算哈希值，查询键需要填充两个字段，将数据中的名字和年龄赋值到查询键中进行保存。<br>·第14行，使用查询键的哈希方法计算查询键的哈希值。通过这个值在mapper索引中查找相同哈希值的数据切片集合。因为哈希函数不能保证不同数据的哈希值一定完全不同，因此要考虑在发生哈希值重复时的处理办法。<br>·第17行，将当前数据添加到可能存在的切片中。<br>·第20行，将新添加好的数据切片重新赋值到相同哈希的mapper中。<br>具体哈希结构如图12-2所示。<br>这种多键的算法就是哈希算法。map的多个元素对应哈希的“桶”。哈希函数的选择决定桶的映射好坏，如果哈希冲撞很厉害，那么就需要将发生冲撞的相同哈希值的元素使用切片保存起来。</p>
+<p>图12-2哈希结构<br>4、查询逻辑<br>从已经构建好索引的数据中查询需要的数据流程如下：<br>（1）给定查询条件（名字、年龄）。<br>（2）根据查询条件构建查询键。<br>（3）查询键生成哈希值。<br>（4）根据哈希值在索引中查找数据集合。<br>（5）遍历数据集合逐个与条件比对。<br>（6）获得结果。<br>01 func queryData(name string, age int){<br>02<br>03<br>//根据给定查询条件构建查询键<br>04<br>keyToQuery := classicQueryKey{name, age}<br>05<br>06<br>//计算查询键的哈希值并查询，获得相同哈希值的所有结果集合<br>07<br>resultlist :=mapper[keyToQuery.hash()]<br>08<br>09<br>//遍历结果集合<br>10<br>for, result := range resultList {<br>11<br>12<br>//与查询结果比对，确认找到打印结果<br>13<br>if result.Name == name &amp;&amp; result.Age == age {<br>14<br>fmt.Println(result)<br>15<br>return<br>16<br>}<br>17<br>}<br>18<br>19<br>//没有查询到时，打印结果<br>20<br>fmt. Println(“nofound”)<br>21<br>22 }<br>代码说明如下：<br>·第1行，查询条件（名字、年龄）。<br>·第4行，根据查询条件构建查询键。</p>
+<p>·第7行，使用查询键计算哈希值，使用哈希值查询相同哈希值的所有数据集合。 ·第10行，遍历所有相同哈希值的数据集合。<br>·第13行，将每个数据与查询条件进行比对，如果一致，表示已经找到结果，打印并返回。 ·第20行，没有找到记录时，打印no found。<br>12.4.2利用map特性的多键索引及查询<br>使用结构体进行多键索引和查询比传统的写法更为简单，最主要的区别是无须准备哈希函数及相应的字段无须做哈希合并。看下面的实现流程。<br>代码12-5利用map特性的多键索引和查询（具体文件：/chapter12/multikey/ multikey.go）<br>1.构建索引代码如下：</p>
+<p>代码说明如下：<br>·第2行，与基于哈希值的查询键的结构相同。<br>·第8行，在map的键类型上，直接使用了查询键结构体。注意，这里不使用查询键的指针。同时，结果只有<em>Profile类型，而不是</em>Profile切片，表示查到的结果唯一。·第17行，类似的，使用遍历到的数据的名字和年龄构建查询键。<br>*341 .<br>Go语言从入门到进阶实战（视频教学版）<br>·第23行，更简单的，直接将查询键保存对应的数据。 2.查询逻辑</p>
+<p>代码说明如下：<br>·第5行，根据查询条件（名字、年龄）构建查询键。 ·第8行，直接使用查询键在map中查询结果。<br>·第12行，找到结果直接打印。<br>·第14行，没有找到结果打印no found。<br>12.4.3总结<br>基于哈希值的多键索引查询和利用map特性的多键索引查询的代码复杂程度显而易见。聪明的程序员都会利用Go语言的特性进行快速的多键索引查询。<br>其实，利用map特性的例子中的map类型即便修改为下面的格式，也一样可以获得同样的结果：<br>var mapper - make(map[interface{}]*Profile)<br>代码量大大减少的关键是：Go语言的底层会为map的键自动构建哈希值。能够构建哈希值的类型必须是非动态类型、非指针、函数、闭包。<br>·非动态类型：可用数组，不能用切片。<br>·非指针：每个指针数值都不同，失去哈希意义。<br>·函数、闭包不能作为map的键。<br>12.5优雅地处理TCP粘包<br>TCP协议是一种面向连接的、可靠的、基于字节流的传输通信协议。简单地说，TCP</p>
+<p>的特性是不丢包，并且保证按顺序到达。<br>TCP数据在发送和接收时会形成粘包，也就是没有按照预期的大小得到数据，数据包不完整。这个问题不是设计问题，也不是代码隐患。封包在发送时，为了提高发送效率，无论是用户自己的设计网络库还是操作系统层都会对封包进行“拼包”，将小包凑成大的包，在TCP层可以节约包头的大小损耗，I/0层的调用损耗也可以有所降低。这个过程好比批发比零售价格便宜一样，如图12-3所示。</p>
+<p>图12-3TCP粘包原因<br>接收TCP封包时，接收缓冲区的大小与发送过来的TCP传输单元大小不等。因此就造成两种情况：<br>。接收的数据大于等于接收缓冲区大小时，此时需要将数据复制到用户缓冲，接着读取后面的封包。<br>·接收的数据小于接收缓冲区大小时，此时需要继续等待后续的TCP封包。<br>这个处理过程，在Go语言中，使用io包中的ReadAtLeast()函数进行封装，代码如下：</p>
+<p>代码说明如下：<br>·第1行，函数实现：从Reader中读取数据，填充到已经分配空间的接收缓冲区buf中，min为读取的大小。简单地说，这个函数的含义是：持续读取直到buf获取到min大小字节为止。<br>。第5行，n表示当前已经读取的字节。如果已经读取的字节小于期望字节min时，持续循环。<br>第6行，mn表示本次读取到的字节。buf【n：】表示将已经读取过的数据后面的切片提供给Reader进行填充后续数据。<br>，第8行，累加已经读取的数据。<br>·第10行，表示已经读取足够的字节。<br>·第12行，读取目标已经完结，但是已经读取一些数据，也就是说，没法完成读取任务，发生了不可期望的终结错误。<br>ReadAtLeast还有一个更方便的封装：<br>func ReadFull(r Reader, buf []byte) (nint, errerror){<br>return ReadAtLeast(r, buf, len(buf))<br>这个函数只需要提供buf接收缓冲区切片，就可以将这个已经分配的buf填充满。简单地说就是：给多大空间，填充多少字节，直到填满空间。<br>使用ReadFull可以优雅地完成对TCP粘包的处理。<br>1，封包发送<br>用户处理数据是以消息为单元。为此，就需要以消息为单元的基础上构建封包的概念。TCP协议属于流式协议，数据是没有分界点的。而封包可以形成消息的分界，这里分界的关键就是封包格式。<br>二进制封包的常见格式如表12-1所示。<br>表12-1封包格式<br>封包字段<br>备注<br>大小（Size）<br>Size代表Size后面包体的大小<br>包体（Body）<br>承载消息的二进制数据<br>下面代表描述封包的结构体定义和发送方法。发送封包时，需要将封包的Size字段从无符号十六位整型转换为字节数组，这里需要用到binary包的Write()函数，该函数可以根据数据的格式和需要的大小端，将数据写入io.Writer接口。<br>大小端也是发送和接收时需要处理的细节。大小端是数据按二进制存储时，高低位的存储顺序。如现在的英特尔的80x86芯片及兼容芯片都是使用小端格式。手机里的ARM芯片默认采用小端。而Java由于平台无关，默认都是大端。网络传输的数据普遍采用大</p>
+<p>端，但网络传输只是底层协议，与用户层无关。<br>bytes.Buffer是一个自动增长的缓冲，实现了io.Writer接口，因此binary. Write()函数可以将数据直接写入bytes.Buffer。下面代码将需要发送的Packet的所有字段写入bytes.Buffer后，再一次性将bytes.Buffer 的数据写入Socket对应的dataWritero<br>代码12-6封包格式及发送（具体文件：./chapter12/tcppkt/packet.go）<br>caana a5</p>
+<p>代码说明如下：<br>·第10行，定义封包的结构，包含Size和Body两个字段。<br>*345 .<br>d<br>Go语言从入门到进阶实战（视频教学版）<br>·第16行，声明将数据以封包的形式写入dataWriter，如果发生错误则返回错误。 。第19行，声明一个bytes.Buffer类型的变量buffer，缓冲用于存储写入的数据。·第22行，使用binary. Write，将以uint16格式传入的切片大小，以小端方式写入bytes.Buffer中。<br>·第27行，将包体内存写入到bytes.Buffer中。<br>。第32行，将buffer中刚才写入的数据取出，保存到out中。<br>·第35行，将out中的数据写入dataWriter接口对应的Socket中。<br>2.连接器<br>连接器可以通过给定的地址和发送次数，不断地通过Socket给地址对应的连接发送封包。本例中，将通过循环构造的转为字符串的数字形成封包。由于速度快，包量大，因此能有效地造成粘包，代码如下：<br>代码12-7连接器（具体文件：../chapter12/tcppkt/connector.go）<br>六可</p>
+<p>代码说明如下：<br>·第10行，通过连接器函数传入地址和发送次数。<br>·第13行，使用TCP协议连接地址，返回一个连接对象，如果连接发生错误将以err返回。 。第22行，构造指定次数的循环。<br>·第25行，strconv.Itoa（函数可以做到将循环的数值转换为字符串。<br>·第28行，调用代码12-6中写好的writePacket()函数传入连接对象，并将字符串转为字节数组【】byte。如果写入过程发生错误，打印错误并退出发送循环。<br>3.接受器<br>连接器（Connctor）只能发起到接受器（Acceptor）的连接，一个接受器能接受多个来源连接。<br>接受器中侦听的过程被放到一个独立的goroutine中，保证侦听的过程不会阻塞其他逻辑的执行。在侦听器停止时，需要使用sync.WaitGroup进行同步，确认侦听过程正常结束。接受器不停的接受连接，当获取到连接时，为连接创建一个并发的会话处理的goroutine（handleSession函数）。<br>接受器开始侦听后，使用Wait()方法等待侦听结束。当处理粘包的任务完成时，Acceptor的Stop()方法会被调用，结束侦听，同时退出整个程序。接受器的实现过程如下。<br>代码12-8接受器（具体文件：…/chapter12/tcppkt/acceptor.go）</p>
+<p>。第13行，保存侦听器，方便通过Stop()在任意位置调用。<br>·第16行，侦听过程结束时，wg这个同步组将调用sync.WaitGroup的Done方法。 。第19行，接收到会话发来的封包数据时，将实际发送的数据解开，并通过回调通知。 ·第23行，接受器的启动方法，侦听过程将以并发方式在goroutine中运行。<br>第28行，侦听主循环。<br>·第31~34行，为同步组添加一个任务，并延迟到侦听以任何方式结束时调用sync. WaitGroup的Done方法。<br>·第38行，以TCP协议和指定的地址进行侦听，开始接受TCP连接。<br>·第47行，构造侦听循环，不停地接受TCP循环。<br>·第50行，接受一个新的连接。<br>·第58行，并发开启一个会话处理函数，传入连接和回调。<br>。第63行，关闭接受器时，调用Stop()即可终止接受外部连接。<br>·第68行，关闭接受器后，调用Wait()可以持续阻塞等待侦听器结束<br>4.封包读取<br>封包的读取是处理TCP封包中最重要的环节。前面已经介绍通过io.ReadFull()方法可以根据给定缓冲大小按需获取指定字节的数据，即便数据不足以充满缓冲，函数也会持续阻塞直到数据来临。由于TCP不掉包及按顺序到达的特性，读取完包含Size的Packet字段后，下面到达的必定是Body字段的包体内容。<br>本例中的readPacket()函数可以从dataReader中读取封包数据，并且将封包的Size和Body部分分离并返回Packet结构。<br>代码12-9封包读取（具体文件：../chapter12/tcppkt/packet.go）</p>
+<p>代码说明如下：<br>。第2行，从dataReader中读取数据，并且返回分离好的Packet数据和可能发生的错误。·第5行，构造2字节的切片，用于接收Packet中的Size字段信息。只有读取到这个字段，才能有效分离Body部分并且知道如何读取下一个封包。这里无须将切片放在成员或者全局中以降低垃圾回收压力，由于Go语言中的变量逃逸分析，sizeBuffer变量不会逃离readerPacket()，函数的作用域编译器会默认将sizeBuffer 分配在栈上，以提高分配效率。<br>·第8行，使用io.ReadFull()函数读取2字节的Size字段，数据不足时会持续阻塞。 。第16行，使用bytes.NewReader()构造的Reader可以方便地读取字节数组。<br>·第19行，bytes.Reader()只提供了简单的几个函数。常见类型的数据可以使用binary.Read()函数读取。<br>·第26行，在获取到包体大小pkt.Size后，为包体分配内存。<br>·第29行，包体也是一块指定大小的缓冲，使用io.ReadFull()函数继续读取。<br>这段TCP粘包代码逻辑使用goroutine+同步系统调用的方式编写。处理逻辑比使用异步+回调的方式更加清晰易读。<br>5.服务器连接会话<br>服务器在接受一个连接后就会进入会话（Session）处理。会话处理是一个循环，不停地从Socket中接收数据并通过readPacket（函数将数据转换为封包。会话处理会传入一个处理数据的回调，处理好的数据会通过这个回调传送到用户的逻辑回调函数（callback），代码如下。<br>代码12-10会话处理（具体文件：../chapter12/tcppkt/session.go）</p>
+<p>代码说明如下：<br>·第9行，声明连接会话函数，传入Socket连接（net.Conn），读取封包后通过用户回调函数（callback）提供给用户逻辑处理返回用户原本发送数据的回调。<br>·第12行，使用bufio.NewReader对Socket连接conn创建一个数据读取器dataReader，用于对接后面读取的代码。<br>第15行，会话连接后，需要不停地接收封包直到连接断开或者发生错误，这是一个接收循环。<br>·第18行，从dataReader通过readPacket()读取封包，读取到的封包和可能发生的错误会通过readPacket()函数返回。<br>·第21行，如果数据读取中发生错误，会关闭连接并返回。没有错误时，会通过callback()函数，将pkt的Body字段，也就是用户发送的原始数据返回给用户，用户处理数据后，callback()的返回值返回false时，表示关闭Socket并退出接收循环。6.测试粘包处理<br>本节将构建一个不断发送不等长封包的环境来测试TCP的封包处理是否成功。测试环境需要将Acceptor实例化并启动，并设置Acceptor会话处理的回调函数（OnSessionData()。然后由连接器（Connector）以指定的测试次数，发送次数数值对应的字符串封包给Acceptor的OnSessionData()处理函数进行处理。<br>如果接收方按顺序保证接收到的数据是完整的，表示封包处理没有问题，完整代码如下。<br>代码12-11粘包测试流程（具体文件：../chapter12/tcppkt/main.go）<br>1xslacamsfn</p>
+<p>代码说明如下：<br>·第11行，指定测试次数，该次数决定连接器发送字符串的次数及接收器验证的次数。可以根据CPU性能高低调整这个数值的大小，数值越大，耗时越多。<br>第14行，设定Socket的地址，Acceptor和Connector都需要地址来建立侦听和发起连接。<br>·第17行，接收方需要一个计数器表示接收了多少次封包。<br>·第26行，使用闭包响应封包处理数据。<br>第29行，接收到的数据是以字符串存储的数值，需要从【】byte转换到string类型。。第32行，将字符串通过strconv.Atoi()函数转为数值。<br>·第35行，如果转换的过程错误，代表封包破损或者接收计数器与接收到的数值不相等时，说明封包接收顺序不一致，此时手动触发panic()函数停止测试。<br>第43行，完成计数时，关闭侦听器，闭包返回false将触发连接断开。<br>·第55行，测试未结束时，acceptor.Wait会持续阻塞直到Acceptor被调用方法停止。</p>
+
       
     </div>
 
@@ -619,8 +676,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -637,7 +703,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">319</span>
+                    <span class="site-state-item-count">327</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -682,7 +748,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">14</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -789,7 +859,15 @@
                     
                       
                     
-                    <span class="site-state-item-count">45</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">49</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -820,23 +898,23 @@
                 
                 
                   <li>
-                    <a href="/2021/08/26/第4章-并发编程/" title="第4章 并发编程" target="_blank">第4章 并发编程</a>
+                    <a href="/2021/09/06/1-Kubernetes介绍/" title="1-Kubernetes介绍" target="_blank">1-Kubernetes介绍</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/08/26/第3章-面向对象编程/" title="第3章 面向对象编程" target="_blank">第3章 面向对象编程</a>
+                    <a href="/2021/09/06/第3章-Kubernetes快速入门/" title="第3章 Kubernetes快速入门" target="_blank">第3章 Kubernetes快速入门</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/08/25/第2章-顺序编程/" title="第2章 顺序编程" target="_blank">第2章 顺序编程</a>
+                    <a href="/2021/09/06/第2章-Kubernetes的架构和部署/" title="第2章 Kubernetes的架构和部署" target="_blank">第2章 Kubernetes的架构和部署</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/08/23/第5章-并发/" title="第5章 并发" target="_blank">第5章 并发</a>
+                    <a href="/2021/09/06/第1章-Kubernetes介绍/" title="第1章 Kubernetes介绍" target="_blank">第1章 Kubernetes介绍</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/08/19/第9章-测试和性能/" title="第9章 测试和性能" target="_blank">第9章 测试和性能</a>
+                    <a href="/2021/09/02/第5章-并发-1/" title="第5章 并发" target="_blank">第5章 并发</a>
                   </li>
                 
               </ul>
@@ -851,6 +929,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#合理地使用并发特性"><span class="nav-number">1.</span> <span class="nav-text">合理地使用并发特性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#了解goroutine的生命期时再创建goroutine"><span class="nav-number">1.1.</span> <span class="nav-text">了解goroutine的生命期时再创建goroutine</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -880,7 +975,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">3.1m</span>
+    <span title="站点总字数">3.3m</span>
   
 
   
@@ -891,7 +986,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">47:35</span>
+    <span title="站点阅读时长">50:12</span>
   
 </div>
 

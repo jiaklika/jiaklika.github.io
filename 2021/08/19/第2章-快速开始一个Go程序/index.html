@@ -111,10 +111,12 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-08-22T02:52:35.947Z">
+<meta property="og:image" content="http://yoursite.com/2021/08/19/第2章-快速开始一个Go程序/1.jpg">
+<meta property="og:updated_time" content="2021-09-03T05:46:37.263Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第2章 快速开始一个Go程序">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:image" content="http://yoursite.com/2021/08/19/第2章-快速开始一个Go程序/1.jpg">
 
 
 
@@ -443,7 +445,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2021-08-22 10:52:35" itemprop="dateModified" datetime="2021-08-22T10:52:35+08:00">2021-08-22</time>
+                <time title="修改时间：2021-09-03 13:46:37" itemprop="dateModified" datetime="2021-09-03T13:46:37+08:00">2021-09-03</time>
               
             
           </span>
@@ -489,7 +491,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">25k</span>
+                <span title="本文字数">26k</span>
               
 
               
@@ -503,7 +505,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">22 分钟</span>
+                <span title="阅读时长">23 分钟</span>
               
             </div>
           
@@ -530,7 +532,7 @@
 <a id="more"></a>
 <p>【本章主要内容】</p>
 <ul>
-<li>学习如何写一个复杂的GO程序</li>
+<li>学习如何写一个复杂的Go程序</li>
 <li>声明类型、变量、函数和方法</li>
 <li>启动并同步操作goroutine</li>
 <li>使用接口写通用的代码</li>
@@ -542,119 +544,121 @@
 <blockquote>
 <p>图2-1 程序架构流程图</p>
 </blockquote>
-
-<p>这个程序分成多个不同步骤，在多个不同的goroutine里运行。我们会根据流程展示代码，从主goroutine开始，一直到执行搜索的goroutine和跟踪结果的goroutine，最后回到主goroutine首先来看一下整个项目的结构，如代码清单2-1所示。</p>
+<img src="/2021/08/19/第2章-快速开始一个Go程序/1.jpg">
+<p>这个程序分成多个不同步骤，在多个不同的goroutine里运行。我们会根据流程展示代码，从主goroutine开始，一直到执行搜索的goroutine和跟踪结果的goroutine，最后回到主goroutine。首先来看一下整个项目的结构，如代码清单2-1所示。</p>
 <blockquote>
 <p>代码清单2-1 应用程序的项目结构</p>
 </blockquote>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">cd $GOPATH/src/github.com/goinaction/code/chapter2</span><br><span class="line"></span><br><span class="line">- sample</span><br><span class="line">    - data</span><br><span class="line">        data.json   --包含一组数据源-</span><br><span class="line">    - matchers</span><br><span class="line">        rss.go      --搜索rss源的匹配器</span><br><span class="line">    - search</span><br><span class="line">        default.go  --搜索数据用的默认匹配器</span><br><span class="line">        feed.go     --用于读取json数据文件</span><br><span class="line">        match.go    --用于支持不同匹配器的接口</span><br><span class="line">        search.go   --执行搜索的主控制逻辑</span><br><span class="line">main.go             --程序的入口</span><br></pre></td></tr></table></figure>
-<p>这个应用的代码使用了4个文件夹，按字母顺序列出。文件夹data中有一个JSON文档，其内容是程序要拉取和处理的数据源。文件夹matchers中包含程序里用于支持搜索不同数据源的代码。目前程序只完成了支持处理RSS类型的数据源的匹配器。文件夹search中包含使用不同四配器进行搜索的业务逻辑。最后，父级文件夹sample中有个main.go文件，这是整个程序的入口。现在了解了如何组织程序的代码，可以继续探索并了解程序是如何工作的。让我们从程序的入口开始。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$GOPATH</span>/src/github.com/goinaction/code/chapter2</span><br><span class="line"></span><br><span class="line">- sample</span><br><span class="line">    - data</span><br><span class="line">        data.json   --包含一组数据源</span><br><span class="line">    - matchers</span><br><span class="line">        rss.go      --搜索rss源的匹配器</span><br><span class="line">    - search</span><br><span class="line">        default.go  --搜索数据用的默认匹配器</span><br><span class="line">        feed.go     --用于读取json数据文件</span><br><span class="line">        match.go    --用于支持不同匹配器的接口</span><br><span class="line">        search.go   --执行搜索的主控制逻辑</span><br><span class="line">    main.go         --程序的入口</span><br></pre></td></tr></table></figure>
+<p>这个应用的代码使用了4个文件夹，按字母顺序列出。文件夹data中有一个JSON文档，其内容是程序要拉取和处理的数据源。文件夹matchers中包含程序里用于支持搜索不同数据源的代码。目前程序只完成了支持处理RSS类型的数据源的匹配器。文件夹search中包含使用不同匹配器进行搜索的业务逻辑。最后，父级文件夹sample中有个main.go文件，这是整个程序的入口。</p>
+<p>现在了解了如何组织程序的代码，可以继续探索并了解程序是如何工作的。让我们从程序的入口开始。</p>
 <h1 id="main包"><a href="#main包" class="headerlink" title="main包"></a><span style="color:#339AFF;">main包</span></h1><p>程序的主入口可以在main.go文件里找到，如代码清单2-2所示。虽然这个文件只有21行代码，依然有几点需要注意。</p>
 <blockquote>
 <p>代码清单2-2 main.go</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">    _ <span class="string">"github.com/goinaction/code/chapter2/sample/matchers"</span></span><br><span class="line">    <span class="string">"github.com/goinaction/code/chapter2/sample/search"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// init在main之前调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 将日志输出到标准输出</span></span><br><span class="line">    log.SetOutput(os.Stdout)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main是整个程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 使用特定的项做搜索</span></span><br><span class="line">    search.Run(<span class="string">"president"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">    _ <span class="string">"github.com/goinaction/code/chapter2/sample/matchers"</span></span><br><span class="line">    <span class="string">"github.com/goinaction/code/chapter2/sample/search"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// init在main之前调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 将日志输出到标准输出</span></span><br><span class="line">    log.SetOutput(os.Stdout)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main是整个程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 使用特定的项做搜索</span></span><br><span class="line">    search.Run(<span class="string">"president"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>每个可执行的Go程序都有两个明显的特征。一个特征是第18行声明的名为main的函数。构建程序在构建可执行文件时，需要找到这个已经声明的main函数，把它作为程序的入口。第二个特征是程序的第01行的包名main，如代码清单2-3所示。</p>
 <blockquote>
 <p>代码清单2-3 main.go：第01行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br></pre></td></tr></table></figure>
 <p>可以看到，main函数保存在名为main的包里。如果main函数不在main包里，构建工具就不会生成可执行的文件。</p>
-<p>Go语言的每个代码文件都属于一个包，main.go也不例外。包这个特性对于Go语言来说很重要，我们会在第3章中接触到更多细节。现在，只要简单了解以下内容:一个包定义一组编译过的代码，包的名字类似命名空间，可以用来间接访问包内声明的标识符。这个特性可以把不同包中定义的同名标识符区别开。</p>
+<p>Go语言的每个代码文件都属于一个包，main.go也不例外。包这个特性对于Go语言来说很重要，我们会在第3章中接触到更多细节。现在，只要简单了解以下内容：一个包定义一组编译过的代码，包的名字类似命名空间，可以用来间接访问包内声明的标识符。这个特性可以把不同包中定义的同名标识符区别开。</p>
 <p>现在，把注意力转到main.go的第03行到第09行，如代码清单2-4所示，这里声明了所有的导入项。</p>
 <blockquote>
 <p>代码清单2-4 main.go：第03行到第09行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">    _ <span class="string">"github.com/goinaction/code/chapter2/sample/matchers"</span></span><br><span class="line">    <span class="string">"github.com/goinaction/code/chapter2/sample/search"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line"></span><br><span class="line">    _ <span class="string">"github.com/goinaction/code/chapter2/sample/matchers"</span></span><br><span class="line">    <span class="string">"github.com/goinaction/code/chapter2/sample/search"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
 <p>顾名思义，关键字import就是导入一段代码，让用户可以访问其中的标识符，如类型、函数、常量和接口。在这个例子中，由于第08行的导入，main.go里的代码就可以引用search包里的Run函数。程序的第04行和第05行导入标准库里的log和os包。</p>
 <p>所有处于同一个文件夹里的代码文件，必须使用同一个包名。按照惯例，包和文件夹同名。就像之前说的，一个包定义一组编译后的代码，每段代码都描述包的一部分。如果回头去看看代码清单2-1，可以看看第08行的导入是如何指定那个项目里名叫search的文件夹的。</p>
 <p>读者可能注意到第07行导入matchers包的时候，导入的路径前面有一个下划线，如代码清单2-5所示。</p>
 <blockquote>
 <p>代码清单2-5 main.go：第07行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_ <span class="string">"github.com/goinaction/code/chapter2/sample/matchers"</span></span><br></pre></td></tr></table></figure>
-<p>这个技术是为了让Go语言对包做初始化操作，但是并不使用包里的标识符。为了让程序的可读性更强，Go编译器不允许声明导入某个包却不使用。下划线让编译器接受这类导入，并且调用对应包内的所有代码文件里定义的init函数。对这个程序来说，这样做的目的是调用matchers包中的rss.go代码文件里的init函数，注册RSs匹配器，以便后用。我们后面会展示具体的工作方式。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_ <span class="string">"github.com/goinaction/code/chapter2/sample/matchers"</span></span><br></pre></td></tr></table></figure>
+<p>这个技术是为了让Go语言对包做初始化操作，但是并不使用包里的标识符。为了让程序的可读性更强，Go编译器不允许声明导入某个包却不使用。下划线让编译器接受这类导入，并且调用对应包内的所有代码文件里定义的init函数。对这个程序来说，这样做的目的是调用matchers包中的rss.go代码文件里的init函数，注册RSS匹配器，以便后用。我们后面会展示具体的工作方式。</p>
 <p>代码文件main.go里也有一个init函数，在第12行到第15行中声明，如代码清单2-6所示。</p>
 <blockquote>
 <p>代码清单2-6 main.go：第11行到第15行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// init在main之前调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 将日志输出到标准输出</span></span><br><span class="line">    log.SetOutput(os.Stdout)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>程序中每个代码文件里的init函数都会在main函数执行前调用。这个init函数将标准库里日志类的输出，从默认的标准错误（stderr），设置为标准输出（stdout）设备。在第7章，我们会进一步讨论10g包和标准库里其他重要的包。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// init在main之前调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 将日志输出到标准输出</span></span><br><span class="line">    log.SetOutput(os.Stdout)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序中每个代码文件里的init函数都会在main函数执行前调用。这个init函数将标准库里日志类的输出，从默认的标准错误（stderr），设置为标准输出（stdout）设备。在第7章，我们会进一步讨论logg包和标准库里其他重要的包。</p>
 <p>最后，让我们看看main函数第20行那条语句的作用，如代码清单2-7所示。</p>
 <blockquote>
 <p>代码清单2-7 main.go：第19行到第20行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用特定的项做搜索</span></span><br><span class="line">search.Run(<span class="string">"president"</span>)</span><br></pre></td></tr></table></figure>
-<p>可以看到，这一行调用了search包里的Run函数。这个函数包含程序的核心业务逻辑，需要传入一个字符串作为搜索项。一旦Run函数退出，程序就会终止。现在，让我们看看search包里的代码。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用特定的项做搜索</span></span><br><span class="line">search.Run(<span class="string">"president"</span>)</span><br></pre></td></tr></table></figure>
+<p>可以看到，这一行调用了search包里的Run函数。这个函数包含程序的核心业务逻辑，需要传入一个字符串作为搜索项。一旦Run函数退出，程序就会终止。</p>
+<p>现在，让我们看看search包里的代码。</p>
 <h1 id="search包"><a href="#search包" class="headerlink" title="search包"></a><span style="color:#339AFF;">search包</span></h1><p>这个程序使用的框架和业务逻辑都在search包里。这个包由4个不同的代码文件组成，每个文件对应一个独立的职责。我们会逐步分析这个程序的逻辑，到时再说明各个代码文件的作用。</p>
 <p>由于整个程序都围绕匹配器来运作，我们先简单介绍一下什么是匹配器。这个程序里的匹配器，是指包含特定信息、用于处理某类数据源的实例。在这个示例程序中有两个匹配器。框架本身实现了一个无法获取任何信息的默认匹配器，而在matchers包里实现了RSS匹配器。RSS匹配器知道如何获取、读入并查找RSS数据源。随后我们会扩展这个程序，加入能读取JSON文档或CSV文件的匹配器。我们后面会再讨论如何实现匹配器。</p>
 <h2 id="search-go"><a href="#search-go" class="headerlink" title="search.go"></a><span style="color:#00ACC1;">search.go</span></h2><p>代码清单2-8中展示的是search.go代码文件的前9行代码。之前提到的Run函数就在这个文件里。</p>
 <blockquote>
 <p>代码清单2-8 search/search.go：第01行到第09行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> search</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 注册用于搜索的匹配器的映射</span></span><br><span class="line"><span class="keyword">var</span> matchers = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]Matcher)</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> search</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"sync"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 注册用于搜索的匹配器的映射</span></span><br><span class="line"><span class="keyword">var</span> matchers = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]Matcher)</span><br></pre></td></tr></table></figure>
 <p>可以看到，每个代码文件都以package关键字开头，随后跟着包的名字。文件夹search下的每个代码文件都使用search作为包名。第03行到第06行代码导入标准库的log和sync包。</p>
 <p>与第三方包不同，从标准库中导入代码时，只需要给出要导入的包名。编译器查找包的时候总是会到GOROOT和GOPATH环境变量（如代码清单2-9所示）引用的位置去查找。</p>
 <blockquote>
 <p>代码清单2-9 GOROOT和GOPATH环境变量</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GOROOT=<span class="string">"/Users/me/go"</span></span><br><span class="line">GOPATH=<span class="string">"/Users/me/spaces/go/proiects"</span></span><br></pre></td></tr></table></figure>
-<p>log包提供打印日志信息到标准输出（stdout）、标准错误（stderr）或者自定义设备的功能。sync包提供同步goroutine的功能。这个示例程序需要用到同步功能。第09行是全书第-次声明一个变量，如代码清单2-10所示。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GOROOT=<span class="string">"/Users/me/go"</span></span><br><span class="line">GOPATH=<span class="string">"/Users/me/spaces/go/proiects"</span></span><br></pre></td></tr></table></figure>
+<p>log包提供打印日志信息到标准输出（stdout）、标准错误（stderr）或者自定义设备的功能。sync包提供同步goroutine的功能。这个示例程序需要用到同步功能。第09行是全书第一次声明一个变量，如代码清单2-10所示。</p>
 <blockquote>
 <p>代码清单2-10 search/search.go：第08行到第09行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 注册用于搜索的匹配器的映射</span></span><br><span class="line"><span class="keyword">var</span> matchers = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]Matcher)</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 注册用于搜索的匹配器的映射</span></span><br><span class="line"><span class="keyword">var</span> matchers = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]Matcher)</span><br></pre></td></tr></table></figure>
 <p>这个变量没有定义在任何函数作用域内，所以会被当成包级变量。这个变量使用关键字var声明，而且声明为Matcher类型的映射（map），这个映射以string类型值作为键，Matcher类型值作为映射后的值。Matcher类型在代码文件matcher.go中声明，后面再讲这个类型的用途。这个变量声明还有一个地方要强调一下：变量名matchers是以小写字母开头的。</p>
 <p>在Go语言里，标识符要么从包里公开，要么不从包里公开。当代码导入了一个包时，程序可以直接访问这个包中任意一个公开的标识符。这些标识符以大写字母开头。以小写字母开头的标识符是不公开的，不能被其他包中的代码直接访问。但是，其他包可以间接访问不公开的标识符。例如，一个函数可以返回一个未公开类型的值，那么这个函数的任何调用者，哪怕调用者不是在这个包里声明的，都可以访问这个值。</p>
 <p>这行变量声明还使用赋值运算符和特殊的内置函数make初始化了变量，如代码清单2-11所示。</p>
 <blockquote>
 <p>代码清单2-11 构建一个映射make</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]Matcher)</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]Matcher)</span><br></pre></td></tr></table></figure>
 <p>map是Go语言里的一个引用类型，需要使用make来构造。如果不先构造map并将构造后的值赋值给变量，会在试图使用这个map变量时收到出错信息。这是因为map变量默认的零值是nil。在第4章我们会进一步了解关于映射的细节。</p>
-<p>在Go语言中，所有变量都被初始化为其零值。对于数值类型，零值是0；对于字符串类型，零值是空字符串；对于布尔类型，零值是false；对于指针，零值是nil。对于引用类型来说所引用的底层数据结构会被初始化为对应的零值。但是被声明为其零值的引用类型的变量，会返回nil作为其值。</p>
+<p>在Go语言中，所有变量都被初始化为其零值。对于数值类型，零值是0；对于字符串类型，零值是空字符串；对于布尔类型，零值是false；对于指针，零值是nil。对于引用类型来说，所引用的底层数据结构会被初始化为对应的零值。但是被声明为其零值的引用类型的变量，会返回nil作为其值。</p>
 <p>现在，让我们看看之前在main函数中调用的Run函数的内容，如代码清单2-12所示。</p>
 <blockquote>
-<p>代码清单2-12search/search.go：第11行到第57行</p>
+<p>代码清单2-12 search/search.go：第11行到第57行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run执行搜索逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Run</span><span class="params">(searchTerm <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 获取需要搜索的数据源列表</span></span><br><span class="line">    feeds, err := RetrieveFeeds()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Fatal(err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建一个无缓冲的通道，接收匹配后的结果</span></span><br><span class="line">    results := <span class="built_in">make</span>(<span class="keyword">chan</span> *Result)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 构造一个waitGroup，以便处理所有的数据源</span></span><br><span class="line">    <span class="keyword">var</span> waitGroup sync.WaitGroup</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置需要等待处理</span></span><br><span class="line">    <span class="comment">// 每个数据源的goroutine的数量</span></span><br><span class="line">    waitGroup.Add(<span class="built_in">len</span>(feeds))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line">    <span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br><span class="line">        <span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">        matcher, exists := matchers[feed.Type]</span><br><span class="line">        <span class="keyword">if</span> !exists &#123;</span><br><span class="line">            matcher = matchers[<span class="string">"default"</span>]</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 启动一个goroutine来执行搜索</span></span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(matcher Matcher, feed *Feed)</span></span> &#123;</span><br><span class="line">            Match(matcher, feed, searchTerm, results)</span><br><span class="line">            waitGroup.Done()</span><br><span class="line">        &#125;(matcher, feed)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动一个goroutine来监控是否所有的工作都做完了</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="comment">// 等候所有任务完成</span></span><br><span class="line">        waitGroup.Wait()</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 用关闭通道的方式，通知Display函数</span></span><br><span class="line">        <span class="comment">// 可以退出程序了</span></span><br><span class="line">        <span class="built_in">close</span>(results)</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动函数，显示返回的结果，并且</span></span><br><span class="line">    <span class="comment">// 在最后一个结果显示完后返回</span></span><br><span class="line">    Display(results)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>Run函数包括了这个程序最主要的控制逻辑。这段代码很好地展示了如何组织Go程序的代码，以便正确地并发启动和同步goroutine。先来一步一步考察整个逻辑，再考察每步实现代码的细节。先来看看Run函数是怎么定义的，如代码清单2-13所示。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run执行搜索逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Run</span><span class="params">(searchTerm <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 获取需要搜索的数据源列表</span></span><br><span class="line">    feeds, err := RetrieveFeeds()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Fatal(err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建一个无缓冲的通道，接收匹配后的结果</span></span><br><span class="line">    results := <span class="built_in">make</span>(<span class="keyword">chan</span> *Result)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 构造一个waitGroup，以便处理所有的数据源</span></span><br><span class="line">    <span class="keyword">var</span> waitGroup sync.WaitGroup</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置需要等待处理</span></span><br><span class="line">    <span class="comment">// 每个数据源的goroutine的数量</span></span><br><span class="line">    waitGroup.Add(<span class="built_in">len</span>(feeds))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line">    <span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br><span class="line">        <span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">        matcher, exists := matchers[feed.Type]</span><br><span class="line">        <span class="keyword">if</span> !exists &#123;</span><br><span class="line">            matcher = matchers[<span class="string">"default"</span>]</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 启动一个goroutine来执行搜索</span></span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(matcher Matcher, feed *Feed)</span></span> &#123;</span><br><span class="line">            Match(matcher, feed, searchTerm, results)</span><br><span class="line">            waitGroup.Done()</span><br><span class="line">        &#125;(matcher, feed)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动一个goroutine来监控是否所有的工作都做完了</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="comment">// 等候所有任务完成</span></span><br><span class="line">        waitGroup.Wait()</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 用关闭通道的方式，通知Display函数</span></span><br><span class="line">        <span class="comment">// 可以退出程序了</span></span><br><span class="line">        <span class="built_in">close</span>(results)</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动函数，显示返回的结果，并且</span></span><br><span class="line">    <span class="comment">// 在最后一个结果显示完后返回</span></span><br><span class="line">    Display(results)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Run函数包括了这个程序最主要的控制逻辑。这段代码很好地展示了如何组织Go程序的代码，以便正确地并发启动和同步goroutine。先来一步一步考察整个逻辑，再考察每步实现代码的细节。</p>
+<p>先来看看Run函数是怎么定义的，如代码清单2-13所示。</p>
 <blockquote>
 <p>代码清单2-13 search/search.go：第11行到第12行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run执行搜索逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Run</span><span class="params">(searchTerm <span class="keyword">string</span>)</span></span> &#123;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run执行搜索逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Run</span><span class="params">(searchTerm <span class="keyword">string</span>)</span></span> &#123;</span><br></pre></td></tr></table></figure>
 <p>Go语言使用关键字func声明函数，关键字后面紧跟着函数名、参数以及返回值。对于Run这个函数来说，只有一个参数，是string类型的，名叫searchTerm。这个参数是Run函数要搜索的搜索项，如果回头看看main函数（如代码清单2-14所示），可以看到如何传递这个搜索项。</p>
 <blockquote>
 <p>代码清单2-14 main.go：第17行到第21行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main是整个程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 使用特定的项做搜索</span></span><br><span class="line">    search.Run(<span class="string">"president"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main是整个程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 使用特定的项做搜索</span></span><br><span class="line">    search.Run(<span class="string">"president"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>Run函数做的第一件事情就是获取数据源feeds列表。这些数据源从互联网上抓取数据，之后对数据使用特定的搜索项进行匹配，如代码清单2-15所示。</p>
 <blockquote>
 <p>代码清单2-15 search/search.go：第13行到第17行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取需要搜索的数据源列表</span></span><br><span class="line">feeds, err := RetrieveFeeds()</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    log.Fatal(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这里有几个值得注意的重要概念。第14行调用了search包的RetrieveFeeds函数。</p>
-<p>这个函数返回两个值。第一个返回值是一组Feed类型的切片。切片是一种实现了一个动态数组的引用类型。在Go语言里可以用切片来操作一组数据。第4章会进一步深入了解有关切片的细节。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取需要搜索的数据源列表</span></span><br><span class="line">feeds, err := RetrieveFeeds()</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    log.Fatal(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里有几个值得注意的重要概念。第14行调用了search包的RetrieveFeeds函数。这个函数返回两个值。第一个返回值是一组Feed类型的切片。切片是一种实现了一个动态数组的引用类型。在Go语言里可以用切片来操作一组数据。第4章会进一步深入了解有关切片的细节。</p>
 <p>第二个返回值是一个错误值。在第15行，检查返回的值是不是真的是一个错误。如果真的发生错误了，就会调用10g包里的Fatal函数。Fatal函数接受这个错误的值，并将这个错误在终端窗口里输出，随后终止程序。</p>
-<p>不仅仅是Go语言，很多语言都允许一个函数返回多个值。一般会像RetrieveFeeds函数这样声明一个函数返回一个值和一个错误值。如果发生了错误，永远不要使用该函数返回的另一个值（这个说法并不严格成立，Go标准库中的io.Reader.Read方法就允许同时返回数据和错误。但是，如果是自己实现的函数，要尽量遵守这个原则，保持含义足够明确。）。这时必须忽略另一个值，否则程序会产生更多的错误，甚至崩溃。</p>
+<p>不仅仅是Go语言，很多语言都允许一个函数返回多个值。一般会像RetrieveFeeds函数这样声明一个函数返回一个值和一个错误值。如果发生了错误，永远不要使用该函数返回的另一个值（这个说法并不严格成立，Go标准库中的io.Reader.Read方法就允许同时返回数据和错误。但是，如果是自己实现的函数，要尽量遵守这个原则，保持含义足够明确）。这时必须忽略另一个值，否则程序会产生更多的错误，甚至崩溃。</p>
 <p>让我们仔细看看从函数返回的值是如何赋值给变量的，如代码清单2-16所示。</p>
 <blockquote>
 <p>代码清单2-16 search/search.go：第13行到第14行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取需要搜索的数据源列表</span></span><br><span class="line">feeds, err := RetrieveFeeds()</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取需要搜索的数据源列表</span></span><br><span class="line">feeds, err := RetrieveFeeds()</span><br></pre></td></tr></table></figure>
 <p>这里可以看到简化变量声明运算符（:=），这个运算符用于声明一个变量，同时给这个变量赋予初始值。编译器使用函数返回值的类型来确定每个变量的类型。简化变量声明运算符只是一种简化记法，让代码可读性更高。这个运算符声明的变量和其他使用关键字var声明的变量没有任何区别。</p>
 <p>现在我们得到了数据源列表，进入到后面的代码，如代码清单2-17所示。</p>
 <blockquote>
 <p>代码清单2-17 search/search.go：第19行到第20行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个无缓冲的通道，接收匹配后的结果</span></span><br><span class="line">results := <span class="built_in">make</span>(<span class="keyword">chan</span> *Result)</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个无缓冲的通道，接收匹配后的结果</span></span><br><span class="line">results := <span class="built_in">make</span>(<span class="keyword">chan</span> *Result)</span><br></pre></td></tr></table></figure>
 <p>在第20行，我们使用内置的make函数创建了一个无缓冲的通道。我们使用简化变量声明运算符，在调用make的同时声明并初始化该通道变量。根据经验，如果需要声明初始值为零值的变量，应该使用var关键字声明变量；如果提供确切的非零值初始化变量或者使用函数返回值创建变量，应该使用简化变量声明运算符。</p>
 <p>在Go语言中，通道（channel）和映射（map）与切片（slice）一样，也是引用类型，不过通道本身实现的是一组带类型的值，这组值用于在goroutine之间传递数据。通道内置同步机制，从而保证通信安全。在第6章中，我们会介绍更多关于通道和goroutine的细节。</p>
 <p>之后两行是为了防止程序在全部搜索执行完之前终止，如代码清单2-18所示。</p>
 <blockquote>
 <p>代码清单2-18 search/search.go：第22行到第27行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 构造一个waitGroup，以便处理所有的数据源</span></span><br><span class="line"><span class="keyword">var</span> waitGroup sync.WaitGroup</span><br><span class="line"></span><br><span class="line"><span class="comment">// 设置需要等待处理</span></span><br><span class="line"><span class="comment">// 每个数据源的goroutine的数量</span></span><br><span class="line">waitGroup.Add(<span class="built_in">len</span>(feeds))</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 构造一个waitGroup，以便处理所有的数据源</span></span><br><span class="line"><span class="keyword">var</span> waitGroup sync.WaitGroup</span><br><span class="line"></span><br><span class="line"><span class="comment">// 设置需要等待处理</span></span><br><span class="line"><span class="comment">// 每个数据源的goroutine的数量</span></span><br><span class="line">waitGroup.Add(<span class="built_in">len</span>(feeds))</span><br></pre></td></tr></table></figure>
 <p>在Go语言中，如果main函数返回，整个程序也就终止了。Go程序终止时，还会关闭所有之前启动且还在运行的goroutine。写并发程序的时候，最佳做法是，在main函数返回前，清理并终止所有之前启动的goroutine。编写启动和终止时的状态都很清晰的程序，有助减少bug，防止资源异常。</p>
 <p>这个程序使用sync包的waitGroup跟踪所有启动的goroutine。非常推荐使用WaitGroup来跟踪goroutine的工作是否完成。waitGroup是一个计数信号量，我们可以利用它来统计所有的goroutine是不是都完成了工作。</p>
 <p>在第23行我们声明了一个sync包里的waitGroup类型的变量。之后在第27行，我们将WaitGroup变量的值设置为将要启动的goroutine的数量。马上就能看到，我们为每个数据源都启动了一个goroutine来处理数据。每个goroutine完成其工作后，就会递减WaitGroup变量的计数值，当这个值递减到0时，我们就知道所有的工作都做完了。</p>
@@ -662,53 +666,53 @@
 <blockquote>
 <p>代码清单2-19 search/search.go：第29行到第42行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line"><span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br><span class="line">    <span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">    matcher, exists := matchers[feed.Type]</span><br><span class="line">    <span class="keyword">if</span> !exists &#123;</span><br><span class="line">        matcher = matchers[<span class="string">"default"</span>]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动一个goroutine来执行搜索</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(matcher Matcher, feed *Feed)</span></span> &#123;</span><br><span class="line">        Match(matcher, feed, searchTerm, results)</span><br><span class="line">        waitGroup.Done()</span><br><span class="line">    &#125;(matcher, feed)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line"><span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br><span class="line">    <span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">    matcher, exists := matchers[feed.Type]</span><br><span class="line">    <span class="keyword">if</span> !exists &#123;</span><br><span class="line">        matcher = matchers[<span class="string">"default"</span>]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动一个goroutine来执行搜索</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(matcher Matcher, feed *Feed)</span></span> &#123;</span><br><span class="line">        Match(matcher, feed, searchTerm, results)</span><br><span class="line">        waitGroup.Done()</span><br><span class="line">    &#125;(matcher, feed)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>第30行到第42行迭代之前获得的feeds，为每个feed启动一个goroutine。我们使用关键字for range对feeds切片做迭代。关键字range可以用于迭代数组、字符串、切片、映射和通道。使用for range迭代切片时，每次迭代会返回两个值。第一个值是迭代的元素在切片里的索引位置，第二个值是元素值的一个副本。</p>
 <p>如果仔细看一下第30行的for range语句，会发现再次使用了下划线标识符，如代码清单2-20所示。</p>
 <blockquote>
 <p>代码清单2-20 search/search.go：第29行到第30行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line"><span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line"><span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br></pre></td></tr></table></figure>
 <p>这是第二次看到使用了下划线标识符。第一次是在main.go里导入matchers包的时候。这次，下划线标识符的作用是占位符，占据了保存range调用返回的索引值的变量的位置。如果要调用的函数返回多个值，而又不需要其中的某个值，就可以使用下划线标识符将其忽略。在我们的例子里，我们不需要使用返回的索引值，所以就使用下划线标识符把它忽略掉。</p>
 <p>在循环中，我们首先通过map查找到一个可用于处理特定数据源类型的数据的Matcher值，如代码清单2-21所示。</p>
 <blockquote>
 <p>代码清单2-21 search/search.go：第31行到第35行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">matcher, exists := matchers[feed.Type]</span><br><span class="line"><span class="keyword">if</span> !exists &#123;</span><br><span class="line">    matcher = matchers[<span class="string">"default"</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">matcher, exists := matchers[feed.Type]</span><br><span class="line"><span class="keyword">if</span> !exists &#123;</span><br><span class="line">    matcher = matchers[<span class="string">"default"</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>我们还没有说过map里面的值是如何获得的。一会儿就会在程序初始化的时候看到如何设置map里的值。在第32行，我们检查map是否含有符合数据源类型的值。查找map里的键时，有两个选择：要么赋值给一个变量，要么为了精确查找，赋值给两个变量。赋值给两个变量时第一个值和赋值给一个变量时的值一样，是map查找的结果值。如果指定了第二个值，就会返回一个布尔标志，来表示查找的键是否存在于map里。如果这个键不存在，map会返回其值类型的零值作为返回值，如果这个键存在，map会返回键所对应值的副本。</p>
 <p>在第33行，我们检查这个键是否存在于map里。如果不存在，使用默认匹配器。这样程序在不知道对应数据源的具体类型时，也可以执行，而不会中断。之后，启动一个goroutine来执行搜索，如代码清单2-22所示。</p>
 <blockquote>
 <p>代码清单2-22 search/search.go：第37行到第41行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 启动一个goroutine来执行搜索</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(matcher Matcher, feed *Feed)</span></span> &#123;</span><br><span class="line">    Match(matcher, feed, searchTerm, results)</span><br><span class="line">    waitGroup.Done()</span><br><span class="line">&#125;(matcher, feed)</span><br></pre></td></tr></table></figure>
-<p>我们会在第6章进一步学习goroutine，现在只要知道，一个goroutine是一个独立于其他函数运行的函数。使用关键字go启动一个goroutine，并对这个goroutine做并发调度。在第38行，我们使用关键字g0启动了一个匿名函数作为goroutine。匿名函数是指没有明确声明名字的函数。在forrange循环里，我们为每个数据源，以goroutine的方式启动了一个匿名函数。这样可以并发地独立处理每个数据源的数据。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 启动一个goroutine来执行搜索</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(matcher Matcher, feed *Feed)</span></span> &#123;</span><br><span class="line">    Match(matcher, feed, searchTerm, results)</span><br><span class="line">    waitGroup.Done()</span><br><span class="line">&#125;(matcher, feed)</span><br></pre></td></tr></table></figure>
+<p>我们会在第6章进一步学习goroutine，现在只要知道，一个goroutine是一个独立于其他函数运行的函数。使用关键字go启动一个goroutine，并对这个goroutine做并发调度。在第38行，我们使用关键字g0启动了一个匿名函数作为goroutine。匿名函数是指没有明确声明名字的函数。在for range循环里，我们为每个数据源，以goroutine的方式启动了一个匿名函数。这样可以并发地独立处理每个数据源的数据。</p>
 <p>匿名函数也可以接受声明时指定的参数。在第38行，我们指定匿名函数要接受两个参数，一个类型为Matcher，另一个是指向一个Feed类型值的指针。这意味着变量feed是一个指针变量。指针变量可以方便地在函数之间共享数据。使用指针变量可以让函数访问并修改一个变量的状态，而这个变量可以在其他函数甚至是其他goroutine的作用域里声明。</p>
 <p>在第41行，matcher和feed两个变量的值被传入匿名函数。在Go语言中，所有的变量都以值的方式传递。因为指针变量的值是所指向的内存地址，在函数间传递指针变量，是在传递这个地址值，所以依旧被看作以值的方式在传递。</p>
 <p>在第39行到第40行，可以看到每个goroutine是如何工作的，如代码清单2-23所示。</p>
 <blockquote>
 <p>代码清单2-23 search/search.go：第39行到第40行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Match(matcher, feed, searchTerm, results)</span><br><span class="line">waitGroup.Done()</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Match(matcher, feed, searchTerm, results)</span><br><span class="line">waitGroup.Done()</span><br></pre></td></tr></table></figure>
 <p>goroutine做的第一件事是调用一个叫Match的函数，这个函数可以在match.go文件里找到。Match函数的参数是一个Matcher类型的值、一个指向Feed类型值的指针、搜索项以及输出结果的通道。我们一会儿再看这个函数的内部细节，现在只要知道，Match函数会搜索数据源的数据，并将匹配结果输出到results通道。</p>
 <p>一旦Match函数调用完毕，就会执行第40行的代码，递减WaitGroup的计数。一旦每个goroutine都执行调用Match函数和Done方法，程序就知道每个数据源都处理完成。调用Done方法这一行还有一个值得注意的细节：WaitGroup的值没有作为参数传入匿名函数，但是匿名函数依旧访问到了这个值。</p>
 <p>Go语言支持闭包，这里就应用了闭包。实际上，在匿名函数内访问searchTerm和results变量，也是通过闭包的形式访问的。因为有了闭包，函数可以直接访问到那些没有作为参数传入的变量。匿名函数并没有拿到这些变量的副本，而是直接访问外层函数作用域中声明的这些变量本身。因为matcher和feed变量每次调用时值不相同，所以并没有使用闭包的方式访问这两个变量，如代码清单2-24所示。</p>
 <blockquote>
 <p>代码清单2-24 search/search.go：第29行到第32行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line"><span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br><span class="line">    <span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">    matcher, exists := matchers[feed.Type]</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line"><span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br><span class="line">    <span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">    matcher, exists := matchers[feed.Type]</span><br></pre></td></tr></table></figure>
 <p>可以看到，在第30行到第32行，变量feed和matcher的值会随着循环的迭代而改变。如果我们使用闭包访问这些变量，随着外层函数里变量值的改变，内层的匿名函数也会感知到这些改变。所有的goroutine都会因为闭包共享同样的变量。除非我们以函数参数的形式传值给函数，否则绝大部分goroutine最终都会使用同一个matcher来处理同一个feed——这个值很有可能是feeds切片的最后一个值。</p>
 <p>随着每个goroutine搜索工作的运行，将结果发送到results通道，并递减waitGroup的计数，我们需要一种方法来显示所有的结果，并让main函数持续工作，直到完成所有的操作，如代码清单2-25所示。</p>
 <blockquote>
 <p>代码清单2-25 search/search.go：第44行到第57行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 启动一个goroutine来监控是否所有的工作都做完了</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 等候所有任务完成</span></span><br><span class="line">    waitGroup.Wait()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 用关闭通道的方式，通知Display函数</span></span><br><span class="line">    <span class="comment">// 可以退出程序了</span></span><br><span class="line">    <span class="built_in">close</span>(results)</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 启动一个goroutine来监控是否所有的工作都做完了</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 等候所有任务完成</span></span><br><span class="line">    waitGroup.Wait()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 用关闭通道的方式，通知Display函数</span></span><br><span class="line">    <span class="comment">// 可以退出程序了</span></span><br><span class="line">    <span class="built_in">close</span>(results)</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
 <p>第45行到第56行的代码解释起来比较麻烦，等我们看完search包里的其他代码后再来解释。我们现在只解释表面的语法，随后再来解释底层的机制。在第45行到第52行，我们以goroutine的方式启动了另一个匿名函数。这个匿名函数没有输入参数，使用闭包访问了waitGroup和results变量。这个goroutine里面调用了WaitGroup的Wait方法。这个方法会导致goroutine阻塞，直到WaitGroup内部的计数到达0。之后，goroutine调用了内置的close函数，关闭了通道，最终导致程序终止。</p>
 <p>Run函数的最后一段代码是第56行。这行调用了match.go文件里的Display函数。一旦这个函数返回，程序就会终止。而之前的代码保证了所有results通道里的数据被处理之前，Display函数不会返回。</p>
 <h2 id="feed-go"><a href="#feed-go" class="headerlink" title="feed.go"></a><span style="color:#00ACC1;">feed.go</span></h2><p>现在已经看过了Run函数，让我们继续看看search.go文件的第14行中的RetrieveFeeds函数调用背后的代码。这个函数读取data.json文件并返回数据源的切片。这些数据源会输出内容，随后使用各自的匹配器进行搜索。代码清单2-26给出的是feed.go文件的前8行代码。</p>
 <blockquote>
 <p>代码清单2-26 feed.go：第01行到第08行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> search</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"encoding/json"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> dataFile = <span class="string">"data/data.json"</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> search</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"encoding/json"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> dataFile = <span class="string">"data/data.json"</span></span><br></pre></td></tr></table></figure>
 <p>这个代码文件在search文件夹里，所以第01行声明了包的名字为search，第03行到第06行导入了标准库中的两个包。json包提供编解码JSON的功能，os包提供访问操作系统的功能，如读文件。</p>
 <p>读者可能注意到了，导入json包的时候需要指定encoding路径。不考虑这个路径的话，我们导入包的名字叫作json。不管标准库的路径是什么样的，并不会改变包名。我们在访问json包内的函数时，依旧是指定json这个名字。</p>
 <p>在第08行，我们声明了一个叫作dataFile的常量，使用内容是磁盘上根据相对路径指定的数据文件名的字符串做初始化。因为Go编译器可以根据赋值运算符右边的值来推导类型，声明常量的时候不需要指定类型。此外，这个常量的名称使用小写字母开头，表示它只能在search包内的代码里直接访问，而不暴露到包外面。</p>
@@ -722,44 +726,46 @@
 <blockquote>
 <p>代码清单2-28 feed.go：第10行到第15行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Feed包含我们需要处理的数据源的信息</span></span><br><span class="line"><span class="keyword">type</span> Feed <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name <span class="keyword">string</span> <span class="string">`json:"site"`</span></span><br><span class="line">    URI  <span class="keyword">string</span> <span class="string">`json:"link"`</span></span><br><span class="line">    Type <span class="keyword">string</span> <span class="string">`json:"type"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在第11行到第15行，我们声明了一个名叫Feed的结构类型。这个类型会对外暴露。这个类型里面声明了3个字段，每个字段的类型都是字符串，对应于数据文件中各个文档的不同字段。每个字段的声明最后、引号里的部分被称作标记（tag），这个标记里描述了JSON解码的元数据，用于创建Feed类型值的切片。每个标记将结构类型里字段对应到JSON文档里指定名字的字段。现在可以看看search.go代码文件的第14行中调用的RetrieveFeeds函数了。这个函数读取数据文件，并将每个JSON文档解码，存入一个Feed类型值的切片里，如代码清单2-29所示。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Feed包含我们需要处理的数据源的信息</span></span><br><span class="line"><span class="keyword">type</span> Feed <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name <span class="keyword">string</span> <span class="string">`json:"site"`</span></span><br><span class="line">    URI  <span class="keyword">string</span> <span class="string">`json:"link"`</span></span><br><span class="line">    Type <span class="keyword">string</span> <span class="string">`json:"type"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在第11行到第15行，我们声明了一个名叫Feed的结构类型。这个类型会对外暴露。这个类型里面声明了3个字段，每个字段的类型都是字符串，对应于数据文件中各个文档的不同字段。每个字段的声明最后、引号里的部分被称作标记（tag），这个标记里描述了JSON解码的元数据，用于创建Feed类型值的切片。每个标记将结构类型里字段对应到JSON文档里指定名字的字段。</p>
+<p>现在可以看看search.go代码文件的第14行中调用的RetrieveFeeds函数了。这个函数读取数据文件，并将每个JSON文档解码，存入一个Feed类型值的切片里，如代码清单2-29所示。</p>
 <blockquote>
 <p>代码清单2-29 feed.go：第17行到第36行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RetrieveFeeds读取并反序列化源数据文件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RetrieveFeeds</span><span class="params">()</span> <span class="params">([]*Feed, error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 打开文件</span></span><br><span class="line">    file, err := os.Open(dataFile)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 当函数返回时</span></span><br><span class="line">    <span class="comment">// 关闭文件</span></span><br><span class="line">    <span class="keyword">defer</span> file.Close()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将文件解码到一个切片里</span></span><br><span class="line">    <span class="comment">// 这个切片的每一项是一个指向一个Feed类型值的指针</span></span><br><span class="line">    <span class="keyword">var</span> feeds []*Feed</span><br><span class="line">    err = json.NewDecoder(file).Decode(&amp;feeds)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这个函数不需要检查错误，调用者会做这件事</span></span><br><span class="line">    <span class="keyword">return</span> feeds, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RetrieveFeeds读取并反序列化源数据文件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RetrieveFeeds</span><span class="params">()</span> <span class="params">([]*Feed, error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 打开文件</span></span><br><span class="line">    file, err := os.Open(dataFile)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 当函数返回时</span></span><br><span class="line">    <span class="comment">// 关闭文件</span></span><br><span class="line">    <span class="keyword">defer</span> file.Close()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将文件解码到一个切片里</span></span><br><span class="line">    <span class="comment">// 这个切片的每一项是一个指向一个Feed类型值的指针</span></span><br><span class="line">    <span class="keyword">var</span> feeds []*Feed</span><br><span class="line">    err = json.NewDecoder(file).Decode(&amp;feeds)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这个函数不需要检查错误，调用者会做这件事</span></span><br><span class="line">    <span class="keyword">return</span> feeds, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>让我们从第18行的函数声明开始。这个函数没有参数，会返回两个值。第一个返回值是一个切片，其中每一项指向一个Feed类型的值。第二个返回值是一个error类型的值，用来表示函数是否调用成功。在这个代码示例里，会经常看到返回error类型值来表示函数是否调用成功。这种用法在标准库里也很常见。</p>
 <p>现在让我们看看第20行到第23行。在这几行里，我们使用os包打开了数据文件。我们使用相对路径调用open方法，并得到两个返回值。第一个返回值是一个指针，指向File类型的值，第二个返回值是error类型的值，检查Open调用是否成功。紧接着第21行就检查了返回的error类型错误值，如果打开文件真的有问题，就把这个错误值返回给调用者。</p>
 <p>如果成功打开了文件，会进入到第27行。这里使用了关键字defer，如代码清单2-30所示。</p>
 <blockquote>
 <p>代码清单2-30 feed.go：第25行到第27行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 当函数返回时</span></span><br><span class="line"><span class="comment">// 关闭文件</span></span><br><span class="line"><span class="keyword">defer</span> file.Close()</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 当函数返回时</span></span><br><span class="line"><span class="comment">// 关闭文件</span></span><br><span class="line"><span class="keyword">defer</span> file.Close()</span><br></pre></td></tr></table></figure>
 <p>关键字defer会安排随后的函数调用在函数返回时才执行。在使用完文件后，需要主动关闭文件。使用关键字defer来安排调用close方法，可以保证这个函数一定会被调用。哪怕函数意外崩溃终止，也能保证关键字defer安排调用的函数会被执行。关键字defer可以缩短打开文件和关闭文件之间间隔的代码行数，有助提高代码可读性，减少错误。</p>
 <p>现在可以看看这个函数的最后几行，如代码清单2-31所示。先来看一下第31行到第35行的代码。</p>
 <blockquote>
 <p>代码清单2-31 feed.go：第29行到第35行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将文件解码到一个切片里</span></span><br><span class="line"><span class="comment">// 这个切片的每一项是一个指向一个Feed类型值的指针</span></span><br><span class="line"><span class="keyword">var</span> feeds []*Feed</span><br><span class="line">err = json.NewDecoder(file).Decode(&amp;feeds)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 这个函数不需要检查错误，调用者会做这件事</span></span><br><span class="line"><span class="keyword">return</span> feeds, err</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将文件解码到一个切片里</span></span><br><span class="line"><span class="comment">// 这个切片的每一项是一个指向一个Feed类型值的指针</span></span><br><span class="line"><span class="keyword">var</span> feeds []*Feed</span><br><span class="line">err = json.NewDecoder(file).Decode(&amp;feeds)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 这个函数不需要检查错误，调用者会做这件事</span></span><br><span class="line"><span class="keyword">return</span> feeds, err</span><br></pre></td></tr></table></figure>
 <p>在第31行我们声明了一个名字叫feeds，值为nil的切片，这个切片包含一组指向Feed类型值的指针。之后在第32行我们调用json包的NewDecoder函数，然后在其返回值上调用Decode方法。我们使用之前调用open返回的文件句柄调用NewDecoder函数，并得到一个指向Decoder类型的值的指针。之后再调用这个指针的Decode方法，传入切片的地址。之后Decode方法会解码数据文件，并将解码后的值以Feed类型值的形式存入切片里。</p>
 <p>根据Decode方法的声明，该方法可以接受任何类型的值，如代码清单2-32所示。</p>
 <blockquote>
 <p>代码清单2-32 使用空interface</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(dec *Decoder)</span> <span class="title">Decode</span><span class="params">(v <span class="keyword">interface</span>()</span>) <span class="title">error</span></span></span><br></pre></td></tr></table></figure>
-<p>Decode方法接受一个类型为interface（}的值作为参数。这个类型在Go语言里很特殊，一般会配合reflect包里提供的反射功能一起使用。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(dec *Decoder)</span> <span class="title">Decode</span><span class="params">(v <span class="keyword">interface</span>()</span>) <span class="title">error</span></span></span><br></pre></td></tr></table></figure>
+<p>Decode方法接受一个类型为interface{}的值作为参数。这个类型在Go语言里很特殊，一般会配合reflect包里提供的反射功能一起使用。</p>
 <p>最后，第35行给函数的调用者返回了切片和错误值。在这个例子里，不需要对Decode调用之后的错误做检查。函数执行结束，这个函数的调用者可以检查这个错误值，并决定后续如何处理。</p>
 <p>现在让我们看看搜索的代码是如何支持不同类型的数据源的。让我们去看看匹配器的代码。</p>
 <h2 id="match-go-default-go"><a href="#match-go-default-go" class="headerlink" title="match.go/default.go"></a><span style="color:#00ACC1;">match.go/default.go</span></h2><p>match.go代码文件包含创建不同类型匹配器的代码，这些匹配器用于在Run函数里对数据进行搜索。让我们回头看看Run函数里使用不同匹配器执行搜索的代码，如代码清单2-33所示。</p>
 <blockquote>
 <p>代码清单2-33 search/search.go：第29行到第42行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line"><span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br><span class="line">    <span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">    matcher, exists := matchers[feed.Type]</span><br><span class="line">    <span class="keyword">if</span> !exists &#123;</span><br><span class="line">        matcher = matchers[<span class="string">"default"</span>]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动一个goroutine执行查找</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(matcher Matcher, feed *Feed)</span></span> &#123;</span><br><span class="line">        Match(matcher, feed, searchTerm, results)</span><br><span class="line">        waitGroup.Done()</span><br><span class="line">    &#125;(matcher, feed)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码的第32行，根据数据源类型查找一个匹配器值。这个匹配器值随后会用于在特定的数据源里处理搜索。之后在第38行到第41行启动了一个goroutine，让匹配器对数据源的数据进行搜索。让这段代码起作用的关键是这个架构使用一个接口类型来匹配并执行具有特定实现的匹配器。这样，就能使用这段代码，以一致且通用的方法，来处理不同类型的匹配器值。让我们看一下match.go里的代码，看看如何才能实现这一功能。代码清单2-34给出的是match.go的前17行代码。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 为每个数据源启动一个goroutine来查找结果</span></span><br><span class="line"><span class="keyword">for</span> _, feed := <span class="keyword">range</span> feeds &#123;</span><br><span class="line">    <span class="comment">// 获取一个匹配器用于查找</span></span><br><span class="line">    matcher, exists := matchers[feed.Type]</span><br><span class="line">    <span class="keyword">if</span> !exists &#123;</span><br><span class="line">        matcher = matchers[<span class="string">"default"</span>]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动一个goroutine执行查找</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(matcher Matcher, feed *Feed)</span></span> &#123;</span><br><span class="line">        Match(matcher, feed, searchTerm, results)</span><br><span class="line">        waitGroup.Done()</span><br><span class="line">    &#125;(matcher, feed)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码的第32行，根据数据源类型查找一个匹配器值。这个匹配器值随后会用于在特定的数据源里处理搜索。之后在第38行到第41行启动了一个goroutine，让匹配器对数据源的数据进行搜索。让这段代码起作用的关键是这个架构使用一个接口类型来匹配并执行具有特定实现的匹配器。这样，就能使用这段代码，以一致且通用的方法，来处理不同类型的匹配器值。让我们看一下match.go里的代码，看看如何才能实现这一功能。</p>
+<p>代码清单2-34给出的是match.go的前17行代码。</p>
 <blockquote>
 <p>代码清单2-34 search/match.go：第01行到第17行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> search</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Result保存搜索的结果</span></span><br><span class="line"><span class="keyword">type</span> Result <span class="keyword">struct</span> &#123;</span><br><span class="line">    Field   <span class="keyword">string</span></span><br><span class="line">    Content <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Matcher定义了要实现的</span></span><br><span class="line"><span class="comment">// 新搜索类型的行为</span></span><br><span class="line"><span class="keyword">type</span> Matcher <span class="keyword">interface</span> &#123;</span><br><span class="line">    Search(feed *Feed, searchTerm <span class="keyword">string</span>) ([]*Result, error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> search</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Result保存搜索的结果</span></span><br><span class="line"><span class="keyword">type</span> Result <span class="keyword">struct</span> &#123;</span><br><span class="line">    Field   <span class="keyword">string</span></span><br><span class="line">    Content <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Matcher定义了要实现的</span></span><br><span class="line"><span class="comment">// 新搜索类型的行为</span></span><br><span class="line"><span class="keyword">type</span> Matcher <span class="keyword">interface</span> &#123;</span><br><span class="line">    Search(feed *Feed, searchTerm <span class="keyword">string</span>) ([]*Result, error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>让我们看一下第15行到第17行，这里声明了一个名为Matcher的接口类型。之前，我们只见过声明结构类型，而现在看到如何声明一个interface（接口）类型。我们会在第5章介绍接口的更多细节，现在只需要知道，interface关键字声明了一个接口，这个接口声明了结构类型或者具名类型需要实现的行为。一个接口的行为最终由在这个接口类型中声明的方法决定。</p>
 <p>对于Matcher这个接口来说，只声明了一个search方法，这个方法输入一个指向Feed类型值的指针和一个string类型的搜索项。这个方法返回两个值：一个指向Result类型值的指针的切片，另一个是错误值。Result类型的声明在第08行到第11行。</p>
 <p>命名接口的时候，也需要遵守Go语言的命名惯例。如果接口类型只包含一个方法，那么这个类型的名字以er结尾。我们的例子里就是这么做的，所以这个接口的名字叫作Matcher。如果接口类型内部声明了多个方法，其名字需要与其行为关联。</p>
@@ -767,14 +773,14 @@
 <blockquote>
 <p>代码清单2-35 search/default.go：第01行到第15行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> search</span><br><span class="line"></span><br><span class="line"><span class="comment">// defaultMatcher实现了默认匹配器</span></span><br><span class="line"><span class="keyword">type</span> defaultMatcher <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// init函数将默认匹配器注册到程序里</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> matcher defaultMatcher</span><br><span class="line">    Register(<span class="string">"default"</span>, matcher)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Search实现了默认匹配器的行为</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m defaultMatcher)</span> <span class="title">Search</span><span class="params">(feed *Feed, searchTerm <span class="keyword">string</span>)</span> <span class="params">([]*Result, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> search</span><br><span class="line"></span><br><span class="line"><span class="comment">// defaultMatcher实现了默认匹配器</span></span><br><span class="line"><span class="keyword">type</span> defaultMatcher <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// init函数将默认匹配器注册到程序里</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> matcher defaultMatcher</span><br><span class="line">    Register(<span class="string">"default"</span>, matcher)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Search实现了默认匹配器的行为</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m defaultMatcher)</span> <span class="title">Search</span><span class="params">(feed *Feed, searchTerm <span class="keyword">string</span>)</span> <span class="params">([]*Result, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>在第04行，我们使用一个空结构声明了一个名叫defaultMatcher的结构类型。空结构在创建实例时，不会分配任何内存。这种结构很适合创建没有任何状态的类型。对于默认匹配器来说，不需要维护任何状态，所以我们只要实现对应的接口就行。</p>
 <p>在第13行到第15行，可以看到defaultMatcher类型实现Matcher接口的代码。实现接口的方法Search只返回两个ni1值。其他的实现，如RSS匹配器的实现，会在这个方法里使用特定的业务逻辑规则来处理搜索。</p>
 <p>Search方法的声明也声明了defaultMatcher类型的值的接收者，如代码清单2-36所示。</p>
 <blockquote>
 <p>代码清单2-36 search/default.go：第13行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m defaultMatcher)</span> <span class="title">Search</span></span></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m defaultMatcher)</span> <span class="title">Search</span></span></span><br></pre></td></tr></table></figure>
 <p>如果声明函数的时候带有接收者，则意味着声明了一个方法。这个方法会和指定的接收者的类型绑在一起。在我们的例子里，Search方法与defaultMatcher类型的值绑在一起。这意味着我们可以使用defaultMatcher类型的值或者指向这个类型值的指针来调用Search方法。无论我们是使用接收者类型的值来调用这个方，还是使用接收者类型值的指针来调用这个方法，编译器都会正确地引用或者解引用对应的值，作为接收者传递给search方法，如代码清单2-37所示。</p>
 <blockquote>
 <p>代码清单2-37 调用方法的例子</p>
@@ -785,52 +791,52 @@
 <blockquote>
 <p>代码清单2-38 接口方法调用所受限制的例子</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 方法声明为使用指向defaultMatcher类型值的指针作为接收者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *defaultMatcher)</span> <span class="title">Search</span><span class="params">(feed *Feed, searchTerm <span class="keyword">string</span>)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">// 通过<span class="title">interface</span>类型的值来调用方法</span></span><br><span class="line"><span class="function"><span class="title">var</span> <span class="title">dm</span> <span class="title">defaultMatcher</span></span></span><br><span class="line"><span class="function"><span class="title">var</span> <span class="title">matcher</span> <span class="title">Matcher</span> = <span class="title">dm</span>     // 将值赋值给接口类型</span></span><br><span class="line">matcher.Search(feed, "test") // 使用值来调用接口方法</span><br><span class="line"></span><br><span class="line">&gt; <span class="keyword">go</span> build</span><br><span class="line">cannot use dm (<span class="keyword">type</span> defaultMatcher) as <span class="keyword">type</span> Matcher in assignment</span><br><span class="line"></span><br><span class="line"><span class="comment">// 方法声明为使用defaultMatcher类型的值作为接收者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m defaultMatcher)</span> <span class="title">Search</span><span class="params">(feed *Feed, searchTerm <span class="keyword">string</span>)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">// 通过<span class="title">interface</span>类型的值来调用方法</span></span><br><span class="line"><span class="function"><span class="title">var</span> <span class="title">dm</span> <span class="title">defaultMatcher</span></span></span><br><span class="line"><span class="function"><span class="title">var</span> <span class="title">matcher</span> <span class="title">Matcher</span> = &amp;<span class="title">dm</span>    // 将指针赋值给接口类型</span></span><br><span class="line">matcher.Search(feed, "test") // 使用指针来调用接口方法</span><br><span class="line"></span><br><span class="line">&gt; <span class="keyword">go</span> build</span><br><span class="line">Build Successful</span><br></pre></td></tr></table></figure>
 <p>除了Search方法，defaultMatcher类型不需要为实现接口做更多的事情了。从这段代码之后，不论是defaultMatcher类型的值还是指针，都满足Matcher接口，都可以作为Matcher类型的值使用。这是代码可以工作的关键。defaultMatcher类型的值和指针现在还可以作为Matcher的值，赋值或者传递给接受Matcher类型值的函数。</p>
 <p>让我们看看match.go代码文件里实现Match函数的代码，如代码清单2-39所示。这个函数在search.go代码文件的第39行中由Run函数调用。</p>
 <blockquote>
 <p>代码清单2-39 search/match.go：第19行到第33行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Match函数，为每个数据源单独启动goroutine来执行这个函数</span></span><br><span class="line"><span class="comment">// 并发地执行搜索</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Match</span><span class="params">(matcher Matcher, feed *Feed, searchTerm <span class="keyword">string</span>, results <span class="keyword">chan</span>&lt;- *Result)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 对特定的匹配器执行搜索</span></span><br><span class="line">    searchResults, err := matcher.Search(feed, searchTerm)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Println(err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将结果写入通道</span></span><br><span class="line">    <span class="keyword">for</span> _, result := <span class="keyword">range</span> searchResults &#123;</span><br><span class="line">        results &lt;- result</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>这个函数使用实现了Matcher接口的值或者指针，进行真正的搜索。这个函数接受Matcher类型的值作为第一个参数。只有实现了Matcher接口的值或者指针能被接受。因为defaultMatcher类型使用值作为接收者，实现了这个接口，所以defaultMatcher类型的值或者指针可以传入这个函数。</p>
-<p>在第23行，调用了传入函数的Matcher类型值的Search方法。这里执行了Matcher变量中特定的Search方法。Search方法返回后，在第24行检测返回的错误值是否真的是一个错误。如果是一个错误，函数通过1og输出错误信息并返回。如果搜索并没有返回错误，而是返回了搜索结果，则把结果写入通道，以便正在监听通道的main函数就能收到这些结果。</p>
+<p>在第23行，调用了传入函数的Matcher类型值的Search方法。这里执行了Matcher变量中特定的Search方法。Search方法返回后，在第24行检测返回的错误值是否真的是一个错误。如果是一个错误，函数通过log输出错误信息并返回。如果搜索并没有返回错误，而是返回了搜索结果，则把结果写入通道，以便正在监听通道的main函数就能收到这些结果。</p>
 <p>match.go中的最后一部分代码就是main函数在第56行调用的Display函数，如代码清单2-40所示。这个函数会阻止程序终止，直到接收并输出了搜索goroutine返回的所有结果。</p>
 <blockquote>
-<p>代码清单 2-40search/match.go：第35行到第43行</p>
+<p>代码清单2-40 search/match.go：第35行到第43行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>当通道被关闭时，通道和关键字range的行为，使这个函数在处理完所有结果后才会返回。让我们再来简单看一下Run函数的代码，特别是关闭results通道并调用Display函数那段，如代码清单2-41所示。</p>
 <blockquote>
 <p>代码清单2-41 search/search.go：第44行到第57行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>第45行到第52行定义的goroutine会等待waitGroup，直到搜索goroutine调用了Done方法。一旦最后一个搜索goroutine调用了Done，wait方法会返回，之后第51行的代码会关闭results通道。一旦通道关闭，goroutine就会终止，不再工作。</p>
 <p>在match.go代码文件的第30行到第32行，搜索结果会被写入通道，如代码清单2-42所示。</p>
 <blockquote>
 <p>代码清单2-42 search/match.go：第29行到第32行29</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>如果回头看一看match.go代码文件的第40行到第42行的forrange循环，如代码清单243所示，我们就能把写入结果、关闭通道和处理结果这些流程串在一起。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>如果回头看一看match.go代码文件的第40行到第42行的for range循环，如代码清单2.43所示，我们就能把写入结果、关闭通道和处理结果这些流程串在一起。</p>
 <blockquote>
 <p>代码清单2-43 search/match.go：第38行到第42行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>match.go代码文件的第40行的for range循环会一直阻塞，直到有结果写入通道。在某个搜索goroutine向通道写入结果后（如在match.go代码文件的第31行所见），for range循环被唤醒，读出这些结果。之后，结果会立刻写到日志中。看上去这个for range循环会无限循环下去，但其实不然。一旦search.go代码文件第51行关闭了通道，for range循环就会终止，Display函数也会返回。</p>
 <p>在我们去看RSS匹配器的实现之前，再看一下程序开始执行时，如何初始化不同的匹配器。为此，我们需要先回头看看default.go代码文件的第07行到第10行，如代码清单2-44所示。</p>
 <blockquote>
 <p>代码清单2-44 search/default.go：第06行到第10行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>在代码文件default.go里有一个特殊的函数，名叫init。在main.go代码文件里也能看到同名的函数。我们之前说过，程序里所有的init方法都会在main函数启动前被调用。让我们再看看main.go代码文件导入了哪些代码，如代码清单2-45所示。</p>
 <blockquote>
 <p>代码清单2-45 main.go：第07行到第08行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>第8行导入search包，这让编译器可以找到default.go代码文件里的init函数。一旦编译器发现init函数，它就会给这个函数优先执行的权限，保证其在main函数之前被调用。代码文件default.go里的init函数执行一个特殊的任务。这个函数会创建一个defaultMatcher类型的值，并将这个值传递给search.go代码文件里的Register函数，如代码清单2-46所示。</p>
 <blockquote>
 <p>代码清单2-46 search/search.go：第59行到第67行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>这个函数的职责是，将一个Matcher值加入到保存注册匹配器的映射中。所有这种注册都应该在main函数被调用前完成。使用init函数可以非常完美地完成这种初始化时注册的任务。</p>
 <h1 id="RSS匹配器"><a href="#RSS匹配器" class="headerlink" title="RSS匹配器"></a><span style="color:#339AFF;">RSS匹配器</span></h1><p>最后要看的一部分代码是RSs匹配器的实现代码。我们之前看到的代码搭建了一个框架，以便能够实现不同的匹配器来搜索内容。RSs匹配器的结构与默认匹配器的结构很类似。每个匹配器为了匹配接口，Search方法的实现都不同，因此匹配器之间无法互相替换。</p>
 <p>代码清单2-47中的RSS文档是一个例子。当我们访问数据源列表里RSS数据源的链接时，期望获得的数据就和这个例子类似。</p>
@@ -841,55 +847,55 @@
 <blockquote>
 <p>代码清单2-48 matchers/rss.go：第01行到第12行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>和其他代码文件一样，第1行定义了包名。这个代码文件处于名叫matchers的文件夹中所以包名也叫matchers。之后，我们从标准库中导入了6个库，还导入了search包。再一次，我们看到有些标准库的包是从标准库所在的子文件夹导入的，如xm1和http。就像json包一样，路径里最后一个文件夹的名字代表包的名字。</p>
 <p>为了让程序可以使用文档里的数据，解码RSS文档的时候需要用到4个结构类型，如代码清单2-49所示。</p>
 <blockquote>
 <p>代码清单2-49 matchers/rss.go：第14行到第58行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>如果把这些结构与任意一个数据源的RSS文档对比，就能发现它们的对应关系。解码XML的方法与我们在feed.go代码文件里解码JSON文档一样。接下来我们可以看看rssMatcher类型的声明，如代码清单2-50所示。</p>
 <blockquote>
 <p>代码清单2-50 matchers/ss.go：第60行到第61行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>再说明一次，这个声明与defaultMatcher类型的声明很像。因为不需要维护任何状态，所以我们使用了一个空结构来实现Matcher接口。接下来看看匹配器init函数的实现，如代码清单2-51所示。</p>
 <blockquote>
 <p>代码清单2-51 matchers/ss.go：第63行到第67行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>就像在默认匹配器里看到的一样，init函数将rssMatcher类型的值注册到程序里，以备后用。让我们再看一次main.go代码文件里的导入部分，如代码清单2-52所示。</p>
 <blockquote>
 <p>代码清单2-52 main.go：第07行到第08行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>main.go代码文件里的代码并没有直接使用任何matchers包里的标识符。不过，我们依旧需要编译器安排调用rss.go代码文件里的init函数。在第07行，我们使用下划线标识符作为别名导入matchers包，完成了这个调用。这种方法可以让编译器在导入未被引用的包时不报错，而且依旧会定位到包内的init函数。我们已经看过了所有的导人、类型和初始化函数，现在来看看最后两个用于实现Matcher接口的方法，如代码清单2-53所示。</p>
 <blockquote>
 <p>代码清单2-53 matchers/rss.go：第114行到第140行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>方法retrieve并没有对外暴露，其执行的逻辑是从RSS数据源的链接拉取RSS文档。在第121行，可以看到调用了http包的Get方法。我们会在第8章进一步介绍这个包，现在只需要知道，使用http包，Go语言可以很容易地进行网络请求。当Get方法返回后，我们可以得到一个指向Response类型值的指针。之后会监测网络请求是否出错，并在第127行安排函数返回时调用Close方法。</p>
 <p>在第131行，我们检测了Response值的statusCode字段，确保收到的响应是200，任何不是200的请求都需要作为错误处理。如果响应值不是200，我们使用fmt包里的Errorf函数返回一个自定义的错误。最后3行代码很像之前解码JSON数据文件的代码。只是这次使用xml包并调用了同样叫作NewDecoder的函数。这个函数会返回一个指向Decoder值的指针。之后调用这个指针的Decode方法，传入rssDocument类型的局部变量document的地址。最后返回这个局部变量的地址和Decode方法调用返回的错误值。</p>
 <p>最后我们来看看实现了Matcher接口的方法，如代码清单2-54所示。</p>
 <blockquote>
 <p>代码清单2-54 matchers/rss.go：第69行到第112行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>我们从第71行results变量的声明开始分析，如代码清单2-55所示。这个变量用于保存并返回找到的结果。</p>
 <blockquote>
 <p>代码清单2-55 matchers/ss.go：第71行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>我们使用关键字var声明了一个值为nil的切片，切片每一项都是指向Result类型值的指针。Result类型的声明在之前match.go代码文件的第08行中可以找到。之后在第76行，我们使用刚刚看过的retrieve方法进行网络调用，如代码清单2-56所示。</p>
 <blockquote>
 <p>代码清单2-56 matchers/rss.go：第75行到第79行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>调用retrieve方法返回了一个指向rssDocument类型值的指针以及一个错误值。之后，像已经多次看过的代码一样，检查错误值，如果真的是一个错误，直接返回。如果没有错误发生，之后会依次检查得到的RSS文档的每一项的标题和描述，如果与搜索项匹配，就将其作为结果保存，如代码清单2-57所示。</p>
 <blockquote>
 <p>代码清单2-57 matchers/rss.go：第81行到第86行</p>
 </blockquote>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p>既然document.Channel.Item是一个item类型值的切片，我们在第81行对其使用forrange循环，依次访问其内部的每一项。在第83行，我们使用regexp包里的Matchstring函数，对channelItem值里的Title字段进行搜索，查找是否有匹配的搜索项。之后在第84行检查错误。如果没有错误，就会在第89行到第94行检查匹配的结果，如代码清单2-58所示。</p>
 <p>如果调用Matchstring方法返回的matched的值为真，我们使用内置的append函数，将搜索结果加入到results切片里。append这个内置函数会根据切片需要，决定是否要增加切片的长度和容量。我们会在第4章了解关于内置函数append的更多知识。这个函数的第一个参数是希望追加到的切片，第二个参数是要追加的值。在这个例子里，追加到切片的值是一个指向Result类型值的指针。这个值直接使用字面声明的方式，初始化为Result类型的值。之后使用取地址运算符（&amp;），获得这个新值的地址。最终将这个指针存入了切片。</p>
 <p>在检查标题是否匹配后，第97行到第108行使用同样的逻辑检查Description字段。最后，在第111行，Search方法返回了results作为函数调用的结果。</p>
@@ -1016,7 +1022,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">319</span>
+                    <span class="site-state-item-count">327</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1061,7 +1067,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">14</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1168,7 +1178,15 @@
                     
                       
                     
-                    <span class="site-state-item-count">45</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">49</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1199,23 +1217,23 @@
                 
                 
                   <li>
-                    <a href="/2021/08/26/第4章-并发编程/" title="第4章 并发编程" target="_blank">第4章 并发编程</a>
+                    <a href="/2021/09/06/1-Kubernetes介绍/" title="1-Kubernetes介绍" target="_blank">1-Kubernetes介绍</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/08/26/第3章-面向对象编程/" title="第3章 面向对象编程" target="_blank">第3章 面向对象编程</a>
+                    <a href="/2021/09/06/第3章-Kubernetes快速入门/" title="第3章 Kubernetes快速入门" target="_blank">第3章 Kubernetes快速入门</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/08/25/第2章-顺序编程/" title="第2章 顺序编程" target="_blank">第2章 顺序编程</a>
+                    <a href="/2021/09/06/第2章-Kubernetes的架构和部署/" title="第2章 Kubernetes的架构和部署" target="_blank">第2章 Kubernetes的架构和部署</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/08/23/第5章-并发/" title="第5章 并发" target="_blank">第5章 并发</a>
+                    <a href="/2021/09/06/第1章-Kubernetes介绍/" title="第1章 Kubernetes介绍" target="_blank">第1章 Kubernetes介绍</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/08/19/第9章-测试和性能/" title="第9章 测试和性能" target="_blank">第9章 测试和性能</a>
+                    <a href="/2021/09/02/第5章-并发-1/" title="第5章 并发" target="_blank">第5章 并发</a>
                   </li>
                 
               </ul>
@@ -1276,7 +1294,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">3.1m</span>
+    <span title="站点总字数">3.3m</span>
   
 
   
@@ -1287,7 +1305,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">47:35</span>
+    <span title="站点阅读时长">50:12</span>
   
 </div>
 
