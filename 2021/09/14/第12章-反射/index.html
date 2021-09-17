@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-09-14T02:52:29.223Z">
+<meta property="og:updated_time" content="2021-09-15T05:38:53.725Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第12章 反射">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
@@ -426,12 +426,24 @@
                 
               
 
-              <time title="创建时间：2021-09-14 10:51:13 / 修改时间：10:52:29" itemprop="dateCreated datePublished" datetime="2021-09-14T10:51:13+08:00">2021-09-14</time>
+              <time title="创建时间：2021-09-14 10:51:13" itemprop="dateCreated datePublished" datetime="2021-09-14T10:51:13+08:00">2021-09-14</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-09-15 13:38:53" itemprop="dateModified" datetime="2021-09-15T13:38:53+08:00">2021-09-15</time>
               
             
           </span>
@@ -477,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">20k</span>
               
 
               
@@ -491,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">18 分钟</span>
               
             </div>
           
@@ -516,6 +528,28 @@
 <li>总结一下，这章作者最主要想表达什么观点？</li>
 </ul>
 <a id="more"></a>
+<p>Go语言提供了一种机制，在编译时不知道类型的情况下，可更新变量、在运行时查看值、调用方法以及直接对它们的布局进行操作，这种机制称为反射（reflection）。反射也让我们可以把类型当做头等值。<br>本章将探讨Go语言的反射功能以及它如何增强语言的表达能力，特别是它在实现两个重要API中的关键作用。这两个API分别是fmt包提供的字符串格式化功能，以及 encoding/json和encoding/xml这种包提供的协议编码功能。反射在text/template和html/template包提供的模板机制（参见4.6节）中也很重要。另外，反射的推导比较复杂，也不是为了随意使用设计的，因此尽管这些包使用反射来实现，但它们并没有在自己的API中暴露反射。<br>12.1为什么使用反射<br>有时我们需要写一个函数有能力统一处理各种值类型的函数，而这些类型可能无法共享同一个接口，也可能布局未知，也有可能这个类型在我们设计函数时还不存在，甚至这个类型会同时存在上面三种问题。<br>一个熟悉的例子是fmt.printf中的格式化逻辑，它可以输出任意类型的任意值，甚至是用户自定义的一个类型。让我们先尝试用我们已学到的知识来实现一个类似的函数。为了简化起见，该函数只接受一个参数，并且与fmt.sprint一样返回一个字符串，所以我们称这个函数为Sprint。<br>我们先用一个类型分支来判断这个参数是否定义了一个string方法，如果已定义则直接调用它。然后添加一些switch分支来判断参数的动态类型是否是基本类型（比如string、int、bool等），再对每种类型采用不同的格式化操作。</p>
+<p>但我们如何处理类似【】float64、map【string】【】string的其他类型呢？可以添加更多的分支，但这样的类型有无限种。更何况还有自己命名的类型，比如url.values？因为即使我们有一个分支来处理map【string】【】string （ur1.vallues的底层类型），这个分支仍然不会处理url.values，因为这两个类型不是完全一致的。更何况根本不可能引人url.Values的处理分支？因为这会导致库依赖于库的客户（即循环引用）。<br>当我们无法透视一个未知类型的布局时，这段代码就无法继续，这时我们就需要反射了。<br>12.2reflect.Type和reflect.value<br>反射功能由reflect包提供，它定义了两个重要的类型：Type和Value。Type表示Go语言的一个类型，它是一个有很多方法的接口，这些方法可以用来识别类型以及透视类型的组成部分，比如一个结构的各个字段或者一个函数的各个参数。reflect.Type接口只有一个实现，即类型描述符（见7.5节），接口值中的动态类型也是类型描述符。<br>reflect.Type0f函数接受任何的interface{}参数，并且把接口中的动态类型以reflect. Type形式返回。<br>t ：=reflect.Type0f（3）11-个reflect.Type<br>fmt.Println(t.String())//“int”<br>fmt. Println(t)<br>//“int’<br>上面的Type0f（3）调用把数值3赋给interface{}参数。回想一下7.5节的内容，把一个具体值赋给一个接口类型时会发生一个隐式类型转换，转换会生成一个包含两部分内容的接口值：动态类型部分是操作数的类型（int），动态值部分是操作数的值（3）。<br>因为reflect.Type0f返回一个接口值对应的动态类型，所以它返回总是具体类型（而不是接口类型）。比如下面的代码输出的是<em>*0s.File”而不是”io.writer”。后面我们会看到如何让reflect.Type也表示一个接口类型。<br>var w io.Writer = os.stdout<br>fmt Println(reflect.Type0f(w))1/“</em>os.File”<br>注意，reflect.Type满足fmt.stringer。因为输出一个接口值的动态类型在调试和日志中很常用，所以fmt.Printf提供了一个简写方式%T，内部实现就使用了reflect.Type0f：<br>fmt.Printf(“%T\n”，3)//“int”<br>reflect包的另一个重要类型就是Value。reflect.value可以包含一个任意类型的值。reflect.Value0f函数接受任意的interface{}并将接口的动态值以reflect.value的形式返回。与reflect.Type0f类似，reflect.value0f的返回值也都是具体值，不过reflect.value也可以包含一个接口值。</p>
+<p>另一个与reflect.Type类似的是，reflect.Value也满足fmt.stringer，但除非Value包含的是一个字符串，否则string方法的结果仅仅暴露了类型。通常，你需要使用fmt包的%v功能，它对reflect.value会进行特殊处理。<br>调用Value的Type方法会把它的类型以reflect.Type方式返回：<br>t:=v.Type()<br>//一个reflect.Type<br>fmt.println(t.string())//“int”<br>reflect.valueof的逆操作是reflect.value.Interface方法。它返回一个interface{}接口值，与reflct.Value包含同一个具体值。<br>v :=reflect.value0f(3) // a reflect.value<br>x:=v.Interface()<br>an interface{}<br>i :=x.(int)<br>an int<br>| fmt.Printf(“%d\n”，i) “3”<br>reflect.Value和interface{}都可以包含任意的值。二者的区别是空接口（interface{}）隐藏了值的布局信息、内置操作和相关方法，所以除非我们知道它的动态类型，并用一个类型断言来渗透进去（上面的代码就用了类型断言），否则我们对所包含值能做的事情很少。作为对比，Value有很多方法可以用来分析所包含的值，而不用知道它的类型。使用这些技术，我们可以第二次尝试写一个通用的格式化函数，它称为format.Any。<br>不用类型分支，我们用reflect.value的Kind方法来区分不同的类型。尽管有无限种类型，但类型的分类（kind）只有少数几种：基础类型Bool、String以及各种数字类型；聚合类型Array和Struct；引用类型chan、Func、Ptr、Slice和Map、接口类型Interface；最后还有Invalid类型，表示它们还没有任何值。（reflect.Value的零值就属于Invalid类型。）</p>
+<p>到现在为止，该函数把每个值当做一个没有内部结构且不可分割的物体（所以才叫formatAtom）。对于聚合类型（结构体和数组）以及接口，它只输出了值的类型；对于引用类型（通道、函数、指针、slice和map），它输出了类型和以十六进制表示的引用地址。这个结果仍然不够理想，但确实是一个很大的进步。因为Kind只关心底层实现，所以format.Any对命名类型的效果也很好。比如：<br>varxint64=1<br>var d.time.Duration = 1 * time.Nanosecond<br>fmt.Println(format.Any(x))<br>//“1”<br>fmt.Println(format.Any(d))<br>// “1”<br>fmt. Println(format.Any([]int64{x}))<br>// “[]int64 0x8202b87b0”<br>fmt.Println(format.Any([jtime.Duration{d}))1/ “[]time.Duration ex8202b87ee”<br>12.3 Display：一个递归的值显示器<br>接下来我们看一下如何改善组合类型的显示。这次，我们不再实现一个fmt.sprint，而是实现一个称为Display的调试工具函数，这个函数对给定的任意一个复杂值x，输出这个复杂值的完整结构，并对找到的每个元素标上这个元素的路径。下面先看一个例子。<br>e,_ :=eval.Parse(“sqrt(A/pi)”)<br>Display(“e”, e)<br>在上面的调用中，Display的参数是一个从表达式求值器生成的语法树（参考7.9节）。Display的输出如下所示：<br>Display e (eval.call):<br>e.fn = “sqrt’<br>e.args[0].type = eval.binary<br>e.args[0].value.op=47<br>e.args[0].value.x.type=eval.Var<br>e.args[0].value.x.value=”A”<br>e.args[0].value.y.type = eval.Var<br>e.args[e].value.y.value =“pi’<br>我们应当尽可能避免在包的API里边暴露反射相关的内容。我们将定义一个未导出的函数display来做真正的递归处理，再暴露Display，而Display则只是一个简单的封装，并且接受一个interface{}参数：<br>gopl.io/ch12/display<br>func Display(name string, x interface{}){<br>fmt.Printf(“Display %s(%T):\n”,name,x)<br>display(name, reflect.Value0f(x))<br>在display中，我们使用之前定义的formatAtom函数来输出基础值（基础类型、函数和通道），使用reflect.value的一些方法来递归展示复杂类型的每个组成部分。当递归深人时，path字符串（之前用来表示起始值，比如“e”）会增长，以表示如何找到当前值（比如”e.args[0].value”)。</p>
+<p>接下来将对这些分支逐一讲解。<br>slice与数组：两者的逻辑一致。Len方法会返回slice或者数组中元素的个数，Index（i）会返回第1个元素，返回的元素类型为reflect.value（如果i越界会崩溃）。这两个方法与内置的len（a）和a【i】序列操作类似。在每个序列元素上递归调用了display函数，只是在路径后边加上了”【i】”。<br>尽管reflect.value有很多方法，但对于每个值，只有少量的方法可以安全调用。比如，Index方法可以在s1ice、Array、string类型的值上安全调用，但对于其他类型则会崩溃。<br>结构体：NumField方法可以报告结果中的字段数，Field（i）会返回第i个字段，返回的字段类型为reflect.value。字段列表包括了从匿名字段中做了类型提升的字段。要追加一个类似”.f”的字段选择标记到路径中，我们必须先获得结构体的reflect.Type才能获到第i个字段的名称。<br>map：MapKeys方法返回一个元素类型为reflect.value的slice，每个元素都是一个map的键。与平常遍历map的结果类似，顺序是不固定的。MapIndex（key）返回key对应的值。我们追加下标记号“【key】”到路径中。（此处忽略了一些情形。map的键类型有可能超出 formatAtom能处理好的类型，比如数组、结构体、接口都可以是合法的字典键。在练习12.1 中会有输出完整键的内容。）</p>
+<p>指针：Elem方法返回指针指向的变量，同样也是以reflect.Value类型返回。这个方法在指针是nil时也能正确处理，但返回的结果属于Invalid类型，所以我们用IsNil来显式检测空指针，方便输出一条更合适的消息。为了避免二义性，在路径前加了一个<em>*，外边再加上一对圆括号。<br>接口：我们再次使用IsNil来判断接口是否为空，如果非空，我们通过v.Elem（）来获取动态值，进一步输出它的类型和值。<br>既然Display函数完成了，接下来我们就实际使用一下。下面的Movie类型引自4.5节，但略有修改：<br>type Movie struct {<br>Title, Subtitle string<br>Year<br>int<br>Color<br>bool<br>Actor<br>map[string]string<br>Oscars<br>[]string<br>Sequel
+</em>string<br>}<br>下面声明这个类型的一个值，并查看Display如何处理这个值：<br>strangelove := Movie{<br>Title: “Dr. Strangelove”,<br>Subtitle: “How I Learned to stop Worrying and Love the Bomb”,<br>Year:<br>1964，<br>Color: false,<br>Actor: map[string]string{<br>“Dr. Strangelove”:<br>“Peter Sellers”,<br>“Grp. Capt. Lionel Mandrake”: “Peter Sellers”<br>“Pres. Merkin Muffley”:<br>“Peter Sellers”,<br>“Gen. Buck Turgidson”:<br>“George c. Scott”,<br>“Brig. Gen. Jack D. Ripper”: “Sterling Hayden”,<br>^Maj. T.J. “King” Kong:<br>“Slim Pickens”,<br>}，<br>Oscars:[]string{<br>“Best Actor (Nomin.)”,<br>“Best Adapted Screenplay (Nomin.)”,<br>“Best Director (Nomin.)”,<br>“Best Picture (Nomin.)”,<br>}，<br>调用Display（”strangelove”，strangelove）会输出：</p>
+<p>我们可以使用Display来显示标准库类型的内部结构，比如<em>os.File：<br>Display(“os.Stderr”, os.Stderr)<br>//输出：<br>/显示os.stderr （</em>os.File）：<br>// (<em>(</em>os.Stderr).file).fd=2<br>//(<em>(</em>os.Stderr).file).name =”/dev/stderr”<br>// (<em>(</em>0s.Stderr).file).nepipe=e<br>注意，即使非导出字段在反射下也是可见的。当然，这个例子的输出在各个平台上可能会有差异，也可能随着库的演进而改变。（毕竟把字段设为私有是由原因的！）<br>我们还可以把Display作用在reflect.value上，并且观察它如何遍历<em>os.File的类型描述符的内部结构。调用Display（”rv”，reflect.value0f（os.stderr））的输出如下所示，当然，每人得到的结果可能会有不同：<br>Display rV (reflect.value):<br>(</em>rV.typ).size=8<br>(<em>rV.typ).hash = 871609668<br>(</em>rV.typ).align↵8<br>(<em>rv.typ).fieldAlign=8<br>(</em>rV.typ).kind-22<br>(<em>(</em>rV.typ).string)=”<em>os.File”<br>(</em>(<em>(</em>rv.typ).uncommonType).methods[e].name)=”Chdir”<br>(<em>&lt;</em>&lt;<em>(</em>/.typ).uncommonType).methods[e.mtyp).string)=”func() error’<br>(<em>(</em>(<em>&lt;</em>4.typ).uncommonType).methods[e].typ).string). “func(<em>os.File)error”<br>注意如下两个例子的差异：<br>var i interface{}=3<br>Display(“i”，i)<br>//输出：<br>//显示i（int）：<br>//i=3<br>Display(“&amp;i”，&amp;i)<br>//输出：<br>//显示&amp;i（</em>interface {}）：<br>//(<em>&amp;i).type=int<br>//(</em>&amp;i).value=3<br>在第一个例子中，Display调用reflect.Value0f（i），返回值的类型为Int。正如12.2节提到的，因为reflect.value0f从接口值中提取值部分，所以它永远返回一个具体类型的Value.<br>在第二个例子中，Display调用reflect.Valuef（&amp;i），其返回值的类型为Ptr，并且是一个指向i的指针。在Display函数的Ptr分支中，会调用这个值的Elem方法，返回一个代表变量1的Value，其类型为Interface。类似这种间接获得的Value可以代表任何值，包括接口。这时display函数递归调用自己，输出接口的动态类型和动态值。<br>在当前的实现中，Display在对象图中存在循环引用时不会自行终止，比如处理一个首尾相接的链表时：</p>
+<p>Display输出了一个持续增长的展开式：<br>Display c (display.cycle):<br>c.Value =42<br>(<em>c.Tail).Value =42<br>(</em>(<em>c.Tail).Tail).Value =42<br>(</em>(<em>(</em>c.Tail).Tail).Tail).Value=42<br>..无穷无尽..<br>很多Go程序都至少包含一些循环引用的数据。让Display能鲁棒地处理这些循环引用要一些小技巧，需要记录所有曾经被访问过的引用，当然成本也不低。一个通用的解决方案需要unsafe语言特性，13.3节将介绍这个特性。<br>循环引用在fmt.sprinf中不构成一个大问题，因为它很少尝试输出整个结构体。比如，当它遇到一个指针时，它会输出指针的数字值，这样就打破了循环引用。但如果遇到一个slice或者map包含自身，它还是会卡住，只是不值得为了这种罕见的案例而去承担处理循环引用的成本。<br>练习12.1：扩展Display，让它可以处理map中键为结构体或者数组的情形。<br>练习12.2：通过限制递归的层数，让Display能安全处理循环引用的数据结构。（在13.3节中，我们可以看到另外一个检测循环引用的方法。）<br>12.4示例：编码S表达式<br>Display是一个用于显示数据结构的调试例程，但是只要对它稍加修改，就可以用它来对任意Go对象进行编码或编排，使之成为适用于进程间通信的可移植记法中的消息。<br>正如我们在4.5节见到的，Go的标准库支持各种格式，包括JSON、XML和ASN.1。另一种广泛使用的格式是Lisp语言中的S表达式。与其他格式不同的是，S表达式还没被Go标准库支持，这是因为尽管有几次标准化的尝试并存在很多实现，但它们仍然没有被广泛接受的严格定义。<br>在本节中，我们会定义一个包，它使用S表达式来编码任意的Go对象，这个S表达式需要支持下面的表达式：<br>42<br>integer<br>“hello”<br>string（转义方法与Go一致）<br>foc<br>symbol （直接使用名字，不加引号）<br>(123)<br>list （用括号括起来的零个及以上元素）<br>布尔值一般用符号t表示真，用空列表（）或者符号nil表示假，但为了简化起见，这个实现直接忽略布尔值。通道和函数也被忽略了，因为它们的状态对于反射来说是不透明的。这个实现还忽略了实数、复数和接口，在练习12.3中我们会加上这些支持。<br>我们将按如下思路来把Go语言的值编码为S表达式。整数和字符串的编码方式是显而易见的。空值直接编码为符号nil，数组和slice则用列表记法来编码。<br>结构被编码为一个关于字段绑定（field binding）的列表，每个字段绑定都是一个两个元素的列表，其中第一个元素（使用符号）是字段名，第二个元素是字段值。map也编码为元素对的列表，每个元素对都是map中一项的键和值。按照传统，S表达式使用形式为（key.value）的单个构造单元（cons cell）来表示键值对，而不是用双元素的列表，但为了简化解码过程，我们将忽略带“.”的列表表示法。<br>编码用如下的单个递归调用函数encode来实现。它的结构与上一节的Display在本质上</p>
+<p>下面是12.3节的strangelove应用Marshal后的输出：<br>((Title “Dr. Strangelove”) (Subtitle “How I Learned to stop Worrying and Lo<br>ve the Bomb”) (Year 1964) (Actor ((“Grp.Capt. Lionel Mandrake” “Peter Sell<br>ers”)(“Pres. Merkin Muffley” “Peter Sellers”)(“Gen. Buck Turgidson” “Geor<br>ge c. Scott”)(“Brig. Gen. Jack D. Ripper” “Sterling Hayden”) (“Maj.T.J.\<br>“King\” Kong”“Slim Pickens”)(“Dr. Strangelove” “Peter Sellers”))) (Oscars<br>(“Best Actor (Nomin.)” “Best Adapted Screenplay (Nomin.)””Best Director (N<br>omin.)” “Best Picture (Nomin.)”))(Sequel nil))<br>整个输出都在一行且使用了最少的空格数，导致读起来很困难。根据S表达式的习惯手动格式化后的结果如下所示。把编写S表达式的美化打印器留作练习（有点挑战），从gopl.io上可以下载一个简单的版本。<br>((Title “Dr. Strangelove”)<br>(subtitle “How I Learned to Stop Worrying and Love the Bomb”)<br>(Year 1964)<br>(Actor ((“Grp. capt. Lionel Mandrake” “Peter Sellers”)<br>(“Pres. Merkin Muffley” “Peter Sellers”)<br>(“Gen. Buck Turgidson” “George c. Scott”)<br>(“Brig. Gen. Jack D. Ripper” “Sterling Hayden”)<br>(“Maj.T.J.\”King\”Kong” “Slim Pickens”)<br>(“Dr. Strangelove” “Peter Sellers”)))<br>(Oscars (“Best Actor (Nomin.)”<br>“Best Adapted Screenplay (Nomin.)”<br>“Best Director (Nomin.)”<br>“Best Picture (Nomin.)”))<br>(Sequel nil))<br>与fmt.print、json.Marshal、 Display这些函数类似，sexpr.Marshal在遇到循环应用的数据时也会无限循环。<br>12.6节会概述S表达式解码函数的实现，但在那之前，我们需要先了解一下如何用反射来更新程序中的变量。<br>练习12.3：实现encode函数缺失的功能。把布尔值编码为t和nil，浮点数则用Go语</p>
+<p>言的表示法，像1+2i这种复数则编码为#C（1.02.8）。接口编码为成对的类型名和值，比如（”【】int”（123）），但要注意这个方法是有二义性的，因为reflect.Type.string方法可能会对不同的类型生成同样的字符串。<br>练习12.4：修改encode函数，输出如上所示的美化后的S表达式。<br>练习12.5：改写encode函数，从输出S表达式改为输出JSON。使用标准库的解码器json.Unmarshal来测试编码器。<br>练习12.6：改写encode函数，优化输出，如果字段值是其类型的零值则不须编码。练习12.7：参考json.encoder（参见4.5节）的风格，创建一个S表达式编码器的流式API。<br>12.5使用reflect.value来设置值<br>到现在为止，在程序中反射还只用来解析变量值。而本节的重点则是如何改变值。<br>回想一下Go语言的表达式，比如x、x.f【1】、<em>p这样的表达式表示一个变量，而x+1、 f（2）之类的表达式则不表示变量。一个变量是一个可寻址的存储区域，其中包含了一个值，并且它的值可以通过这个地址来更新。<br>对reflect.Value也有一个类似的区分，某些是可寻址的，而其他的并非如此。比如如下的变量声明：<br>x:=2<br>//值类型变量？<br>a :=reflect.Value0f(2)<br>//2<br>int<br>no<br>b :=reflect.Value0f(x)<br>//2<br>int<br>no<br>c:=reflect.Value0f(&amp;x)<br>//&amp;x
+</em>int<br>no<br>d:=c.Elem()<br>//2<br>int<br>yes(x)<br>a里边的值是不可寻址的，它包含的仅仅是整数2的一个副本。b也是如此。c里边的值也是不可寻址的，它包含的是指针&amp;x的一个副本。事实上，通过reflect.valueof（x）返回的 reflect.value都是不可寻址的。但d是通过对c中的指针提领得来的，所以它是可寻址的。可以通过这个方法，调用reflect.valueOf（&amp;x）.Elem（）来获得任意变量x可寻址的Value值。可以通过变量的CanAddr方法来询问reflect.Value变量是否可寻址：<br>fmt.Println(a.canAddr())//“false”<br>fmt.Println(b.canAddr())// “false”<br>fmt.Println(c.canAddr())1/“false’<br>fmt. Println(d.canAddr())//“true”<br>我们可以通过一个指针来间接获取一个可寻址的reflect.value，即使这个指针是不可寻址的。可寻址的常见规则都在反射包里边有对应项。比如，slice的脚标表达式e【i】隐式地做了指针去引用，所以即使e是不可寻址的，这个表达式仍然是可寻址的。类似地，reflect.value0f（e）.Index（i）代表一个变量，尽管reflect.Value0f（e）不是可寻址的，这个变量也是可寻址的。<br>从一个可寻址的reflect.value（）获取变量需要三步。首先，调用Addr（），返回一个Value，其中包含一个指向变量的指针，接下来，在这个Value上调用Interface（），会返回一个包含这个指针的interface{}值。最后，如果我们知道变量的类型，我们可以使用类型断言来把接口内容转换为一个普通指针。之后就可以通过这个指针来更新变量了：</p>
+<p>还可以直接通过可寻址的reflect.value来更新变量，不用通过指针，而是直接调用reflect.value.Set方法：<br>d.set(reflect.Value0f(4))<br>fmt.Println(x)//“4”<br>平常由编译器来检查的那些可赋值性条件，在这种情况下则是在运行时由set方法来检查。上面的变量和值都是int类型，但如果变量类型是int64，这个程序就会崩溃。所以确保这个值对于变量类型是可赋值的是很重要的一件事。<br>d.Set（reflect.value0f（int64（5）））//崩溃：int64不可赋值给int<br>当然，在一个不可寻址的reflect.value上调用set方法也会崩溃：<br>x:=2<br>b :=reflect.Value0f(x)<br>b.Set（reflect.Value0f（3））//崩溃：在不可寻址的值上使用Set<br>我们还有为一些基本类型特化的Set变种：SetInt、SetUint、 Setstring、 SetFloat等：d :=reflect.Value0f(&amp;x).Elem()<br>d.SetInt(3)<br>fmt.Print1n(x)//“3’<br>这些方法还有一定程度的容错性。只要变量类型是某种带符号的整数，比如SetInt，甚至可以是底层类型为带符号整数的命名类型，都可以成功。如果值太大了还会无提示地截断它。但需要注意的是，在指向interface{}变量的reflect.value上调用setInt会奔溃（尽管使用Set就没有问题）。<br>x:=1<br>rx:=reflect.value0f(&amp;x).Elem()<br>rx.SetInt(2)<br>//0K,x=2<br>rx.Set(reflect.Value0f(3))<br>//0K,x=3<br>rx.SetString(“hello”)<br>//崩溃：字符串不能赋给整数<br>rx.Set（reflect.Value0f（”hello”））//崩溃：字符串不能赋给整数<br>var y interface{}<br>ry := reflect.value0f(&amp;y).Elem()<br>ry.SetInt(2)<br>//崩溃：在指向接口的Value上调用SetInt<br>ry.Set(reflect.Value0f(3))<br>// oK,y = int(3)<br>ry.SetString(“hello”)<br>//崩溃：在指向接口的Value上调用SetString<br>ry.Set(reflect.value0f(“hello”)) //oK,y=”hello’<br>在把Display作用于os.stdout时，我们发现反射可以读取到未导出结构字段的值，通过Go语言的常规方法这些值是无法读取的。比如os.File结构在类UNIX平台上的fd int字段。但反射不能更新这些值：<br>stdout ：=reflect.value0f（os.stdout）.Elem（）//*os.stdout，-个os.File变量<br>fmt. Println(stdout.Type())<br>//“os.File”<br>fd :=stdout.FieldByName(“fd”)<br>fmt.Print1n(fd.Int())//“1”<br>fd.SetInt(2)<br>//崩溃：未导出字段<br>一个可寻址的reflect.value会记录它是否是通过遍历一个未导出字段来获得的，如果是这样，则不允许修改。所以，在更新变量前用CanAddr来检查并不能保证正确。CanSet方法才能正确地报告一个reflect.value是否可寻址且可更改：<br>fmt.Println(fd.CanAddr(),fd.CanSet())//“true false”</p>
+<p>12.6示例：解码S表达式<br>对于标准库encoding/…提供的每一个Marshal函数，都有一个对应的Unmarshal函数来做解码。正如在4.5节中所见到的，对于一个包含编码的JSON数据的字节slice，我们可以按下面的方法解码为Movie类型（参见12.3节）：<br>data :=[]byte{/<em>…</em>/}<br>var movie Movie<br>err :=json.Unmarshal(data, &amp;movie)<br>Unmarshal函数使用反射来修改已存在的movie变量的字段，根据Movie类型和输人数据来创建新的map、结构和slice.<br>现在为S表达式实现一个简单的Unmarshal函数，这个函数与上面使用过的标准json.Unmarshal函数类似，与之前的sexpr.Marshal则正好相反。我必须先提醒你，一个鲁棒且通用的实现需要的代码量远超这个示例能容纳的量（尽管这个示例已经很长了），所以我们必须走一些捷径。我们仅支持了S表达式一个有限的子集，并且没有优雅地处理错误。代码的目的是阐释反射，而不是语法分析。<br>词法分析程序使用text/scanner包提供的扫描器scanner类型来把输入流分解成一系列的标记（token），包括注释、标识符、字符串字面量和数字字面量。扫描器的Scan方法向前推进扫描位置并且返回下一个标记（类型为rune）。大部分标记（比如）都只包含单个 rune，但text/scanner包则用rune类型的小负数区域来表示那些多字符的标记，比如Ident. String、Int。调用Scan会返回标记的类型，调用TokenText则会返回标记对应的文本。<br>因为一个典型的分析器需要多次分析当前的标记，但Scan方法会一直推进扫描位置，所以我们把扫描器封装到一个lexer辅助类型中，其中保存了scan最近返回的标记。<br>gop1.io/ch12/sexpr<br>type lexer struct {<br>scan scanner.Scanner<br>token rune //当前标记<br>func (lex<em>lexer) next()<br>{ lex.token = lex.scan.Scan()}<br>func (lex</em>lexer) text() string { return lex.scan.TokenText()}<br>func (lex*lexer) consume(want rune){<br>if lex.token ！=want{//注意：这不是一个好的错误处理示例<br>panic(fmt.Sprintf(“got %q, want %q”, lex.text(), want))<br>lex.next()<br>]<br>让我们先看一下分析器。它有两个主要的函数，第一个是read，它读取从当前标记开始的S表达式，并更新由可寻址的reflect.value v指向的变量。</p>
+<p>S表达式为两个不同的目的使用标识符结构体的字段名和指针的nil值。read函数只处理后一种情形。当它遇到scanner.Ident”nil”时，通过reflect.zero函数把v设置为其类型的零值。对于其他标识符，则产生一个错误。readlist函数（接下来马上要看到）则把标识符处理为结构字段名。<br>一个’（’标记代表一个列表的开始。第二个函数readlist可把列表解码为多种类型：map、结构体、slice或者数组，主要根据当前正在处理的Go变量类型。对于每种情形，都会循环解析内容直到遇到匹配的右括号，这个是由endlist函数来检测的。<br>比较有趣的地方是递归。最简单的例子是一个数组。在遇到儿之前，我们使用Index方法来获得数组的一个元素，再递归调用read来填充数据。与其他错误处理类似，如果输人数据导致解码器的下标超过了数组的大小，解码器崩溃。slice的流程与数组比较类似，不同之处是先创建每一个元素变量，再填充，最后追加到slice中。<br>结构体和map在循环的每一轮中都必须解析一个关于（key value）的子列表。对于结构体，key是用来定位字段的符号。与数组的情形类似，我们通过FieldByName函数来获得结构体字段的现有变量，再递归调用read来填充。对于map，key可以是任何类型。与slice类似，先创建新变量，递归地填充，最后再把新的键值对插人映射表中。</p>
+<p>最后，把解析器封装成如下所示的一个导出函数Unmarshal，隐藏了实现中很多不完美之处。比如在解析过程中遇到错误会崩溃，因此unmarshal使用一个延迟调用来从崩溃中恢复（见5.10节），并且返回一条错误消息。<br>// Unmarshal解析S表达式数据并且填充到非nil指针out指向的变量<br>func Unmarshal(data []byte, out interface{}) (err error){<br>lex :=&amp;lexer{scan:scanner.scanner{Mode:scanner.GoTokens}}<br>lex.scan.Init(bytes.NewReader(data))<br>lex.next（）//获取第一个标记<br>defer func(){<br>//注意：这不是一个好的错误处理示例<br>if x :=recover();x!=nil{.<br>err = fmt.Errorf(“error at %s:%v”, lex.scan.Position,x)<br>}<br>}()<br>read(lex, reflect.Value0f(out).Elem())<br>return nil<br>}<br>一个具备用于生产环境的质量的实现对任何的输人都不应当崩溃，而且应当对每次错误详细报告信息，可能的话，应当包含行号或者偏移量。无论如何，我们希望这个示例有助于</p>
+<p>了解encoding/json这类包的底层机制，以及如何使用反射来填充数据结构。<br>练习12.8：类似于json.UnMarshal函数，sexpr.Unmarshal函数在解码之前就需要完整的字节slice。仿照json.Decoder，定义一个sexpr.Decoder类型，允许从一个io.Reader接口解码一系列的值。使用这个新类型来重新实现sexpr.Unmarshal。<br>练习12.9：仿照xm1.Decoder（参考7.14节），写一个基于标记的S表达式解码API。你需要5个类型的标记：Symbol、string、Int、Startlist和Endlist。<br>练习12.10：扩展sexpr.Unmarshal，以处理练习12.3中按你的答案编码的布尔值、浮点数和接口。（提示：为了解码接口，你需要一个map，其中包含每个支持类型从名字到reflect.Type的映射。）<br>12.7访问结构体字段标签<br>在4.5节我们用结构体字段标签来修改Go结构值的JSON编码方式。json字段标签让我们可以选择其他的字段名以及忽略输出的空字段。本节将讨论如何用反射来获取字段标签。<br>在一个Web服务器中，绝大部分HTTP处理函数的第一件事就是提取请求参数到局部变量中。我们将定义一个工具函数params.Unpack，使用结构体字段标签来简化HTTP处理程序（参考7.7节）的编写。<br>首先，展示如何使用这个方法。下面的search函数就是一个HTTP处理函数，它定义一个变量data，data的类型是一个字段与HTTP请求参数对应的匿名结构。结构体的字段标签指定参数名称，这些名称一般比较短，含义也比较模糊，毕竟URL长度有限，不能随便浪费。Unpack函数从请求中提取数据来填充这个结构体，这样不仅可以更方便地访问，还避免了手动转换类型。<br>gop1.io/ch12/search<br>import “gopl.io/ch12/params’<br>// search用于处理/search URL endpoint.<br>func search(resp http.ResponseWriter, req *http.Request){<br>var data struct {<br>Labels<br>[]string ‘http:”1”<br>MaxResults int<br>‘http:”max<br>Exact<br>bool<br>http:”x”<br>data.MaxResults=10//设置默认值<br>if err := params.Unpack(req, &amp;data);err!=nil{<br>http.Error(resp, err.Error(),http.statusBadRequest) 1/ 4ee<br>return<br>//…其他处理代码..<br>fmt.Fprintf(resp,”Search:%+v\n”, data)<br>}<br>下面的Unpack函数做了三件事情。首先，调用req.ParseForm（）来解析请求。在这之后，req.Form就有了所有的请求参数，这个方法对HTTPGET和POST请求都适用。<br>接着，Unpack函数构造了一个从每个有效字段名到对应字段变量的映射。在字段有标签时有效字段名与实际字段名可能会有差别。reflect.Type的Field方法会返回一个reflect.StructField类型，这个类型提供了每个字段的名称、类型以及一个可选的标签。它的Tag字</p>
+<p>段类型为reflect.structTag，底层类型为字符串，提供了一个Get方法用于解析和提取对于一个特定键的子串，比如这个例子中用到的http：”<br>gopl.io/ch12/params<br>// Unpack从HTTP请求req的参数中提取数据填充到ptr指向结构体的各个字段<br>// from the HTTP request parameters in req<br>func Unpack(req *http.Request, ptr interface{}) error {<br>if err :=req.ParseForm();err!=nil{<br>returnerr<br>]<br>//创建字段映射表，键为有效名称<br>fields :=make(map[string]reflect.value)<br>v：=reflect.Value0f（ptr）.Elem（）//结构变量<br>fori:=8;i&lt;v.NumField();i+{<br>fieldInfo :=v.Type().Field(i)11a reflect.structField<br>tag :=fieldInfo.Tag<br>//areflect.structTag<br>name :=tag.Get(“http”)<br>if name =””{<br>name = strings.Tolower(fieldlnfo. Name)<br>fields[name]= v.Field(i)<br>//对请求中的每个参数更新结构体中对应的字段<br>for name, values :- range req.Form {<br>f :=fields[name’<br>if !f.IsValid(){<br>continue//忽略不能识别的HTTP参数<br>1]<br>for , value := range values {<br>if f.Kind() — reflect.slice {<br>elem :=reflect.New(f.Type().Elem()).Elem() if err :=populate(elem, value);err!=nil{<br>return fmt.Errorf(“%s:%v”, name, err) f.Set(reflect.Append(f, elem))<br>}else {<br>if err := populate(f, value);err!=nil{<br>return fmt.Errorf(“%s:%v”, name,err) }<br>}<br>)<br>return nil<br>最后，Unpack遍历HTTP参数中的所有键值对，并且更新对应的结构体字段。注意，同一个参数可能会出现多次。如果有这种情况并且字段是slice类型，则这个参数的所有值都会追加到slice里。如果不是，则这个字段会被多次覆盖，仅有最后一个值才是有效的。<br>populate函数负责从单个HTTP请求参数值填充单个字段v（或者slice字段中的单个元素）。现在，它仅支持字符串、有符号整数和布尔值。支持其他类型则留作练习。</p>
+<p>接着把server处理程序添加到一个Web服务器中。下面就是一个典型的交互过程：$ go build gopl.io/ch12/search<br>$ ./search &amp;<br>$./fetch’<a href="http://localhost:12345/search" target="_blank" rel="noopener">http://localhost:12345/search</a>‘<br>Search: {Labels:[]MaxResults:1e Exact:false}<br>$./fetch’<a href="http://localhost:12345/search?l=golang&amp;l=programming" target="_blank" rel="noopener">http://localhost:12345/search?l=golang&amp;l=programming</a><br>Search: {Labels:[golang programming] MaxResults:1e Exact:false}<br>$./fetch’<a href="http://localhost:12345/search?l=golang&amp;l=programming&amp;max=100*" target="_blank" rel="noopener">http://localhost:12345/search?l=golang&amp;l=programming&amp;max=100*</a><br>Search: {Labels:[golang programming] MaxResults:1e0 Exact:false}<br>$./fetch’<a href="http://localhost:12345/search?x=true&amp;l=golang&amp;l=programming" target="_blank" rel="noopener">http://localhost:12345/search?x=true&amp;l=golang&amp;l=programming</a>‘<br>Search: {Labels:[golang programming] MaxResults:1e Exact:true}<br>$./fetch’<a href="http://localhost:12345/search?q=hello&amp;x=123" target="_blank" rel="noopener">http://localhost:12345/search?q=hello&amp;x=123</a>‘<br>x:strconv.ParseBool: parsing “123”:invalid syntax<br>$./fetch’<a href="http://localhost:12345/search?q=hello&amp;max=lots" target="_blank" rel="noopener">http://localhost:12345/search?q=hello&amp;max=lots</a>‘<br>max: strconv.ParseInt: parsing “lots”: invalid syntax<br>练习12.11：写一个与Unpack对应的Pack函数。给定一个结构体的值，Pack应当返回一个URL，这个URL的参数与输人的结构体对应。<br>练习12.12：扩展字段标签语法来支持参数有效性检验。比如，一个字符串应当是一个有效的email地址或者有效的信用卡号码，一个整数应当是一个有效的美国邮编。修改Unpack函数来支持这些功能。<br>练习12.13：修改S表达式编码器（参考12.4节）和解码器（参考12.6节），支持 sexpr:”.. ..”形式的字段标签，标签含义同encoding/json包（参考4.5节）。<br>12.8显示类型的方法<br>最后一个反射示例使用reflect.Type来显示一个任意值的类型并枚举它的方法：</p>
+<p>reflect.Type和reflect.value都有一个叫作Method的方法。每个t.Method（i）（从reflect.Type调用）都会返回一个reflect.Method类型的实例，这个结构类型描述了这个方法的名称和类型。而每个v.Method（i）（从reflect.value调用）都会返回一个reflect.value，代表一个方法值（6.4节），即一个已绑定接收者的方法。使用reflect.value.ca1l方法可以调用Func类型的Value（为节省版面，这里就不演示了），但这个程序只需要它的类型。下面就是两个类型time.Duration和<em>strings.Replacer的方法列表：<br>methods. Print(time.Hour)<br>//输出：<br>// type time.Duration<br>// func (time.Duration) Hours() float64<br>// func (time.Duration) Minutes() float64<br>// func (time.Duration) Nanoseconds() int64<br>// func (time.Duration) Seconds() float64<br>II func (time.Duration) string() string<br>methods. Print(new(strings.Replacer))<br>//输出：<br>// type </em>strings.Replacer<br>// func (<em>strings.Replacer) Replace(string) string<br>// func (</em>strings.Replacer) Writestring(io.writer, string) (int, error)<br>12.9注意事项<br>还有很多反射API，但限于篇幅原因，这里不再展示，但之前的示例揭示了反射能做哪些事情。反射是一个功能和表达能力都很强大的工具，但应该谨慎使用它，具体有三个原因。<br>第一个原因是基于反射的代码是很脆弱的。能导致编译器报告类型错误的每种写法，在反射中都有一个对应的误用方法。编译器在编译时就能向你报告这个错误，而反射错误则要等到执行时才以崩溃的方式来报告，而这可能是代码写好很久以后，甚至是代码开始执行很久以后才会发生的事。<br>比如，如果readlist函数（参考12.6节）尝试从输人读取一个字符串然后填充一个int类型的变量，那么调用reflect.value.setstring就会崩溃。很多使用反射的程序都有类似的风险，所以对每一个reflect.value都需要仔细注意它的类型、是否可寻址、是否可设置。<br>回避这种缺陷的最好办法是确保反射的使用完整地封装在包里边，并且如果可能，在包的API中避免使用reflect.value，尽量使用特定的类型来确保输人是合法的值。如果做不到这点，那就需要在每个危险操作前都做额外的动态检查。作为标准库中的一个示例，当fmt.printf遇到操作数类型不合适时，它不会莫名奇妙地崩溃，而是输出一条描述性的错误消息。尽管程序仍然有bug，但定位起来就简单多了。<br>fmt.Printf(“%d%s\n”,”hello”,42)// “%!d(string=hello) %!s(int=42)”<br>反射还降低了自动重构和分析工具的安全性与准确度，因为它们无法检测到类型信息。</p>
+<p>避免使用反射的第二个原因是类型其实也算是某种形式的文档，而反射的相关操作则无法做静态类型检查，所以大量使用反射的代码是很难理解的。对于接受interface{}或者reflect.value的函数，一定要写清楚期望的参数类型和其他限制条件（即不变量）。<br>第三个原因是基于反射的函数会比为特定类型优化的函数慢一两个数量级。在一个典型的程序中，大部分函数与整体性能无关，所以为了让程序更清晰可以使用反射。测试就很合适使用反射，因为大部分测试都使用小数据集。但对于关键路径上的函数，则最好避免使用反射。</p>
+
       
     </div>
 
@@ -625,7 +659,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">371</span>
+                    <span class="site-state-item-count">413</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -805,7 +839,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">56</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">58</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -836,23 +874,23 @@
                 
                 
                   <li>
-                    <a href="/2021/09/14/第13章-低级编程/" title="第13章 低级编程" target="_blank">第13章 低级编程</a>
+                    <a href="/2021/09/16/第32章-单元实验：寻找火星生命/" title="第32章 单元实验：寻找火星生命" target="_blank">第32章 单元实验：寻找火星生命</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/14/第12章-反射/" title="第12章 反射" target="_blank">第12章 反射</a>
+                    <a href="/2021/09/16/第31章-并发状态/" title="第31章 并发状态" target="_blank">第31章 并发状态</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/14/第11章-测试/" title="第11章 测试" target="_blank">第11章 测试</a>
+                    <a href="/2021/09/16/第30章-goroutine和并发/" title="第30章 goroutine和并发" target="_blank">第30章 goroutine和并发</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/14/第10章-包和go工具/" title="第10章 包和go工具" target="_blank">第10章 包和go工具</a>
+                    <a href="/2021/09/16/第29章-单元实验：数独规则/" title="第29章 单元实验：数独规则" target="_blank">第29章 单元实验：数独规则</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/14/第9章-使用共享变量实现并发/" title="第9章 使用共享变量实现并发" target="_blank">第9章 使用共享变量实现并发</a>
+                    <a href="/2021/09/16/第28章-孰能无过/" title="第28章 孰能无过" target="_blank">第28章 孰能无过</a>
                   </li>
                 
               </ul>
@@ -896,7 +934,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">3.8m</span>
+    <span title="站点总字数">4m</span>
   
 
   
@@ -907,7 +945,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">57:53</span>
+    <span title="站点阅读时长">60:17</span>
   
 </div>
 

@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-09-14T02:52:40.790Z">
+<meta property="og:updated_time" content="2021-09-15T06:01:07.800Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第10章 包和go工具">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
@@ -426,12 +426,24 @@
                 
               
 
-              <time title="创建时间：2021-09-14 10:50:58 / 修改时间：10:52:40" itemprop="dateCreated datePublished" datetime="2021-09-14T10:50:58+08:00">2021-09-14</time>
+              <time title="创建时间：2021-09-14 10:50:58" itemprop="dateCreated datePublished" datetime="2021-09-14T10:50:58+08:00">2021-09-14</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-09-15 14:01:07" itemprop="dateModified" datetime="2021-09-15T14:01:07+08:00">2021-09-15</time>
               
             
           </span>
@@ -477,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">12k</span>
               
 
               
@@ -491,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">11 分钟</span>
               
             </div>
           
@@ -516,6 +528,83 @@
 <li>总结一下，这章作者最主要想表达什么观点？</li>
 </ul>
 <a id="more"></a>
+<p>今天一个中等规模的程序可能包含10000个函数。但是作者只须思考它们其中的一部分，甚至不需要设计函数，因为绝大部分都是其他人来写的，然后通过包来复用。</p>
+<p>Go自带100多个包，可以为大多数应用程序提供基础。Go社区是一个茁壮成长的生态环境，其中鼓励包设计、共享、重用以及改进，已经发布了很多的包，可以在<a href="http://godoc.org" target="_blank" rel="noopener">http://godoc.org</a>找到可以搜索的索引。本章展示如何使用已有的包和创建新包。</p>
+<p>Go还有配套的go工具，一个复杂但是容易使用的命令行工具，用来管理Go包的工作空间。本书开篇展示了如何使用go工具来下载、构建、运行样例程序。本章讨论这个工具所隐含的概念，展示它更多的功能，其中包括输出文档和在包的工作空间中查询包的元数据。下一章探索它的测试特性。</p>
+<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>任何包管理系统的目的都是通过对关联的特性进行分类，组织成便于理解和修改的单元，使其与程序的其他包保持独立，从而有助于设计和维护大型的程序。模块化允许包在不同的项目中共享、复用，在组织中发布，或者在全世界范围内使用。</p>
+<p>每个包定义了一个不同的命名空间作为它的标识符。每个名字关联一个具体的包，它让我们在为类型、函数等选取短小而且清晰的名字的同时，不与程序的其他部分冲突。</p>
+<p>包通过控制名字是否导出使其对包外可见来提供封装能力。限制包成员的可见性，从而隐藏API后面的辅助函数和类型，允许包的维护者修改包的实现而不影响包外部的代码。限制变量的可见性也可以隐藏变量，这样使用者仅可以通过导出函数来对其访问和更新，他们可以保留自己的不变量以及在并发程序中实现互斥的访问。</p>
+<p>当我们修改一个文件时，我们必须重新编译文件所在的包和所有潜在依赖它的包。众所周知，Go程序的编译比其他语言要快，即便从零开始编译也如此。这里有三个主要原因。第一，所有的导人都必须在每一个源文件的开头进行显式列出，这样编译器在确定依赖性的时候就不需要读取和处理整个文件；第二，包的依赖性形成有向无环图，因为没有环，所以包可以独立甚至并行编译。第三，Go包编译输出的目标文件不仅记录它自己的导出信息，还记录它所依赖包的导出信息。当编译一个包时，编译器必须从每一个导人中读取一个目标文件，但是不会超出这些文件。</p>
+<h1 id="导入路径"><a href="#导入路径" class="headerlink" title="导入路径"></a>导入路径</h1><p>每一个包都通过一个唯一的字符串进行标识，它称为导入路径，它们用在import声明中。</p>
+<p>如2.6.1节所述，Go语言的规范没有定义字符串的含义或如何确定一个包的导人路径，它通过工具来解决这些问题。本章详细讨论go工具如何理解它们，go工具也是Go程序员用来构建、测试程序的主要工具，尽管还有其他工具存在。例如，Go程序员使用Google内部的多语言构建系统，遵循不同的命名和包定位规则，具体化的测试案例等，这更加匹配那个系统的惯例。<br>对于准备共享或公开的包，导人路径需要全局唯一。为了避免冲突，除了标准库中的包之外，其他包的导人路径应该以互联网域名（组织机构拥有的域名或用于存放包的域名）作为路径开始，这样也方便查找包。例如上面例子导人Go团队维护的一个HTML解析器和一个流行的第三方MySQL数据库驱动程序。<br>10.3包的声明<br>在每一个Go源文件的开头都需要进行包声明。主要的目的是当该包被其他包引人的时候作为其默认的标识符（称为包名）。<br>例如，math/rand包中每一个文件的开头都是package rand，这样当你导人这个包时，可以访问它的成员，比如rand.Int、rand.Float64等。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"math/rand"</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">fmt.Println(rand.Int())</span><br></pre></td></tr></table></figure></p>
+<p>通常，包名是导人路径的最后一段，于是，即使导人路径不同的两个包，二者也可以拥有同样的名字。例如，两个包的导人路径分别是math/rand和crypto/rand，而包的名字都是rand。我们将看到如何在同一个程序中同时使用它们。</p>
+<p>关于“最后一段”的惯例，这个有三个例外。第一个例外是：不管包的导人路径是什么如果该包定义一条命令（可执行的Go程序），那么它总是使用名称main。这是告诉gobuild（见10.7.3节）的信号，它必须调用连接器生成可执行文件。</p>
+<p>第二个例外是：目录中可能有一些文件名字以_test.go结尾，包名中会出现以_test结尾。这样一个目录中有两个包：一个普通的，加上一个外部测试包。_test后缀告诉gotest两个包都需要构建，并且指明文件属于哪个包。外部测试包用来避免测试所依赖的导人图中的循环依赖。11.2.4节会进行更细致的讲述。</p>
+<p>第三个例外是：有一些依赖管理工具会在包导人路径的尾部追加版本号后缀，如”gopkg.in/yaml.v2”。包名不包含后缀，因此这个情况下包名为yaml。</p>
+<h1 id="导入声明"><a href="#导入声明" class="headerlink" title="导入声明"></a>导入声明</h1><p>一个Go源文件可以在package声明的后面和第一个非导人声明语句前面紧接着包含零个或多个import声明。每一个导人可以单独指定一条导人路径，也可以通过圆括号括起来的列表一次导人多个包。下面两种形式是等价的，但第二种形式更常见。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">"os'</span></span><br><span class="line"><span class="string">import (</span></span><br><span class="line"><span class="string">"</span>fmt<span class="string">'</span></span><br><span class="line"><span class="string">"os'</span></span><br></pre></td></tr></table></figure></p>
+<p>导人的包可以通过空行进行分组；这类分组通常表示不同领域和方面的包。导人顺序不重要，但按照惯例每一组都按照字母进行排序。（gofmt和goimports工具都会自动进行分组并排序。）<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>html/template<span class="string">"</span></span><br><span class="line"><span class="string">"</span>os<span class="string">'</span></span><br><span class="line"><span class="string">"golang.org/x/net/html"</span></span><br><span class="line"><span class="string">"golang.org/x/net/ipv4'</span></span><br></pre></td></tr></table></figure></p>
+<p>如果需要把两个名字一样的包（如math/rand和crypto/rand）导人到第三个包中，导人声明就必须至少为其中的一个指定一个替代名字来避免冲突。这叫作重命名导入。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"crypto/rand"</span></span><br><span class="line">mrand <span class="string">"math/rand"</span><span class="comment">//通过指定一个不同的名称mrand就避免了冲突</span></span><br></pre></td></tr></table></figure></p>
+<p>替代名字仅影响当前文件。其他文件（即便是同一个包中的文件）可以使用默认名字来导人包，或者一个替代名字也可以。</p>
+<p>重命名导人在没有冲突时也是非常有用的。如果有时用到自动生成的代码，导人的包名字非常冗长，使用一个替代名字可能更方便。同样的缩写名字要一直用下去，以避免产生混淆。使用一个替代名字有助于规避常见的局部变量冲突。例如，如果一个文件可以包含许多以path命名的变量，我们就可以使用pathpkg这个名字导人一个标准的“path”包。</p>
+<p>每个导人声明从当前包向导人的包建立一个依赖。如果这些依赖形成一个循环，gobuild工具会报错。</p>
+<h1 id="空导入"><a href="#空导入" class="headerlink" title="空导入"></a>空导入</h1><p>如果导人的包的名字没有在文件中引用，就会产生一个编译错误。但是，有时候，我们必须导人一个包，这仅仅是为了利用其副作用：对包级别的变量执行初始化表达式求值，并执行它的init函数（见2.6.2节）。为了防止“未使用的导人”错误，我们必须使用一个重命名导人，它使用一个替代的名字_，这表示导人的内容为空白标识符。通常情况下，空白标识不可能被引用。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> _ <span class="string">"image/png"</span><span class="comment">//注册PNG解码器</span></span><br></pre></td></tr></table></figure></p>
+<p>这称为空白导入。多数情况下，它用来实现一个编译时的机制，使用空白引用导人额外的包，来开启主程序中可选的特性。首先我们来看如何使用它，然后看它是如何工作的。</p>
+<p>标准库的image包导出了Decode函数，它从io.Reader读取数据，并且识别使用哪一种图像格式来编码数据，调用适当的解码器，返回image.Image对象作为结果。使用image.Decode可以构建一个简单的图像转换器，读取某一种格式的图像，然后输出为另外一个格式：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">gop1.io/ch10/jpeg</span><br><span class="line"><span class="comment">//jpeg命令从标准输入读取PNG图像</span></span><br><span class="line"><span class="comment">//并把它作为JPEG图像写到标准输出</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>image<span class="string">'</span></span><br><span class="line"><span class="string">"image/jpeg"</span></span><br><span class="line"><span class="string">"image/png"//注册PNG解码器</span></span><br><span class="line"><span class="string">o\*</span></span><br><span class="line"><span class="string">"os"</span></span><br><span class="line"><span class="string">)</span></span><br><span class="line"><span class="string">func main()&#123;</span></span><br><span class="line"><span class="string">if err := toJPEG(os.stdin, os.stdout);err!=nil&#123;</span></span><br><span class="line"><span class="string">fmt. Fprintf(os.stderr,"jpeg:%v\n",err)</span></span><br><span class="line"><span class="string">os.Exit(1)</span></span><br><span class="line"><span class="string">&#125;</span></span><br><span class="line"><span class="string">&#125;</span></span><br><span class="line"><span class="string">func toJpEG(in io.Reader, out io.writer) error &#123;</span></span><br><span class="line"><span class="string">img,'</span> kind, err :=image.Decode(in)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line"><span class="keyword">return</span> err</span><br><span class="line">fmt.Fprintln(os.stderr, <span class="string">"Input format ="</span>, kind)</span><br><span class="line"><span class="keyword">return</span> jpeg.Encode(out, img, &amp;jpeg.options&#123;Quality:<span class="number">95</span>&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>如果将gopl.io/ch3/mandelbrot（参考3.3节）的输出作为这个转换程序的输人，它检测PNG个数的输人，然后输出JPEG格式的图3-3。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go build gopl.io/ch3/mandelbrot</span><br><span class="line">$ go build gopl.io/ch1e/jpeg</span><br><span class="line">$ ./mandelbrotI ./jpeg &gt;mandelbrot.jpg</span><br><span class="line">Input format = png</span><br></pre></td></tr></table></figure></p>
+<p>注意空白导入image/png。没有这一行，程序可以正常编译和链接，但是不能识别和解码PNG格式的输人：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ go build gopl.io/ch10/jpeg</span><br><span class="line">$ ./mandelbrotl./jpeg&gt;mandelbrot.jpg</span><br><span class="line">jpeg:image:unknown format</span><br></pre></td></tr></table></figure></p>
+<p>这里解释它是如何工作的。标准库提供GIF、PNG、JPEG等格式的解码库，用户自己可以提供其他格式的，但是为了使可执行程序简短，除非明确需要，否则解码器不会被包含进应用程序。image.Decode函数查阅一个关于支持格式的表格。每一个表项由4个部分组成：格式的名字；某种格式中所使用的相同的前缀字符串，用来识别编码格式；一个用来解码被编码图像的函数Decode；以及另一个函数DecodeConfig，它仅仅解码图像的元数据，比如尺寸和色域。对于每一种格式，通常通过在其支持的包的初始化函数中来调用image.RegisterFormat来向表格添加项，例如image/png中的实现如下：</p>
+<p>这个效果就是，一个应用只需要空白导人格式化所需的包，就可以让image.Decode函数具备应对格式的解码能力。</p>
+<p>database/sql包使用类似的机制让用户按需加人想要的数据库驱动程序。例如：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"database/sql"</span></span><br><span class="line"><span class="string">"github.com/lib/pq"</span></span><br><span class="line"><span class="comment">//添加Postgres支持</span></span><br><span class="line">_<span class="string">"github.com/go-sql-driver/mysql"</span><span class="comment">//添加MySQL支持</span></span><br><span class="line">)</span><br><span class="line">db, err = sq1.open(<span class="string">"postgres"</span>, dbname) <span class="number">1</span>/oK</span><br><span class="line">db, err = sql.open(<span class="string">"mysql"</span>, dbname)/IOK</span><br><span class="line">db，err = sql.open（<span class="string">"sqlite3"</span>，dbname）<span class="comment">//返回错误消息：unknown driver "sqlite3"</span></span><br></pre></td></tr></table></figure></p>
+<p>练习10.1：扩展jpeg程序，使其可以把任意支持的输人格式转换为任意输出格式，使用image.Decode来检测输人格式，并且添加一个标记来选择输出格式。</p>
+<p>练习10.2：定义一个通用的归档文件读取函数，它可以读取ZIP（archive/zip）文件和POSIX tar （archive/tar）文件。使用一个类似前面描述的注册机制，使用空白导人以插件方式支持各种文件格式。</p>
+<h1 id="包及其命名"><a href="#包及其命名" class="headerlink" title="包及其命名"></a>包及其命名</h1><p>本节将提供一些建议，指出如何遵从Go的习惯来给包和它的成员进行命名。</p>
+<p>当创建一个包时，使用简短的名字，但是不要短到像加了密一样。在标准库中最常用的包包括：bufio、 bytes、flag、fmt、http、io、json、os、sort、sync和time等。<br>尽可能保持可读性和无歧义。例如，不要把一个辅助工具包命名为util，使用imageutil或ioutil等名称更具体和清晰。避免选择经常用于相关的局部变量的包名，或者迫使使用者使用重命名导人，例如使用以path命名的包。</p>
+<p>包名通常使用统一的形式。标准包bytes、errors和strings使用复数来避免覆盖响应的预声明类型，使用go/types这个形式，来避免和关键字的冲突。</p>
+<p>避免使用有其他含义的包名。例如，我们一开始在2.5节中使用temp作为温度转换包的名字，但是它没有继续这么用。这是一个非常糟糕的主意，因为“temp”大多数情况下代表“temporary”（临时性的）。我们在一小段时间里面使用temperature作为包名，但是它太长了，并且不能说明它究竟可以做什么。最后，它变成了tempconv，它更短并且和strconv等类似。</p>
+<p>现在讨论包成员的命名。因为对其他包成员的每一个引用使用一个具体的标识符，例如fmt.Println，描述包的成员和描述包名与成员名同样繁杂。我们不需要在Println中引用格式化的概念，因为包名fmt还没有准备好。当设计一个包时，要考虑两个有意义的部分如何一起工作，而不只是成员名。这里有一些具体的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">bytes.Equal</span><br><span class="line">flag.Int</span><br><span class="line">http.Get</span><br><span class="line">json.Marshal</span><br></pre></td></tr></table></figure></p>
+<p>我们可以识别出一些通用的命名模式。strings包提供一系列操作字符串的独立函数：</p>
+<p>string这个词不会出现在任何名字中。客户通过strings.Index、strings.Replacer等引用它们。<br>其他的一些包可以描述为单一类型包，例如html/template和math/rand，这些包导出一个数据类型及其方法，通常有一个New函数用来创建实例。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> rand II <span class="string">"math/rand"</span></span><br><span class="line"><span class="keyword">type</span> Rand <span class="keyword">struct</span>&#123;/\*...\*/&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(source Source)</span>\*<span class="title">Rand</span></span></span><br></pre></td></tr></table></figure></p>
+<p>这可能造成重复，例如在template.Template或rand.Rand中，这也是为什么这类包名通常都比较短。</p>
+<p>在其他极端情况下，像net/http这样的包有很多的名字，但是没有很多的结构，因为它们执行复杂的任务。尽管有超过20种类型和更多的函数，但是包中最重要的成员使用最简单的命名：Get、Post、Handle、Error、Client、Server。</p>
+<h1 id="go工具"><a href="#go工具" class="headerlink" title="go工具"></a>go工具</h1><p>下面的章节主要讨论go工具（gotool），它用来下载、查询、格式化、构建、测试以及安装Go代码包。</p>
+<p>go工具将不同种类的工具集合并为一个命名集。它是一个包管理器（类似于apt或rpm），它可以查询包的作者，计算它们的依赖关系，从远程版本控制系统下载它们。它是一个构建系统，可计算文件依赖，调用编译器、汇编器和链接器，尽管它没有标准的UNIXmake命令完备。它还是一个测试驱动程序，第11章将介绍它。</p>
+<p>它的命令行接口使用“瑞士军刀”风格，有十几个子命令，其中有一些我们已经见过，例如get、run、build和fmt。可以运行gohelp来查看内置文档的索引。仅仅为了引用，我们已经列出了最常用的命令：</p>
+<p>为了让配置操作最小化，go工具非常依赖惯例。例如，给定一个Go源文件，该工具可以找到它所在的包，因为每一个目录包含一个包，并且包的导人路径对应于工作空间的目录结构。给定一个包的导人路径，该工具可以找到存放目标文件的对应目录。它也可以找到存储源代码仓库的服务器的URL。</p>
+<h2 id="工作空间的组织"><a href="#工作空间的组织" class="headerlink" title="工作空间的组织"></a>工作空间的组织</h2><p>大部分用户必须进行的唯一的配置是GOPATH环境变量，它指定工作空间的根。当需要切换到不同的工作空间时，更新GOPATH变量的值即可。例如，当写这本书的时候，我们设置GOPATH为$HOME/gobook：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">export</span> GOPATH=<span class="variable">$HOME</span>/gobook</span><br><span class="line">$ go get gopl.io/.</span><br></pre></td></tr></table></figure></p>
+<p>在你使用上面的命令下载了本书所有的程序之后，你的工作空间将包含如下一个层次结构：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">GOPATH/</span><br><span class="line">src/</span><br><span class="line">gopl.io/</span><br><span class="line">.git/</span><br><span class="line">ch1/</span><br><span class="line">helloworld/</span><br><span class="line">main.go dup/</span><br><span class="line">main.go</span><br><span class="line">golang.org/x/net/ .git/</span><br><span class="line">html/</span><br><span class="line">parse.go node.go</span><br><span class="line">bin/</span><br><span class="line">helloworld dup</span><br><span class="line">pkg/</span><br><span class="line">darwin amd64/</span><br></pre></td></tr></table></figure></p>
+<p>GOPATH有三个子目录。src子目录包含源文件。每一个包放在一个目录中，该目录相对于$GOPATH/src的名字是包的导人路径，如gopl.io/ch1/helloworld。注意，一个GOPATH工作空间在src下包含多个源代码版本控制仓库，例如gopl.io或golang.org。pkg子目录是构建工具存储编译后的包的位置，bin子目录放置像helloworld这样的可执行程序。</p>
+<p>第二个环境变量是GOROOT，它指定Go发行版的根目录，其中提供所有标准库的包。GOROOT下面的目录结构类似于GOPATH，这样fmt包的源代码放在$G0R00T/src/fmt目录中。用户无须设置GOROOT，因为默认情况下go工具使用它的安装路径。</p>
+<p>goenv命令输出与工具链相关的已经设置有效值的环境变量及其所设置值，还会输出未设置有效值的环境变量及其默认值。G00s指定目标操作系统（例如，android、linux、darwin或者windows），GOARCH指定目标处理器架构，比如amd64、386或arm。尽管GOPATH是为一个必须设置的变量，但是其他的变量也会偶尔在我们的解释中出现。</p>
+<h2 id="包的下载"><a href="#包的下载" class="headerlink" title="包的下载"></a>包的下载</h2><p>如果使用go工具，包的导人路径不仅指示了如何在本地工作空间中找到它的位置，还指明了通过互联网使用goget来获取和更新它的位置。</p>
+<p>go get命令可以下载单一的包，也可以使用…符号来下载子树或仓库，像前一节提到的那样。该工具也计算并下载初始包所有的依赖性，这也是为什么前一个例子中golang.org/x/net/html包会出现在工作空间中。</p>
+<p>在goget完成包的下载之后，它会构建它们，然后安装库和相应的命令。这些内容会在下一节详细讨论，一个例子将展示整个流程是如何进行的。下面的第一条命令获取golint工具，它用来检查Go源码中的风格问题。第二条命令执行golint来检查2.6.2节中的gopl.io/ch2/popcount代码。它会报告我们忘了给这个包写文档注释：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go get github.com/golang/lint/golint</span><br><span class="line">$ <span class="variable">$G0PATH</span>/bin/golint<span class="string">'gopl.io/ch2/popcount</span></span><br><span class="line"><span class="string">src/gopl.io/ch2/popcount/main.go:1:1</span></span><br><span class="line"><span class="string">package comment should be of the form "Package popcount</span></span><br></pre></td></tr></table></figure></p>
+<p>goget命令已经支持多个流行的代码托管站点，如GitHub、Bitbucket和Launchpad，并且可以向版本控制系统发出合适的请求。对于不知名的网站，你也许需要指出导人路径使用的是哪种版本控制协议，比如Git或Mercurial。执行go help importpath来获取更多细节。</p>
+<p>goget创建的目录是远程仓库的真实客户端，而不仅仅是文件的副本，这样可以使用版本控制命令来查看本地编辑的差异或者更新到不同的版本。例如，golang.org/x/net目录是一个Git客户端：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span><span class="variable">$G0PATH</span>/src/golang.org/x/net</span><br><span class="line">$ git remote -v</span><br><span class="line">originhttps://go.googlesource.com/net(fetch)</span><br><span class="line">originhttps://go.googlesource.com/net(push)</span><br></pre></td></tr></table></figure></p>
+<p>注意，包导人路径中明显的域名（golang.org）不同于Git服务器的实际域名 （go.googlesource.com）。这是go工具的一个特性，如果位置由诸如googlesource.com或github. com之类通用服务托管，包可以在其导人路径中使用自定义域名。在<a href="https://golang.org/x/" target="_blank" rel="noopener">https://golang.org/x/</a> net/htm1下面的HTML网页包含如下元数据，它重定向go工具到实际托管地址的Git仓库：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ go build gopl.io/ch1/fetch</span><br><span class="line">$./fetchhttps://golang.org/x/net/htmlIgrepgo-import</span><br><span class="line">&lt;meta name=<span class="string">"go-import'</span></span><br><span class="line"><span class="string">content="</span>golang.org/x/netgithttps://go.googlesource.com/net<span class="string">"&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>如果你指定-u开关，goget将确保它访问的所有包（包括它们的依赖性）更新到最新版本，然后再构建和按照。如果没有这个标记，已经存在于本地的包不会更新。</p>
+<p>goget-u命令通常获取每个包的最新版本，它在你刚刚开始的时候很方便；但是在需要部署的项目中（其中，发布版本需要精准的版本控制），就不太适合使用它。通常的解决方案是加一层vendor目录，构建一个关于所有必需依赖的本地副本，然后非常小心地更新这个副本。在Go1.5之前，这需要改变包的导人路径，这样golang.org/x/net/html的副本会变成gopl.io/vendor/golang.org/x/net/html。几乎所有最近版本的go工具都支持加vendor目录，但这里不允许我们展开所有的细节了。请使用go help gopath来查看vendor目录的详细信息。</p>
+<p>练习10.3:使用fetch<a href="http://gopl.io/ch1/helloworld?go-get=1" target="_blank" rel="noopener">http://gopl.io/ch1/helloworld?go-get=1</a>，找到本书的示例代码是由那个服务托管的（goget发出的HTTP请求包含go-get参数，这样服务器可以区分出普通的浏览器请求。）</p>
+<h2 id="包的构建"><a href="#包的构建" class="headerlink" title="包的构建"></a>包的构建</h2><p>go build命令编译每一个命令行参数中的包。如果包是一个库，结果会被舍弃对于没有编译错误的包几乎不做检查。如果包的名字是main，go build调用链接器在当前目录中创建可执行程序，可执行程序的名字取自包的导人路径的最后一段。</p>
+<p>每一个目录包含一个包，每一个可执行程序或者UNIX命令都需要自己的目录。这些目录可能是cmd目录的子目录，比如golang.org/x/tools/cmd/godoc命令，为Go包的文档提供Web访问接口（参考10.7.4节）。</p>
+<p>如前所述，包可以指定通过目录来指定，可以使用导人路径或者一个相对目录名，目录必须以.或.开头，即使这不经常需要。如果没有提供参数，会使用当前目录作为参数。所以，以下命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> <span class="variable">$GOPATH</span>/src/gopl.io/ch1/helloworld</span><br><span class="line">$ go build</span><br></pre></td></tr></table></figure></p>
+<p>和以下命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> anywhere</span><br><span class="line">$ go build gopl.io/ch1/helloworld</span><br></pre></td></tr></table></figure></p>
+<p>以及以下命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> <span class="variable">$GOPATH</span></span><br><span class="line">$ go build ./src/gopl.io/ch1/helloworld</span><br></pre></td></tr></table></figure></p>
+<p>构建同样的包（尽管每次写人的目录是gobuild命令运行时所在的目录）。但以下命令编译不同的包：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> <span class="variable">$GOPATH</span></span><br><span class="line">$ go build src/gopl.io/ch1/helloworld</span><br><span class="line">Error: cannot find package <span class="string">"src/gopl.io/ch1/helloworld"</span>.</span><br></pre></td></tr></table></figure></p>
+<p>包也可以使用一个文件列表来指定（尽管这只是针对小型的程序和一次性的实验）。如果包名是main，可执行程序的名字来自第一个.go文件名的主体部分。</p>
+<p>特别是对于这类即用即抛型的程序，我们需要在构建之后尽快运行。gorun命令将这两步合并起来：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ go run quoteargs.go one <span class="string">"two three"</span> four\ five</span><br><span class="line">[<span class="string">"one"</span> , <span class="string">"two three"</span> <span class="string">"four five"</span>]</span><br></pre></td></tr></table></figure></p>
+<p>第一个不是以.go文件结尾的参数会作为Go可执行程序的参数列表的开始。</p>
+<p>默认情况下，go build命令构建所有需要的包以及它们所有的依赖性，然后丢弃除了最终可执行程序之外的所有编译后的代码。依赖性分析和编译本身都非常快，但是当项目增长到数十个包和数十万行代码的时候，重新编译依赖性的时间明显变慢，也许数秒钟的时间，即使依赖的部分根本没有改变过。</p>
+<p>go install命令和gobuild非常相似，区别是它会保存每一个包的编译代码和命令，而不是把它们丢弃。编译后的包保存在$GOPATH/pkg目录中，它对应于存放源文件的src目录，可执行的命令保存在$GOPATH/bin目录中。（许多用户将$GOPATH/bin加人他们的可执行搜索路径中。）这样，gobuild和go install对于没有改变的包和命令不需要重新编译，从而使后续的构建更加快速。惯例上，gobuild-i可以将包安装在独立于构建目标的地方。</p>
+<p>因为编译包根据操作系统平台和CPU体系结构不同而不同，所以go instal1将保存它们的目录命名为与G00S和GOARCH变量的值相关。例如，在Mac上面golang.org/x/net/html编译后的文件golang.org/x/net/html.a放在$GOPATH/pkg/darwin_amd64目录下面。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">gop1.io/ch10/cross</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">fmt.<span class="built_in">println</span>(runtime.Goos,runtime.GOARCH)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>下面的命令分别生成64位和32位的可执行程序：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ go build gopl.io/ch1e/cross</span><br><span class="line">$ ./cross</span><br><span class="line">darwin amd64</span><br><span class="line">$ G0ARCH=386 go build gopl.io/ch10/cross</span><br><span class="line">$ ./cross</span><br><span class="line">darwin 386</span><br></pre></td></tr></table></figure></p>
+<p>例如，为了处理底层的可移植性问题或为重要的例程提供优化版本，有一些包需要为特定的平台或者处理器编译不同版本的代码。如果一个文件名包含操作系统或处理器体系结构名字 （如net_linux.go或asm_amd64.s），go工具只会在构建指定规格的目标文件的时候才进行编译。 叫作构建标签的特殊注释，提供更细粒度的控制。例如，如果一个文件包含下面的注释：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">// +build linux darwin</span><br></pre></td></tr></table></figure></p>
+<p>注释在包的声明之前（它是文档注释），gobuild只会在构建Linux或MacOSX系统应用的时候才会对它进行编译，下面的注释指出任何时候都不要编译这个文件：</p>
+<p>更多的细节可以在go/build包的文档中的Build Constraints节找到：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go doc go/build</span><br></pre></td></tr></table></figure></p>
+<h2 id="包的文档化"><a href="#包的文档化" class="headerlink" title="包的文档化"></a>包的文档化</h2><p>Go风格强烈鼓励有良好的包API文档。每一个导出的包成员的声明以及包声明自身应该立刻使用注释来描述它的目的和用途。</p>
+<p>Go文档注释总是完整的语句，使用声明的包名作为开头的第一句注释通常是总结。函数参数和其他的标识符无须括起来或者特别标注。例如，fmt.Fprintf的文档注释如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">//Fprintf根据格式说明符格式化并写入w</span><br><span class="line">//返回写入的字节数及可能遇到的错误</span><br><span class="line">func Fprintf(w io.Writer, format string, a ...interface&#123;&#125;)(int, error)</span><br></pre></td></tr></table></figure></p>
+<p>Fprintf的格式化细节在fmt包自身的文档注释中进行解释。包声明的前面的文档注释被认为是整个包的文档注释。尽管它可以出现在任何文件中，但是必须只有一个。比较长的包注释可以使用一个单独的注释文件，fmt的注释超过300行，文件名通常叫doc.go</p>
+<p>好的文档不一定是洋洋洒洒的，而简明是文档一个不可替代的优点。事实上，Go在文档保持简练和简单方面的惯例和其他所有的东西一样，因为文档像代码一样也需要维护。许多声明可以在一个通顺的句子中解释清楚，并且如果这个行为非常明确，就不需要注释。</p>
+
       
     </div>
 
@@ -607,8 +696,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -625,7 +723,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">371</span>
+                    <span class="site-state-item-count">413</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -805,7 +903,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">56</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">58</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -836,23 +938,23 @@
                 
                 
                   <li>
-                    <a href="/2021/09/14/第13章-低级编程/" title="第13章 低级编程" target="_blank">第13章 低级编程</a>
+                    <a href="/2021/09/16/第32章-单元实验：寻找火星生命/" title="第32章 单元实验：寻找火星生命" target="_blank">第32章 单元实验：寻找火星生命</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/14/第12章-反射/" title="第12章 反射" target="_blank">第12章 反射</a>
+                    <a href="/2021/09/16/第31章-并发状态/" title="第31章 并发状态" target="_blank">第31章 并发状态</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/14/第11章-测试/" title="第11章 测试" target="_blank">第11章 测试</a>
+                    <a href="/2021/09/16/第30章-goroutine和并发/" title="第30章 goroutine和并发" target="_blank">第30章 goroutine和并发</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/14/第10章-包和go工具/" title="第10章 包和go工具" target="_blank">第10章 包和go工具</a>
+                    <a href="/2021/09/16/第29章-单元实验：数独规则/" title="第29章 单元实验：数独规则" target="_blank">第29章 单元实验：数独规则</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/14/第9章-使用共享变量实现并发/" title="第9章 使用共享变量实现并发" target="_blank">第9章 使用共享变量实现并发</a>
+                    <a href="/2021/09/16/第28章-孰能无过/" title="第28章 孰能无过" target="_blank">第28章 孰能无过</a>
                   </li>
                 
               </ul>
@@ -867,6 +969,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#引言"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#导入路径"><span class="nav-number">2.</span> <span class="nav-text">导入路径</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#导入声明"><span class="nav-number">3.</span> <span class="nav-text">导入声明</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#空导入"><span class="nav-number">4.</span> <span class="nav-text">空导入</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#包及其命名"><span class="nav-number">5.</span> <span class="nav-text">包及其命名</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#go工具"><span class="nav-number">6.</span> <span class="nav-text">go工具</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#工作空间的组织"><span class="nav-number">6.1.</span> <span class="nav-text">工作空间的组织</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#包的下载"><span class="nav-number">6.2.</span> <span class="nav-text">包的下载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#包的构建"><span class="nav-number">6.3.</span> <span class="nav-text">包的构建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#包的文档化"><span class="nav-number">6.4.</span> <span class="nav-text">包的文档化</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -896,7 +1015,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">3.8m</span>
+    <span title="站点总字数">4m</span>
   
 
   
@@ -907,7 +1026,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">57:53</span>
+    <span title="站点阅读时长">60:17</span>
   
 </div>
 
