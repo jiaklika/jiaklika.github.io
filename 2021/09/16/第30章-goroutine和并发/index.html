@@ -111,10 +111,13 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-09-17T01:17:44.186Z">
+<meta property="og:image" content="http://yoursite.com/2021/09/16/第30章-goroutine和并发/1.png">
+<meta property="og:image" content="http://yoursite.com/2021/09/16/第30章-goroutine和并发/2.png">
+<meta property="og:updated_time" content="2021-09-19T07:26:10.679Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第30章 goroutine和并发">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:image" content="http://yoursite.com/2021/09/16/第30章-goroutine和并发/1.png">
 
 
 
@@ -443,7 +446,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2021-09-17 09:17:44" itemprop="dateModified" datetime="2021-09-17T09:17:44+08:00">2021-09-17</time>
+                <time title="修改时间：2021-09-19 15:26:10" itemprop="dateModified" datetime="2021-09-19T15:26:10+08:00">2021-09-19</time>
               
             
           </span>
@@ -489,7 +492,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">11k</span>
+                <span title="本文字数">12k</span>
               
 
               
@@ -503,7 +506,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">10 分钟</span>
+                <span title="阅读时长">11 分钟</span>
               
             </div>
           
@@ -528,23 +531,214 @@
 <li>总结一下，这章作者最主要想表达什么观点？</li>
 </ul>
 <a id="more"></a>
-<p>本章学习目标<br>■学会启动goroutine■学会使用通道进行通信■理解通道流水线<br>假设现在有一个地鼠工厂，里面绝大多数地鼠都在忙着干活，当然也有少数地鼠在角落偷偷睡懒觉。工厂里面有一只位高权重的地鼠，她负责向其他地鼠发号施令。地鼠们会为了完成她分派的任务而四处奔波并且相互协<br>作，最后将自己的工作成果汇报给她。有些<br>地鼠会将东西传递到工厂外面，而另一些地<br>鼠则会接收来自工厂外面的东西。<br>到目前为止，我们编写过的所有Go程序<br>就像这间工厂里面的单只地鼠一样，只会埋<br>头苦干而从不打扰其他地鼠。但实际上真正<br>的Go程序更像一个完整的工厂，里面包含许<br>多独立运行的任务，例如从Web服务器中获<br>取数据、计算精确到百万分位的圆周率数字以<br>及控制机械臂等，而这些并发任务之间则通过<br>相互通信来达成共同的目的。</p>
-<p>在Go中，独立运行的任务被称为goroutine。在本章中，我们将会学习按需启动任意多个goroutine的方法，并通过通道在不同goroutine之间进行通信。虽然goroutine跟其他语言中的协程、纤程、进程和线程都有相似的地方，但goroutine跟它们并不完全相同。goroutine的创建效率非常高，并且Go也能够直截了当地协同多个并发操作。<br>请考虑这一点<br>假设你正在编写一个需要执行一系列动作的程序，其中每个动作都需要耗费很多时间，并且在动作执行期间可能还需要等待某些事情发生。虽然我们可以使用直观的顺序式代码来编写这个程序，但是当我们想要同时执行程序中的两个或多个动作的时候，我们又该怎么办呢？<br>例如，你可能会让程序的一部分遍历一个电子邮件地址列表，并向其中的每个地址都发送一封电子邮件，至于程序的另一部分则负责等待传入的电子邮件并将其存储至数据库。如果是这样，你会如何编写这个程序？<br>在某些语言中，将顺序式代码转换成并发式代码通常需要做大量修改。但是在使用Go语言的时候，你可以在每个独立的任务中继续使用相同的顺序式代码，然后通过goroutine以并发方式运行任意数量的任务。<br>30.1启动goroutine<br>启动goroutine就像调用函数一样简单，你唯一要做的就是在调用前面写下一个关键字go。代码清单30-1模拟了之前提到的在工厂角落里打瞌睡的地鼠。这个程序的行为非常简单，但是你也可以把里面的Sleep语句看作是某种需要大量计算的操作。因为当main函数返回的时候，该程度运行的所有goroutine都会立即停止，所以main函数必须等待足够长的时间以便打瞌睡的地鼠可以打印出它的“.noro…”消息。为了保证goroutine能够顺利执行，main函数的等待时间将比实际所需的更长一些。</p>
-<p>代码清单30-1打瞌睡的地鼠：sleepygopher.go<br>package main<br>import(<br>“fmt”<br>“time”<br>funcmain(){<br>启动goroutine<br>go sleepyGopher()<br>等待地鼠从瞌睡中苏醒<br>time.sleep (4 <em> time.second)<br>.<br>func sleepyGopher(){<br>所有goroutine将在程序运行至此时停止<br>time. Sleep(3 </em> time. second)<br>地鼠睡着了<br>fmt.Println(“…snore<br>速查30-1<br>1，怎样才能在Go语言里面同时做不止一件事情？<br>2，使用什么关键字可以启动一个新的、独立运行的任务？<br>30.2不止一个goroutine<br>每次使用关键字go都会产生一个新的goroutine。从表面上来看，所有goroutine似乎都在同时运行，但由于计算机通常只具有有限数量的处理单元，因此从技术上说，这些goroutine并不是真的在同时运行。<br>实际上，计算机的处理器通常会使用一种名为分时的技术，在多个goroutine 上面轮流花费一些时间。因为分时的具体实施细节通常只有Go运行时、操作系统和处理器会知道，所以我们在使用goroutine的时候，应该假设不同goroutine中的各项操作将以任意顺序执行。<br>作为例子，代码清单30-2中的main函数将启动5个sleepyGopher goroutine，并让它们都在休眠3秒之后打印出相同的输出。<br>速查30-1答案<br>1.使用goroutine。 2.go。</p>
-<p>代码清单30-25只打瞌睡的地鼠：sleepygophers.gopackage main<br>import(<br>“fmt” time”<br>func main(){<br>fori:=0;i&lt;5;i++{ go sleepyGopher()<br>]<br>time.Sleep(4 <em> time.second)<br>func sleepyGopher(){<br>time.Sleep(3</em> time. Second) fmt.Println(<em>…snore…” ]<br>为了找出最先从瞌睡中苏醒的地鼠，我们将向每个goroutine传递一个实参。向goroutine传递实参就跟向函数传递实参一样，都会导致传入的值被复制并以形参的方式传递。<br>如果你运行下面的代码清单30-3，那么就会发现尽管我们都是按顺序一个接一个地启动程序中的goroutine，但它们结束的顺序是各不相同的。如果你在Go Playground之外的地方执行这个程序，那么它每次都将以不同的顺序输出各个goroutine的打印结果。<br>代码清单30-3给地鼠做标记：identifiedgophers.gofuncmain(){<br>fori:=0;i&lt;5;i++{<br>go sleepyGopher(i)<br>}<br>time.Sleep(4</em> time.Second)<br>func sleepyGopher(id int){<br>time.Sleep(3* time.Second)<br>fmt.Println(“<br>“，id, “ snore<br>}<br>这段代码有一个问题，它明明只需要等待超过3秒即可，但是它现在却等待了4秒之久。更重要的是，如果goroutine除休眠之外还需要做其他事情，那么我们将无法得知它们需要运行多长时间才能结束。为此，我们需要通过一些手段来让代码知悉所有goroutine将在何时结束。幸运的是，Go的通道正好能够实现这一目的。</p>
-<p>速查30-2<br>多个不同的goroutine将以何种顺序执行？<br>30.3<br>通道<br>通道（channel）可以在多个goroutine之间安全地传递值，它就像老式办公室中传递邮件用的气动管道系统：你只需把对象放到管道里面，它就会飞快地出现在管道的另一端，然后其他人就可以取走这个对象了。<br>跟Go中的其他类型一样，你可以将通道用作变量、传递至函数、存储在结构中，或者做你想让它做的几乎任何事情。<br>跟创建映射或切片时的情况一样，创建通道需要用到内置的make函数，并且你还需要在创建时为其指定相应的类型。例如，以下这个通道就只能发送和接收整数值：<br>c :=make(chanint)<br>在有了通道之后，我们就可以通过左箭头操作符（《-）向它发送值或者从它那里接收值了。<br>在向通道发送值的时候，我们需要将通道表达式放在左箭头操作符的左边，而待发送的值则放在左箭头操作符的右边，就好像通过箭头将值流入通道里面一样。发送操作会等待直到有另一个goroutine尝试对相同的通道执行接收操作为止。执行发送操作的goroutine在等待期间将无法执行其他操作，但是其他未在等待通道操作的goroutine仍然可以继续自由地运行。作为例子，以下代码演示了怎样将值99发送至通道c：<br>c&lt;-99<br>在通过通道接收值的时候，我们需要将左箭头操作符放在通道的左边，让箭头指向通道之外的地方。下面的代码从通道c中接收了一个值，并将它赋值给变量r：<br>r: &lt;-c<br>跟执行发送操作时一样，执行接收操作的goroutine将等待直到有另一个goroutine尝试向相同的通道执行发送操作为止。<br>速查30-2答案任意顺序。</p>
-<p>注意虽然在单个代码行上执行通道接收操作的做法非常常见，但这并不是必需的。通道接收操作就跟其他表达式一样，可以应用在任何能够使用表达式的地方。<br>代码清单30-4中的main函数创建了一个通道，并将其传递给了5个打瞌睡的地鼠goroutine。每个goroutine都会休眠一段时间，然后向通道发送一个值来表明自己的身份，而main函数则会等待这5个goroutine发回的消息。这一机制可以确保当main函数执行至末尾的时候，所有goroutine都已经结束了休眠，而main函数则能够在不打扰任何地鼠美梦的情况下返回。举一个现实点的例子，如果现在有一个程序，它需要将某些复杂的数学运算结果存储到在线存储器里面，那么当它在同时保存多个结果的时候，我们肯定不希望程序在所有结果都被成功存储之前就草草退出。<br>代码清单30-4使用通道引导打瞌睡的地鼠：simplechan.go<br>funcmain(){<br>c:=make(chan int)<br>fori:=0;i&lt;5;i++{<br>创建出用于通信的通道<br>go sleepyGopher(i,c)<br>]<br>fori:=0;i&lt;5;i++{<br>从通道中接收值<br>gopherID :=&lt;-c<br>fmt .Println(“gopher “, gopheriD, “ has finished sleeping”)<br>}<br>将通道声明为实参<br>func sleepyGopher(id int, c chan int){<br>time.Sleep(3* time.Second)<br>fmt.Println(“…”,id, “ snore<br>c&lt;-id<br>将值回传至main函数<br>1<br>图30-1中的方框表示goroutine，圆圈表示通道。goroutine与通道之间的连线标记了引</p>
-<p>用该通道的变量名称，而箭头的方向则表明了goroutine使用通道的方式。箭头指向通道表示goroutine在向通道发送值，而箭头指向goroutine则表示goroutine在接收来自通道的值。<br>速查30-3<br>1，你应该使用什么语句，才能够将字符串”hello world”发送至名为c的通道？ 2.如何才能从通道中接收值并将其赋值给变量？<br>30.4使用select处理多个通道<br>在前面的例子中，我们使用了单个通道来等待多个goroutine。这种做法在所有goroutine都产生相同类型的值时相当好用，但情况并不总是如此。在实际中，程序通常需要等待两种或者多种不同类型的值。<br>这种情况的一个例子是，当我们在等待通道中的某些值时，可能并不愿意等得太久。例如，我们可能会对打瞌睡的地鼠感到不耐烦，并在等候一段时间之后选择放弃。或者我们想要在网络请求发生数秒之后将其判断为超时，而不是白白地等候好几分钟。<br>值得一提的是，Go标准库提供了一个非常棒的函数time.After来帮助我们实现这一目的。这个函数会返回一个通道，该通道会在经过特定时间之后接收到一个值（发送该值的goroutine是Go运行时的其中一部分）。<br>如果程序打算继续从打瞌睡的地鼠goroutine那里接收值，那么它必须等待直到所有goroutine都结束休眠或者我们的耐心耗尽为止。这意味着程序必须同时等待计时器通道和其他通道，而select语句正好能够做到这一点。<br>select语句跟我们前面在第3章看到过的switch语句有点儿相似，该语句包含的每个case分支都持有一个针对通道的接收或发送操作。select会等待直到某个分支的操作就绪，然后执行该操作及其关联的分支语句，它就像是在同时监控两个通道，并在发现其中一个通道出现情况时采取行动。<br>代码清单30-5使用了time.After函数来创建超时通道，并使用了select语句来同时等待打瞌睡的地鼠通道和超时通道。<br>速查30-3答案<br>1.c&lt;- “hello world” 2.v=&lt;-c</p>
-<p>代码清单30-5不耐烦地等待打瞌睡的地鼠：select1.go<br>timeout := time.After(2 <em> time.second)<br>fori :=o;i&lt;5;i++{ select语句<br>select{<br>case gopherID := &lt;-c:<br>等待地鼠醒来<br>fmt. Println(“gopher “, gopherID, “ has finished sleeping”) case &lt;-timeout:<br>fmt. Println(“my patience ran out”)<br>等待直到时间耗尽<br>return千<br>-放弃等待然后返回<br>}<br>提示select语句在不包含任何分支的情况下将永远地等待下去。当你启动多个goroutine并且打算让它们无限期地运行下去的时候，就可以用这个方法来阻止main函数返回。<br>因为所有地鼠goroutine都会正好休眠3秒，而我们的耐心总会在所有地鼠都醒来之后才耗尽，所以这个程序初看上去并不是特别有趣。但如果我们像下面的代码清单30-6那样，让各个地鼠goroutine随机地休眠一段时间，那么当你运行这个程序的时候，就会发现有些地鼠能够及时醒来，而有些则不能。<br>代码清单30-6随机打瞌睡的地鼠：select2.go<br>func sleepyGopherlidint, c chan int){<br>time.sleepltime.Duration{rand.Intn(4ooo))</em> time.Millisecond) c&lt;-id<br>提示这个模式适用于任何想要控制事件完成时间的场景。通过将动作放入goroutine并在动作完成时向通道执行发送操作，我们可以为Go中的任何动作都设置超时。<br>注意即使程序已经停止等待goroutine，但只要main函数还没返回，仍在运行的goroutine就会继续占用内存。所以在情况允许的情况下，我们还是应该尽量结束无用的goroutine.<br>什么都不做的nill通道<br>因为创建通道需要显式地使用make函数，所以你可能会好奇，如果我们不使用make函数初始化通道变量的值，那么会发生什么？答案是，跟映射、切片和指针一样，通道的值也可以是nil，而这个值实际上也是它们默认的零值。<br>对值为nil的通道执行发送或接收操作并不会引发惊恐，但是会导致操作永久阻塞，就好像遇到了一个从来没有接收或者发送过任何值的通道一样。但如果你尝试对值为nil的通道执行稍后将要介绍的close函数，那么该函数将引发惊恐。<br>初看上去，值为nil的通道似乎没什么用处，但事实恰恰相反。例如，对于一个包含select语句的循环，如果我们不希望程序在每次循环的时候都等待select语句涉及的所有通道，那么可以先将某些通道设置为nil，等到待发送的值准备就绪之后，再为通道变量赋予一个非nil值并执行实际的发送操作。</p>
-<p>到目前为止，一切都如我们意料中的那样。当main函数对通道执行接收操作的时候，它将会找到地鼠goroutine向该通道发送的值。但如果程序在没有任何goroutine向通道发送值的情况下，意外地对通道执行了接收操作，那么会出现什么情况？如果它执行的不是接收操作而是发送操作呢？<br>速查30-4</p>
-<ol>
-<li>time.After返回的是什么类型的值？<br>2，对值为nil的通道执行发送操作或是接收操作将产生什么后果？ 3. select语句的每个分支可以包含什么？<br>30.5<br>阻塞和死锁<br>当goroutine在等待通道的发送或者接收操作的时候，我们就说它被阻塞了。听上去，这似乎跟我们写一个不做任何事情只会空转的无限循环一样，并且它们从表面上看也非常相似。但实际上，如果你在笔记本电脑的程序中运行类似的无限循环，那么过不了多久，你就会发现笔记本电脑由于忙着执行这个循环而变得越来越热，并且风扇也开始转得越来越快了。与此相反，除goroutine本身占用的少量内存之外，被阻塞的goroutine并不消耗任何资源。goroutine会静静地停在那里，等待导致它阻塞的事情发生，然后解除阻塞。<br>当一个或多个goroutine因为某些永远无法发生的事情而被阻塞时，我们称这种情况为死锁，而出现死锁的程序通常都会崩溃或者被挂起。引发死锁的代码甚至可以非常简单，就像这样：<br>func main(){<br>c:=make(chan int)<br>&lt;-c<br>}<br>在大型程序中，死锁可能会涉及多个goroutine之间一系列错综复杂的依赖关系。<br>虽然死锁在理论上很难杜绝，但通过遵守稍后介绍的一些简单规则，在实际中创建出不会死锁的程序并不困难。即使你真的发现了死锁，Go也可以向你展示所有goroutine的状态，<br>速查30-4答案1.通道。<br>2.操作将永远阻塞。 3，一个通道操作。</li>
-</ol>
-<p>因此找出症结解决问题通常并不是一件难事。<br>速查30-5<br>被阻塞的goroutine 会做什么？<br>30.6地鼠装配线<br>到目前为止，我们只看到了一些昏昏欲睡的地鼠，它们的所作所为就是打个瞌睡，然后醒来向通道发送一个值。但事实上并非整个工厂的地鼠都是如此，例如，装配线上的地鼠就在兢兢业业地工作。它们会从装配线中较为前端的地鼠那里接收到物品，并对该物品做一些处理，然后把物品传递给装配线上的下一只地鼠。尽管装配线上的每只地鼠完成的工作都很简单，但整条装配线最终产生的结果可能是相当复杂的。<br>这种名为流水线的技术能够有效地处理庞大的数据流，而无须占用大量内存。尽管每个goroutine每次只能持有单个值，但随着时间推移，它们将能够处理数以百万计的值。除此之外，你也可以把流水线看作是一种“思维工具”，它可以帮助你更容易地解决某类问题。<br>万事俱备，我们现在已经具有了将多个goroutine组装为流水线所需的全部工具。在这个流水线中，Go值将沿着流水线向下流动，从一个goroutine传递至下一个goroutine。流水线上的工人将不断地从它们的上游邻居那里接收值，并在对值执行某些操作之后，将其结果发送至下游。<br>接下来我们将构建一条处理字符串值的工人装配线。代码清单30-7展示了位于装配线起始端的地鼠，它们是流的源头，这些地鼠只会发送值而不会读取任何值。其他程序的流水线起始端通常会从文件、数据库或者网络中读取数据，但我们的地鼠程序只会发送几个任意的值。为了在所有值均已发送完成时通知下游地鼠，程序使用了空字符串作为哨兵值，并将其用于标识发送已经完成。<br>代码清单30-7源头地鼠：pipeline1.go<br>func sourceGopher (downstream chan string){<br>for_, v := range []string{“hello world”, “a bad apple”, “goodbye all”} downstream &lt;-v<br>速查30-5答案什么都不做。</p>
-<p>代码清单30-8中的地鼠会筛选出装配线上所有不好的东西。具体来说，这个函数会从上游通道中读取值，并在字符串值不为”bad”的情况下将其发送至下游通道。当函数见到结尾的空字符串时，它就会停止筛选工作，并确保将空字符串也发送给下游的地鼠。<br>代码清单30-8过滤地鼠：pipeline1.go<br>func filterGopher (upstream, downstream chan string){ for{<br>item :-&lt;-upstream<br>ifitem=={<br>downstream&lt;- m<br>return<br>}<br>if !strings.contains(item, “bad”){ downstream c- item<br>}<br>位于装配线最末端的是打印地鼠，这只地鼠没有任何下游，代码清单30-9展示了它的定义。在其他程序中，位于流水线末端的函数通常会将结果存储到文件或者数据库里面，或者将这些结果的摘要打印出来，代码清单30-9的打印地鼠将打印出它看到的所有值。<br>代码清单30-9打印地鼠：pipeline1.go<br>funcprintGopher (upstream chan string){ for{<br>v:=&lt;-upstream<br>ifv== {<br>return<br>fmt.Println(v)<br>一切准备就绪，现在我们可以将所有地鼠程序组装起来了。整条流水线共分为源头、过滤和打印这3个阶段，但是只用到了两个通道。因为我们希望可以在整条流水线都被处理完成之后再退出程序，所以我们没有为最后一只地鼠创建新的goroutine。当printGopher函数返回的时候，我们可以确认其他两个goroutine已经完成了它们各自的工作，而printGopher也可以顺利地返回至main函数，然后完成整个程序。代码清单30-10和图30-2展示了这一过程。</p>
-<p>代码清单30-10组装：pipeline1.gofuncmain(){<br>c0:=make(chan string) c1 := make(chan string) go sourceGopher (c0)<br>go filterGopher(co,cl) printGopher(cl)<br>sourceGopher<br>上游<br>下游<br>fiterGopher<br>上游<br>下游<br>printGopher<br>图30-2地鼠流水线<br>目前实现的这个流水线程序虽然可以正常运作，但它有一个问题：程序使用了空字符串来表示所有值均已发送完毕，但是当它需要像处理其他值一样处理空字符串的时候，该怎么办？为此，我们可以使用结构值来代替单纯的字符串值，在结构里面分别包含一个字符串和一个布尔值，并使用布尔值来表示当前字符串是否是最后一个值。<br>但事实上还有更好的办法。Go允许我们在没有值可供发送的情况下通过close函数关闭通道，就像这样：<br>close(c)<br>通道被关闭之后将无法写入任何值，如果尝试写入值将会引发惊恐。尝试读取已被关闭的通道将会获得一个与通道类型对应的零值，而这个零值就可以代替上述程序中的空字符串。<br>注意当心！如果你在循环里面读取一个已关闭的通道，并且没有检查该通道是否已经关闭，那么这个循环将一直运转下去，并耗费大量的处理器时间。为了避免这种情况发生，请务必对那些可能会被关闭的通道做相应的检查。<br>执行以下代码可以获悉通道是否已经被关闭：v,ok:=&lt;-c<br>通过将接收操作的执行结果赋值给两个变量，我们可以根据第二个变量的值来判断此次通道读取操作是否成功。如果该变量的值为false，那么说明通道已被关闭。<br>在了解了通道的这一特性之后，关闭整条流水线将变得更加容易。代码清单30-11展示了应用这一特性之后的源头地鼠goroutine。<br>代码清单30-11修改后的源头地鼠：pipeline2.go<br>func sourceGopher (downstream chan string){<br>for_, v :=range []string{“hello world”, “a bad apple”, “goodbye all”}</p>
-<p>代码清单30-12展示了修改之后的过滤地鼠goroutine。<br>代码清单30-12修改后的过滤地鼠：pipeline2.go<br>func filterGopher(upstream, downstream chan string){ for{<br>item, ok := &lt;-upstream<br>if!ok{<br>close(downstream)<br>return<br>}<br>if !strings.contains (item, “bad”){ downstream &lt;- item<br>}<br>因为“从通道里面读取值，直到它被关闭为止”这种模式实在是太常用了，所以Go为此提供了一种快捷方式。通过在range语句里面使用通道，程序可以在通道被关闭之前，一直从通道里面读取值。<br>这也意味着我们可以通过range循环以更简单的方式重写过滤地鼠的代码。代码清单30-13展示了重写之后的代码，它的行为跟之前展示的过滤地鼠代码一模一样。<br>代码清单30-13使用range实现的过滤地鼠代码：pipeline2.go func filterGopher (upstream, downstream chan string){ foritem := range upstream {<br>if !strings.Contains(item, “bad”){<br>downstream &lt;- item<br>}<br>close (downstream)<br>正如下面的代码清单30-14所示，跟过滤地鼠一样，我们也可以使用range语句重写打印地鼠的代码，使得这只位于装配线末端的地鼠可以读取通道中的所有消息并且一个接一个地打印它们。<br>代码清单30-14使用range实现的打印地鼠代码：pipeline2.gofunc printGopher (upstream chan string){<br>forv :=range upstream{</p>
-<p>速查30-6<br>1.尝试读取一个已经关闭的通道会得到什么值？ 2，如何才能检测出通道是否已经关闭？<br>30.7 小结<br>使用go语句可以启动一个新的goroutine，并且这个goroutine将以并发方式运行。通道用于在多个goroutine之间传递值。<br>创建通道需要用到内置的make函数，如make（chan string）。<br>为了从通道里面接收值，程序需要将《-操作符放在通道值的前面。<br>为了将值发送至通道，程序需要将《-操作符放在通道值和待发送值的中间。close函数可以关闭一个通道。<br>range语句可以从通道中读取所有值，直到通道关闭为止。<br>为了检验你是否已经掌握了上述知识，请尝试完成以下实验。<br>实验：remove-identical.go<br>看见重复的输出是一件非常无趣的事情。请编写一个流水线部件（一个goroutine），它需要记住前面出现过的所有值，并且只有在值之前从未出现过的情况下才会将其传递至流水线的下一阶段。为了让情况变得简单一点，你可以假定通道的第一个值永远不会是空字符串。<br>实验：split-words.go<br>一般来说，处理单词通常要比处理句子容易一些。请编写一个流水线部件，它接收字符串并将它们拆分成单词，然后向流水线的下一阶段一个接一个地发送这些单词。将字符串拆分为单词的工作可以通过strings包的Fields函数来完成。<br>速查30-6答案<br>1.该通道类型的零值。<br>2，使用二值赋值语句即可：v，ok：=《-C。</p>
+<p>【本章学习目标】</p>
+<ul>
+<li>学会启动goroutine</li>
+<li>学会使用通道进行通信</li>
+<li>理解通道流水线</li>
+</ul>
+<p>假设现在有一个地鼠工厂，里面绝大多数地鼠都在忙着干活，当然也有少数地鼠在角落偷偷睡懒觉。工厂里面有一只位高权重的地鼠，她负责向其他地鼠发号施令。地鼠们会为了完成她分派的任务而四处奔波并且相互协作，最后将自己的工作成果汇报给她。有些地鼠会将东西传递到工厂外面，而另一些地鼠则会接收来自工厂外面的东西。</p>
+<p>到目前为止，我们编写过的所有Go程序就像这间工厂里面的单只地鼠一样，只会埋头苦干而从不打扰其他地鼠。但实际上真正的Go程序更像一个完整的工厂，里面包含许多独立运行的任务，例如从Web服务器中获取数据、计算精确到百万分位的圆周率数字以及控制机械臂等，而这些并发任务之间则通过相互通信来达成共同的目的。</p>
+<p>在Go中，独立运行的任务被称为goroutine。在本章中，我们将会学习按需启动任意多个goroutine的方法，并通过通道在不同goroutine之间进行通信。虽然goroutine跟其他语言中的协程、纤程、进程和线程都有相似的地方，但goroutine跟它们并不完全相同。goroutine的创建效率非常高，并且Go也能够直截了当地协同多个并发操作。</p>
+<blockquote>
+<p>请考虑这一点<br><br>假设你正在编写一个需要执行一系列动作的程序，其中每个动作都需要耗费很多时间，并且在动作执行期间可能还需要等待某些事情发生。虽然我们可以使用直观的顺序式代码来编写这个程序，但是当我们想要同时执行程序中的两个或多个动作的时候，我们又该怎么办呢？<br><br>例如，你可能会让程序的一部分遍历一个电子邮件地址列表，并向其中的每个地址都发送一封电子邮件，至于程序的另一部分则负责等待传入的电子邮件并将其存储至数据库。如果是这样，你会如何编写这个程序？<br><br>在某些语言中，将顺序式代码转换成并发式代码通常需要做大量修改。但是在使用Go语言的时候，你可以在每个独立的任务中继续使用相同的顺序式代码，然后通过goroutine以并发方式运行任意数量的任务。</p>
+</blockquote>
+<h1 id="启动goroutine"><a href="#启动goroutine" class="headerlink" title="启动goroutine"></a><span style="color:#339AFF;">启动goroutine</span></h1><p>启动goroutine就像调用函数一样简单，你唯一要做的就是在调用前面写下一个关键字go。代码清单30-1模拟了之前提到的在工厂角落里打瞌睡的地鼠。这个程序的行为非常简单，但是你也可以把里面的Sleep语句看作是某种需要大量计算的操作。因为当main函数返回的时候，该程度运行的所有goroutine都会立即停止，所以main函数必须等待足够长的时间以便打瞌睡的地鼠可以打印出它的“…snoro…”消息。为了保证goroutine能够顺利执行，main函数的等待时间将比实际所需的更长一些。</p>
+<blockquote>
+<p>代码清单30-1 打瞌睡的地鼠：sleepygopher.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">go</span> sleepyGopher() <span class="comment">// 启动goroutine</span></span><br><span class="line">    time.Sleep(<span class="number">4</span> * time.Second) <span class="comment">// 等待地鼠从瞌睡中苏醒</span></span><br><span class="line">&#125; <span class="comment">// 所有goroutine将在程序运行至此时停止</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sleepyGopher</span><span class="params">()</span></span>&#123;</span><br><span class="line">    time.Sleep(<span class="number">3</span> * time.Second) <span class="comment">// 地鼠睡着了</span></span><br><span class="line">    fmt.Println(<span class="string">"...snore..."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>速查30-1</p>
+<ul>
+<li>1，怎样才能在Go语言里面同时做不止一件事情？</li>
+<li>2，使用什么关键字可以启动一个新的、独立运行的任务？</li>
+</ul>
+<p>速查30-1答案</p>
+<ul>
+<li>1，使用goroutine。 </li>
+<li>2，go。</li>
+</ul>
+<h1 id="不止一个goroutine"><a href="#不止一个goroutine" class="headerlink" title="不止一个goroutine"></a><span style="color:#339AFF;">不止一个goroutine</span></h1><p>每次使用关键字go都会产生一个新的goroutine。从表面上来看，所有goroutine似乎都在同时运行，但由于计算机通常只具有有限数量的处理单元，因此从技术上说，这些goroutine并不是真的在同时运行。</p>
+<p>实际上，计算机的处理器通常会使用一种名为分时的技术，在多个goroutine 上面轮流花费一些时间。因为分时的具体实施细节通常只有Go运行时、操作系统和处理器会知道，所以我们在使用goroutine的时候，应该假设不同goroutine中的各项操作将以任意顺序执行。</p>
+<p>作为例子，代码清单30-2中的main函数将启动5个sleepyGopher goroutine，并让它们都在休眠3秒之后打印出相同的输出。</p>
+<blockquote>
+<p>代码清单30-2 5只打瞌睡的地鼠：sleepygophers.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>;i &lt; <span class="number">5</span>;i++&#123;</span><br><span class="line">        <span class="keyword">go</span> sleepyGopher()</span><br><span class="line">    &#125;</span><br><span class="line">    time.Sleep(<span class="number">4</span> * time.Second)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sleepyGopher</span><span class="params">()</span></span>&#123;</span><br><span class="line">    time.Sleep(<span class="number">3</span> * time. Second) </span><br><span class="line">    fmt.Println(<span class="string">"...snore..."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为了找出最先从瞌睡中苏醒的地鼠，我们将向每个goroutine传递一个实参。向goroutine传递实参就跟向函数传递实参一样，都会导致传入的值被复制并以形参的方式传递。</p>
+<p>如果你运行下面的代码清单30-3，那么就会发现尽管我们都是按顺序一个接一个地启动程序中的goroutine，但它们结束的顺序是各不相同的。如果你在Go Playground之外的地方执行这个程序，那么它每次都将以不同的顺序输出各个goroutine的打印结果。</p>
+<blockquote>
+<p>代码清单30-3 给地鼠做标记：identifiedgophers.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>;i++ &#123;</span><br><span class="line">        <span class="keyword">go</span> sleepyGopher(i)</span><br><span class="line">    &#125;</span><br><span class="line">    time.Sleep(<span class="number">4</span>* time.Second)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sleepyGopher</span><span class="params">(id <span class="keyword">int</span>)</span></span>&#123;</span><br><span class="line">    time.Sleep(<span class="number">3</span> * time.Second)</span><br><span class="line">    fmt.Println(<span class="string">"... "</span>, id, <span class="string">" snore ..."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这段代码有一个问题，它明明只需要等待超过3秒即可，但是它现在却等待了4秒之久。更重要的是，如果goroutine除休眠之外还需要做其他事情，那么我们将无法得知它们需要运行多长时间才能结束。为此，我们需要通过一些手段来让代码知悉所有goroutine将在何时结束。幸运的是，Go的通道正好能够实现这一目的。</p>
+<p>速查30-2</p>
+<ul>
+<li>多个不同的goroutine将以何种顺序执行？</li>
+</ul>
+<p>速查30-2答案</p>
+<ul>
+<li>任意顺序。</li>
+</ul>
+<h1 id="通道"><a href="#通道" class="headerlink" title="通道"></a><span style="color:#339AFF;">通道</span></h1><p>通道（channel）可以在多个goroutine之间安全地传递值，它就像老式办公室中传递邮件用的气动管道系统：你只需把对象放到管道里面，它就会飞快地出现在管道的另一端，然后其他人就可以取走这个对象了。</p>
+<p>跟Go中的其他类型一样，你可以将通道用作变量、传递至函数、存储在结构中，或者做你想让它做的几乎任何事情。</p>
+<p>跟创建映射或切片时的情况一样，创建通道需要用到内置的make函数，并且你还需要在创建时为其指定相应的类型。例如，以下这个通道就只能发送和接收整数值：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br></pre></td></tr></table></figure></p>
+<p>在有了通道之后，我们就可以通过左箭头操作符（&lt;-）向它发送值或者从它那里接收值了。</p>
+<p>在向通道发送值的时候，我们需要将通道表达式放在左箭头操作符的左边，而待发送的值则放在左箭头操作符的右边，就好像通过箭头将值流入通道里面一样。发送操作会等待直到有另一个goroutine尝试对相同的通道执行接收操作为止。执行发送操作的goroutine在等待期间将无法执行其他操作，但是其他未在等待通道操作的goroutine仍然可以继续自由地运行。作为例子，以下代码演示了怎样将值99发送至通道c：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">c &lt;- <span class="number">99</span></span><br></pre></td></tr></table></figure></p>
+<p>在通过通道接收值的时候，我们需要将左箭头操作符放在通道的左边，让箭头指向通道之外的地方。下面的代码从通道c中接收了一个值，并将它赋值给变量r：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">r := &lt;-c</span><br></pre></td></tr></table></figure></p>
+<p>跟执行发送操作时一样，执行接收操作的goroutine将等待直到有另一个goroutine尝试向相同的通道执行发送操作为止。</p>
+<blockquote>
+<p>注意：虽然在单个代码行上执行通道接收操作的做法非常常见，但这并不是必需的。通道接收操作就跟其他表达式一样，可以应用在任何能够使用表达式的地方。</p>
+</blockquote>
+<p>代码清单30-4中的main函数创建了一个通道，并将其传递给了5个打瞌睡的地鼠goroutine。每个goroutine都会休眠一段时间，然后向通道发送一个值来表明自己的身份，而main函数则会等待这5个goroutine发回的消息。这一机制可以确保当main函数执行至末尾的时候，所有goroutine都已经结束了休眠，而main函数则能够在不打扰任何地鼠美梦的情况下返回。举一个现实点的例子，如果现在有一个程序，它需要将某些复杂的数学运算结果存储到在线存储器里面，那么当它在同时保存多个结果的时候，我们肯定不希望程序在所有结果都被成功存储之前就草草退出。</p>
+<blockquote>
+<p>代码清单30-4 使用通道引导打瞌睡的地鼠：simplechan.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>) <span class="comment">// 创建出用于通信的通道</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">        <span class="keyword">go</span> sleepyGopher(i, c)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">        gopherID := &lt;-c <span class="comment">// 从通道中接收值</span></span><br><span class="line">        fmt.Println(<span class="string">"gopher "</span>, gopherID, <span class="string">" has finished sleeping"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sleepyGopher</span><span class="params">(id <span class="keyword">int</span>, c <span class="keyword">chan</span> <span class="keyword">int</span>)</span></span>&#123; <span class="comment">// 将通道声明为实参</span></span><br><span class="line">    time.Sleep(<span class="number">3</span> * time.Second)</span><br><span class="line">    fmt.Println(<span class="string">"... "</span>,id, <span class="string">" snore ..."</span>)</span><br><span class="line">    c &lt;- id <span class="comment">// 将值回传至main函数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>图30-1中的方框表示goroutine，圆圈表示通道。goroutine与通道之间的连线标记了引用该通道的变量名称，而箭头的方向则表明了goroutine使用通道的方式。箭头指向通道表示goroutine在向通道发送值，而箭头指向goroutine则表示goroutine在接收来自通道的值。</p>
+<blockquote>
+<p>图30-1 各个goroutine的协作</p>
+</blockquote>
+<img src="/2021/09/16/第30章-goroutine和并发/1.png">
+<p>速查30-3</p>
+<ul>
+<li>1，你应该使用什么语句，才能够将字符串“hello world”发送至名为c的通道？ </li>
+<li>2，如何才能从通道中接收值并将其赋值给变量？</li>
+</ul>
+<p>速查30-3答案</p>
+<ul>
+<li>1，c&lt;- “hello world” </li>
+<li>2，v = &lt;-c</li>
+</ul>
+<h1 id="使用select处理多个通道"><a href="#使用select处理多个通道" class="headerlink" title="使用select处理多个通道"></a><span style="color:#339AFF;">使用select处理多个通道</span></h1><p>在前面的例子中，我们使用了单个通道来等待多个goroutine。这种做法在所有goroutine都产生相同类型的值时相当好用，但情况并不总是如此。在实际中，程序通常需要等待两种或者多种不同类型的值。</p>
+<p>这种情况的一个例子是，当我们在等待通道中的某些值时，可能并不愿意等得太久。例如，我们可能会对打瞌睡的地鼠感到不耐烦，并在等候一段时间之后选择放弃。或者我们想要在网络请求发生数秒之后将其判断为超时，而不是白白地等候好几分钟。</p>
+<p>值得一提的是，Go标准库提供了一个非常棒的函数time.After来帮助我们实现这一目的。这个函数会返回一个通道，该通道会在经过特定时间之后接收到一个值（发送该值的goroutine是Go运行时的其中一部分）。</p>
+<p>如果程序打算继续从打瞌睡的地鼠goroutine那里接收值，那么它必须等待直到所有goroutine都结束休眠或者我们的耐心耗尽为止。这意味着程序必须同时等待计时器通道和其他通道，而select语句正好能够做到这一点。</p>
+<p>select语句跟我们前面在第3章看到过的switch语句有点儿相似，该语句包含的每个case分支都持有一个针对通道的接收或发送操作。select会等待直到某个分支的操作就绪，然后执行该操作及其关联的分支语句，它就像是在同时监控两个通道，并在发现其中一个通道出现情况时采取行动。</p>
+<p>代码清单30-5使用了time.After函数来创建超时通道，并使用了select语句来同时等待打瞌睡的地鼠通道和超时通道。</p>
+<blockquote>
+<p>代码清单30-5 不耐烦地等待打瞌睡的地鼠：select1.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">timeout := time.After(<span class="number">2</span> * time.Second)</span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i&lt;<span class="number">5</span>; i++ &#123;</span><br><span class="line">    <span class="keyword">select</span> &#123; <span class="comment">// select语句</span></span><br><span class="line">    <span class="keyword">case</span> gopherID := &lt;-c: <span class="comment">// 等待地鼠醒来</span></span><br><span class="line">        fmt.Println(<span class="string">"gopher "</span>, gopherID, <span class="string">" has finished sleeping"</span>)</span><br><span class="line">    <span class="keyword">case</span> &lt;-timeout: <span class="comment">// 等待直到时间耗尽</span></span><br><span class="line">        fmt.Println(<span class="string">"my patience ran out"</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="comment">// 放弃等待然后返回</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>提示：select语句在不包含任何分支的情况下将永远地等待下去。当你启动多个goroutine并且打算让它们无限期地运行下去的时候，就可以用这个方法来阻止main函数返回。</p>
+</blockquote>
+<p>因为所有地鼠goroutine都会正好休眠3秒，而我们的耐心总会在所有地鼠都醒来之后才耗尽，所以这个程序初看上去并不是特别有趣。但如果我们像下面的代码清单30-6那样，让各个地鼠goroutine随机地休眠一段时间，那么当你运行这个程序的时候，就会发现有些地鼠能够及时醒来，而有些则不能。</p>
+<blockquote>
+<p>代码清单30-6 随机打瞌睡的地鼠：select2.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sleepyGopher</span><span class="params">(id <span class="keyword">int</span>, c <span class="keyword">chan</span> <span class="keyword">int</span>)</span></span>&#123;</span><br><span class="line">    time.Sleep(time.Duration(rand.Intn(<span class="number">4000</span>))* time.Millisecond) </span><br><span class="line">    c&lt;-id</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>提示：这个模式适用于任何想要控制事件完成时间的场景。通过将动作放入goroutine并在动作完成时向通道执行发送操作，我们可以为Go中的任何动作都设置超时。</p>
+<p>注意：即使程序已经停止等待goroutine，但只要main函数还没返回，仍在运行的goroutine就会继续占用内存。所以在情况允许的情况下，我们还是应该尽量结束无用的goroutine.</p>
+<p>什么都不做的nill通道<br><br>因为创建通道需要显式地使用make函数，所以你可能会好奇，如果我们不使用make函数初始化通道变量的值，那么会发生什么？答案是，跟映射、切片和指针一样，通道的值也可以是nil，而这个值实际上也是它们默认的零值。<br><br>对值为nil的通道执行发送或接收操作并不会引发惊恐，但是会导致操作永久阻塞，就好像遇到了一个从来没有接收或者发送过任何值的通道一样。但如果你尝试对值为nil的通道执行稍后将要介绍的close函数，那么该函数将引发惊恐。<br><br>初看上去，值为nil的通道似乎没什么用处，但事实恰恰相反。例如，对于一个包含select语句的循环，如果我们不希望程序在每次循环的时候都等待select语句涉及的所有通道，那么可以先将某些通道设置为nil，等到待发送的值准备就绪之后，再为通道变量赋予一个非nil值并执行实际的发送操作。</p>
+</blockquote>
+<p>到目前为止，一切都如我们意料中的那样。当main函数对通道执行接收操作的时候，它将会找到地鼠goroutine向该通道发送的值。但如果程序在没有任何goroutine向通道发送值的情况下，意外地对通道执行了接收操作，那么会出现什么情况？如果它执行的不是接收操作而是发送操作呢？</p>
+<p>速查30-4</p>
+<ul>
+<li>1，time.After返回的是什么类型的值？</li>
+<li>2，对值为nil的通道执行发送操作或是接收操作将产生什么后果？</li>
+<li>3，select语句的每个分支可以包含什么？</li>
+</ul>
+<p>速查30-4答案</p>
+<ul>
+<li>1，通道。</li>
+<li>2，操作将永远阻塞。 </li>
+<li>3，一个通道操作。</li>
+</ul>
+<h1 id="阻塞和死锁"><a href="#阻塞和死锁" class="headerlink" title="阻塞和死锁"></a><span style="color:#339AFF;">阻塞和死锁</span></h1><p>当goroutine在等待通道的发送或者接收操作的时候，我们就说它被阻塞了。听上去，这似乎跟我们写一个不做任何事情只会空转的无限循环一样，并且它们从表面上看也非常相似。但实际上，如果你在笔记本电脑的程序中运行类似的无限循环，那么过不了多久，你就会发现笔记本电脑由于忙着执行这个循环而变得越来越热，并且风扇也开始转得越来越快了。与此相反，除goroutine本身占用的少量内存之外，被阻塞的goroutine并不消耗任何资源。goroutine会静静地停在那里，等待导致它阻塞的事情发生，然后解除阻塞。</p>
+<p>当一个或多个goroutine因为某些永远无法发生的事情而被阻塞时，我们称这种情况为死锁，而出现死锁的程序通常都会崩溃或者被挂起。引发死锁的代码甚至可以非常简单，就像这样：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line">    &lt;-c</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在大型程序中，死锁可能会涉及多个goroutine之间一系列错综复杂的依赖关系。</p>
+<p>虽然死锁在理论上很难杜绝，但通过遵守稍后介绍的一些简单规则，在实际中创建出不会死锁的程序并不困难。即使你真的发现了死锁，Go也可以向你展示所有goroutine的状态，因此找出症结解决问题通常并不是一件难事。</p>
+<p>速查30-5</p>
+<ul>
+<li>被阻塞的goroutine会做什么？</li>
+</ul>
+<p>速查30-5答案</p>
+<ul>
+<li>什么都不做。</li>
+</ul>
+<h1 id="地鼠装配线"><a href="#地鼠装配线" class="headerlink" title="地鼠装配线"></a><span style="color:#339AFF;">地鼠装配线</span></h1><p>到目前为止，我们只看到了一些昏昏欲睡的地鼠，它们的所作所为就是打个瞌睡，然后醒来向通道发送一个值。但事实上并非整个工厂的地鼠都是如此，例如，装配线上的地鼠就在兢兢业业地工作。它们会从装配线中较为前端的地鼠那里接收到物品，并对该物品做一些处理，然后把物品传递给装配线上的下一只地鼠。尽管装配线上的每只地鼠完成的工作都很简单，但整条装配线最终产生的结果可能是相当复杂的。</p>
+<p>这种名为流水线的技术能够有效地处理庞大的数据流，而无须占用大量内存。尽管每个goroutine每次只能持有单个值，但随着时间推移，它们将能够处理数以百万计的值。除此之外，你也可以把流水线看作是一种“思维工具”，它可以帮助你更容易地解决某类问题。</p>
+<p>万事俱备，我们现在已经具有了将多个goroutine组装为流水线所需的全部工具。在这个流水线中，Go值将沿着流水线向下流动，从一个goroutine传递至下一个goroutine。流水线上的工人将不断地从它们的上游邻居那里接收值，并在对值执行某些操作之后，将其结果发送至下游。</p>
+<p>接下来我们将构建一条处理字符串值的工人装配线。代码清单30-7展示了位于装配线起始端的地鼠，它们是流的源头，这些地鼠只会发送值而不会读取任何值。其他程序的流水线起始端通常会从文件、数据库或者网络中读取数据，但我们的地鼠程序只会发送几个任意的值。为了在所有值均已发送完成时通知下游地鼠，程序使用了空字符串作为哨兵值，并将其用于标识发送已经完成。</p>
+<blockquote>
+<p>代码清单30-7 源头地鼠：pipeline1.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sourceGopher</span> <span class="params">(downstream <span class="keyword">chan</span> <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> _, v := <span class="keyword">range</span> []<span class="keyword">string</span>&#123;<span class="string">"hello world"</span>, <span class="string">"a bad apple"</span>, <span class="string">"goodbye all"</span>&#125;</span><br><span class="line">    &#123;</span><br><span class="line">        downstream &lt;- v</span><br><span class="line">    &#125;</span><br><span class="line">    downstream &lt;- <span class="string">""</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单30-8中的地鼠会筛选出装配线上所有不好的东西。具体来说，这个函数会从上游通道中读取值，并在字符串值不为”bad”的情况下将其发送至下游通道。当函数见到结尾的空字符串时，它就会停止筛选工作，并确保将空字符串也发送给下游的地鼠。</p>
+<blockquote>
+<p>代码清单30-8过滤地鼠：pipeline1.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">filterGopher</span> <span class="params">(upstream, downstream <span class="keyword">chan</span> <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        item := &lt;-upstream</span><br><span class="line">        <span class="keyword">if</span> item == <span class="string">""</span> &#123;</span><br><span class="line">            downstream &lt;- <span class="string">""</span></span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> !strings.Contains(item, <span class="string">"bad"</span>) &#123;</span><br><span class="line">            downstream &lt;- item</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>位于装配线最末端的是打印地鼠，这只地鼠没有任何下游，代码清单30-9展示了它的定义。在其他程序中，位于流水线末端的函数通常会将结果存储到文件或者数据库里面，或者将这些结果的摘要打印出来，代码清单30-9的打印地鼠将打印出它看到的所有值。</p>
+<blockquote>
+<p>代码清单30-9 打印地鼠：pipeline1.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">printGopher</span> <span class="params">(upstream <span class="keyword">chan</span> <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        v := &lt;-upstream</span><br><span class="line">        <span class="keyword">if</span> v == <span class="string">""</span>&#123;</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">        fmt.Println(v)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一切准备就绪，现在我们可以将所有地鼠程序组装起来了。整条流水线共分为源头、过滤和打印这3个阶段，但是只用到了两个通道。因为我们希望可以在整条流水线都被处理完成之后再退出程序，所以我们没有为最后一只地鼠创建新的goroutine。当printGopher函数返回的时候，我们可以确认其他两个goroutine已经完成了它们各自的工作，而printGopher也可以顺利地返回至main函数，然后完成整个程序。代码清单30-10和图30-2展示了这一过程。</p>
+<blockquote>
+<p>代码清单30-10 组装：pipeline1.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">funcmain()&#123;</span><br><span class="line">c0:=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>) </span><br><span class="line">c1 := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>) </span><br><span class="line"><span class="keyword">go</span> sourceGopher (c0)</span><br><span class="line"><span class="keyword">go</span> filterGopher(co,cl) </span><br><span class="line">printGopher(cl)</span><br><span class="line">sourceGopher</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>图30-2 地鼠流水线</p>
+</blockquote>
+<img src="/2021/09/16/第30章-goroutine和并发/2.png">
+<p>目前实现的这个流水线程序虽然可以正常运作，但它有一个问题：程序使用了空字符串来表示所有值均已发送完毕，但是当它需要像处理其他值一样处理空字符串的时候，该怎么办？为此，我们可以使用结构值来代替单纯的字符串值，在结构里面分别包含一个字符串和一个布尔值，并使用布尔值来表示当前字符串是否是最后一个值。</p>
+<p>但事实上还有更好的办法。Go允许我们在没有值可供发送的情况下通过close函数关闭通道，就像这样：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">close</span>(c)</span><br></pre></td></tr></table></figure></p>
+<p>通道被关闭之后将无法写入任何值，如果尝试写入值将会引发惊恐。尝试读取已被关闭的通道将会获得一个与通道类型对应的零值，而这个零值就可以代替上述程序中的空字符串。</p>
+<blockquote>
+<p>注意：当心！如果你在循环里面读取一个已关闭的通道，并且没有检查该通道是否已经关闭，那么这个循环将一直运转下去，并耗费大量的处理器时间。为了避免这种情况发生，请务必对那些可能会被关闭的通道做相应的检查。</p>
+</blockquote>
+<p>执行以下代码可以获悉通道是否已经被关闭：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">v, ok := &lt;-c</span><br></pre></td></tr></table></figure></p>
+<p>通过将接收操作的执行结果赋值给两个变量，我们可以根据第二个变量的值来判断此次通道读取操作是否成功。如果该变量的值为false，那么说明通道已被关闭。</p>
+<p>在了解了通道的这一特性之后，关闭整条流水线将变得更加容易。代码清单30-11展示了应用这一特性之后的源头地鼠goroutine。</p>
+<blockquote>
+<p>代码清单30-11 修改后的源头地鼠：pipeline2.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sourceGopher</span> <span class="params">(downstream <span class="keyword">chan</span> <span class="keyword">string</span>)</span></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> _, v := <span class="keyword">range</span> []<span class="keyword">string</span>&#123;<span class="string">"hello world"</span>, <span class="string">"a bad apple"</span>, <span class="string">"goodbye all"</span>&#125;</span><br><span class="line">    &#123;</span><br><span class="line">        downstream &lt;- v</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">close</span>(downstream)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单30-12展示了修改之后的过滤地鼠goroutine。</p>
+<blockquote>
+<p>代码清单30-12 修改后的过滤地鼠：pipeline2.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">filterGopher</span><span class="params">(upstream, downstream <span class="keyword">chan</span> <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        item, ok := &lt;-upstream</span><br><span class="line">        <span class="keyword">if</span> !ok &#123;</span><br><span class="line">            <span class="built_in">close</span>(downstream)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> !strings.Contains(item, <span class="string">"bad"</span>) &#123;</span><br><span class="line">            downstream &lt;- item</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为“从通道里面读取值，直到它被关闭为止”这种模式实在是太常用了，所以Go为此提供了一种快捷方式。通过在range语句里面使用通道，程序可以在通道被关闭之前，一直从通道里面读取值。</p>
+<p>这也意味着我们可以通过range循环以更简单的方式重写过滤地鼠的代码。代码清单30-13展示了重写之后的代码，它的行为跟之前展示的过滤地鼠代码一模一样。</p>
+<blockquote>
+<p>代码清单30-13 使用range实现的过滤地鼠代码：pipeline2.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">filterGopher</span> <span class="params">(upstream, downstream <span class="keyword">chan</span> <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> item := <span class="keyword">range</span> upstream &#123;</span><br><span class="line">        <span class="keyword">if</span> !strings.Contains(item, <span class="string">"bad"</span>) &#123;</span><br><span class="line">            downstream &lt;- item</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">close</span>(downstream)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>正如下面的代码清单30-14所示，跟过滤地鼠一样，我们也可以使用range语句重写打印地鼠的代码，使得这只位于装配线末端的地鼠可以读取通道中的所有消息并且一个接一个地打印它们。</p>
+<blockquote>
+<p>代码清单30-14 使用range实现的打印地鼠代码：pipeline2.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">printGopher</span> <span class="params">(upstream <span class="keyword">chan</span> <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> v := <span class="keyword">range</span> upstream &#123;</span><br><span class="line">        fmt.Println(v)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>速查30-6</p>
+<ul>
+<li>1，尝试读取一个已经关闭的通道会得到什么值？ </li>
+<li>2，如何才能检测出通道是否已经关闭？</li>
+</ul>
+<p>速查30-6答案</p>
+<ul>
+<li>1，该通道类型的零值。</li>
+<li>2，使用二值赋值语句即可：<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">v, ok := &lt;-c</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><ul>
+<li>使用go语句可以启动一个新的goroutine，并且这个goroutine将以并发方式运行。</li>
+<li>通道用于在多个goroutine之间传递值。</li>
+<li>创建通道需要用到内置的make函数，如make(chan string)。</li>
+<li>为了从通道里面接收值，程序需要将&lt;-操作符放在通道值的前面。</li>
+<li>为了将值发送至通道，程序需要将&lt;-操作符放在通道值和待发送值的中间。</li>
+<li>close函数可以关闭一个通道。</li>
+<li>range语句可以从通道中读取所有值，直到通道关闭为止。</li>
+</ul>
+<p>为了检验你是否已经掌握了上述知识，请尝试完成以下实验。</p>
+<p><strong>实验：remove-identical.go</strong></p>
+<p>看见重复的输出是一件非常无趣的事情。请编写一个流水线部件（一个goroutine），它需要记住前面出现过的所有值，并且只有在值之前从未出现过的情况下才会将其传递至流水线的下一阶段。为了让情况变得简单一点，你可以假定通道的第一个值永远不会是空字符串。</p>
+<p><strong>实验：split-words.go</strong></p>
+<p>一般来说，处理单词通常要比处理句子容易一些。请编写一个流水线部件，它接收字符串并将它们拆分成单词，然后向流水线的下一阶段一个接一个地发送这些单词。将字符串拆分为单词的工作可以通过strings包的Fields函数来完成。</p>
 
       
     </div>
@@ -637,8 +831,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -655,7 +858,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">413</span>
+                    <span class="site-state-item-count">424</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -839,7 +1042,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">58</span>
+                      
+                    
+                    <span class="site-state-item-count">59</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -870,23 +1075,23 @@
                 
                 
                   <li>
-                    <a href="/2021/09/16/第32章-单元实验：寻找火星生命/" title="第32章 单元实验：寻找火星生命" target="_blank">第32章 单元实验：寻找火星生命</a>
+                    <a href="/2021/09/18/第15章-内存管理/" title="第15章 内存管理" target="_blank">第15章 内存管理</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/16/第31章-并发状态/" title="第31章 并发状态" target="_blank">第31章 并发状态</a>
+                    <a href="/2021/09/18/第14章-安全与测试/" title="第14章 安全与测试" target="_blank">第14章 安全与测试</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/16/第30章-goroutine和并发/" title="第30章 goroutine和并发" target="_blank">第30章 goroutine和并发</a>
+                    <a href="/2021/09/18/第13章-文件处理/" title="第13章 文件处理" target="_blank">第13章 文件处理</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/16/第29章-单元实验：数独规则/" title="第29章 单元实验：数独规则" target="_blank">第29章 单元实验：数独规则</a>
+                    <a href="/2021/09/18/第12章-I-O编程/" title="第12章 I/O编程" target="_blank">第12章 I/O编程</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/16/第28章-孰能无过/" title="第28章 孰能无过" target="_blank">第28章 孰能无过</a>
+                    <a href="/2021/09/18/第11章-网络编程/" title="第11章 网络编程" target="_blank">第11章 网络编程</a>
                   </li>
                 
               </ul>
@@ -901,6 +1106,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#启动goroutine"><span class="nav-number">1.</span> <span class="nav-text">启动goroutine</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#不止一个goroutine"><span class="nav-number">2.</span> <span class="nav-text">不止一个goroutine</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#通道"><span class="nav-number">3.</span> <span class="nav-text">通道</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#使用select处理多个通道"><span class="nav-number">4.</span> <span class="nav-text">使用select处理多个通道</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#阻塞和死锁"><span class="nav-number">5.</span> <span class="nav-text">阻塞和死锁</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#地鼠装配线"><span class="nav-number">6.</span> <span class="nav-text">地鼠装配线</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">7.</span> <span class="nav-text">小结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -941,7 +1163,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">60:17</span>
+    <span title="站点阅读时长">60:59</span>
   
 </div>
 
