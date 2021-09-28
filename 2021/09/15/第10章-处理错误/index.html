@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-09-16T02:50:25.545Z">
+<meta property="og:updated_time" content="2021-09-26T08:55:25.315Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第10章 处理错误">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2021-09-16 10:50:25" itemprop="dateModified" datetime="2021-09-16T10:50:25+08:00">2021-09-16</time>
+                <time title="修改时间：2021-09-26 16:55:25" itemprop="dateModified" datetime="2021-09-26T16:55:25+08:00">2021-09-26</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">5.3k</span>
+                <span title="本文字数">6k</span>
               
 
               
@@ -538,38 +538,109 @@
 <li>错误和可用性。</li>
 <li>慎用panic。</li>
 </ul>
-<p>软件不可避免地会有错误及遇到未考虑到的情形，很多语言选择在发生必须捕获的错误时引发异常，而Go语言处理错误的方式很有趣一将错误作为一种类型，这意味着可将错误传递给函数和方法。本章介绍Go语言中的错误处理以及如何利用错误处理。</p>
-<p>提示：未雨绸缪！<br>优秀的程序员居安思危，他们会考虑可能出现的各种问题，进而编写好代码来处理灾难！很多人都在准备面试时考虑了所有可能出现问题的地方，这样就不会由于公共汽车老不来而误了面试，因为早就准备了B计划。<br>Did you<br>RFow?<br>要编写健壮、可靠而易于维护的代码，错误处理至关重要。如果您是为自己编写代码，考虑到意外的情形是十分必要的；如果您是编写供他人使用的库或包，错误处理对创建健壮、可靠而值得信任的代码至关重要。</p>
-<h1 id="错误处理及Go语言的独特之处"><a href="#错误处理及Go语言的独特之处" class="headerlink" title="错误处理及Go语言的独特之处"></a>错误处理及Go语言的独特之处</h1><p>在Go语言中，一种约定是在调用可能出现问题的方法或函数时，返回一个类型为错误的值。这意味着如果出现问题，函数通常不会引发异常，而让调用者决定如何处理错误。程序清单10.1演示了这种约定，其中使用的函数ioutil.Readfile在出现问题时返回一个错误值。</p>
+<p>软件不可避免地会有错误及遇到未考虑到的情形，很多语言选择在发生必须捕获的错误时引发异常，而Go语言处理错误的方式很有趣——将错误作为一种类型，这意味着可将错误传递给函数和方法。本章介绍Go语言中的错误处理以及如何利用错误处理。</p>
+<blockquote>
+<p>提示：未雨绸缪！<br><br>优秀的程序员居安思危，他们会考虑可能出现的各种问题，进而编写好代码来处理灾难！很多人都在准备面试时考虑了所有可能出现问题的地方，这样就不会由于公共汽车老不来而误了面试，因为早就准备了B计划。</p>
+</blockquote>
+<p>要编写健壮、可靠而易于维护的代码，错误处理至关重要。如果您是为自己编写代码，考虑到意外的情形是十分必要的；如果您是编写供他人使用的库或包，错误处理对创建健壮、可靠而值得信任的代码至关重要。</p>
+<h1 id="错误处理及Go语言的独特之处"><a href="#错误处理及Go语言的独特之处" class="headerlink" title="错误处理及Go语言的独特之处"></a><span style="color:#339AFF;">错误处理及Go语言的独特之处</span></h1><p>在Go语言中，一种约定是在调用可能出现问题的方法或函数时，返回一个类型为错误的值。这意味着如果出现问题，函数通常不会引发异常，而让调用者决定如何处理错误。程序清单10.1演示了这种约定，其中使用的函数ioutil.Readfile在出现问题时返回一个错误值。</p>
 <blockquote>
 <p>程序清单10.1 读取文件时处理错误</p>
 </blockquote>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>在没有文件foo.txt的系统中运行这个程序时，将触发错误。go run example01.go<br>openfoo.txt: no such file or directory<br>这个示例包含的代码不多，却展示了Go语言对错误的众多看法。<br>》使用标准库中io/ioutil包内的函数ReadFile读取文件。<br>如果有错误，就意味着返回的错误值不为nil。<br>打印错误，程序就此结束。<br>》如果没有错误，就打印文件的内容。<br>要理解Go语言处理错误的方式，最重要的是明白函数ReadFile接受一个字符串参数，并返回一个字节切片和一个错误值。这个函数的定义如下。<br>func ReadFile(filename string) ([]byte, error)<br>这意味着函数ReadFile总是会返回一个错误值，可对其进行检查。在前述示例的main函数中，将方法ReadFile的返回值存储到了两个变量（file和err）中，这是Go代码中常见的模式，您经常会见到。<br>file, err :=ioutil.Readfile(“foo.txt”)<br>语法：=是Go语言中的简短赋值语句，只能在函数中使用。Go编译器会自动推断出变量的类型，而无须显式地声明，因此这里无须告诉编译器fle是一个字节切片，而err是一个错误。这提供了极大的便利，前述代码与下面的代码等价。<br>var file []byte<br>var err error<br>file.err=ioutil.Readfile(“foo.txt”<br>在Go语言中，有一种约定是，如果没有发生错误，返回的错误值将为nil。这让程序员调用方法或函数时，能够检查它是否像预期那样执行完毕。</p>
-<p>在Go程序中，这种做法很常见。有些开发人员认为，这种做法很繁琐，因为它要求调用每个方法或函数时都检查错误，导致代码重复。<br>这说得也许没错，但Go语言处理错误的方式比其他语言更灵活，因为可像其他类型一样在函数之间传递错误。这通常意味着代码要简短得多。如果您要更深入地了解这一点，可阅读Rob Pike 的博文《Errors are Values》。<br>TRY IT YOURSELF<br>Go语言中的错误处理方式<br>在这个示例中，您将运行一个返回错误的程序。<br>1.在文本编辑器中打开文件hour10/example01.go，尝试理解它是做什么的。如果需要，请参阅前面的解读。<br>2.在终端中使用命令gorun example01.go运行这个程序。<br>3，您将看到如下消息。<br>open foo.txt: no such file or directory<br>10.2理解错误类型<br>在Go语言中，错误是一个值。标准库声明了接口error，如下所示。type error interface {<br>Error()string<br>这个接口只有一个方法-Error，它返回一个字符串。</p>
-<h1 id="创建错误"><a href="#创建错误" class="headerlink" title="创建错误"></a>创建错误</h1><p>您已知道如何使用错误，但如果要创建并返回错误，该怎么办呢？标准库中的errors包支持创建和操作错误。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"io/ioutil"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> file []<span class="keyword">byte</span></span><br><span class="line">    <span class="keyword">var</span> err error</span><br><span class="line">    file, err = ioutil.ReadFile(<span class="string">"foo.txt"</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Printf(<span class="string">"%s"</span>, file)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在没有文件foo.txt的系统中运行这个程序时，将触发错误。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">go run example01.go</span><br><span class="line">open foo.txt: no such file or directory</span><br></pre></td></tr></table></figure></p>
+<p>这个示例包含的代码不多，却展示了Go语言对错误的众多看法。</p>
+<ul>
+<li>使用标准库中io/ioutil包内的函数ReadFile读取文件。</li>
+<li>如果有错误，就意味着返回的错误值不为nil。</li>
+<li>打印错误，程序就此结束。</li>
+<li>如果没有错误，就打印文件的内容。</li>
+</ul>
+<p>要理解Go语言处理错误的方式，最重要的是明白函数ReadFile接受一个字符串参数，并返回一个字节切片和一个错误值。这个函数的定义如下。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReadFile</span><span class="params">(filename <span class="keyword">string</span>)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>这意味着函数ReadFile总是会返回一个错误值，可对其进行检查。在前述示例的main函数中，将方法ReadFile的返回值存储到了两个变量（file和err）中，这是Go代码中常见的模式，您经常会见到。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file, err := ioutil.Readfile(<span class="string">"foo.txt"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>语法:=是Go语言中的简短赋值语句，只能在函数中使用。Go编译器会自动推断出变量的类型，而无须显式地声明，因此这里无须告诉编译器file是一个字节切片，而err是一个错误。这提供了极大的便利，前述代码与下面的代码等价。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> file []<span class="keyword">byte</span></span><br><span class="line"><span class="keyword">var</span> err error</span><br><span class="line">file, err = ioutil.Readfile(<span class="string">"foo.txt"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>在Go语言中，有一种约定是，如果没有发生错误，返回的错误值将为nil。这让程序员调用方法或函数时，能够检查它是否像预期那样执行完毕。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="comment">// something went wrong</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在Go程序中，这种做法很常见。有些开发人员认为，这种做法很繁琐，因为它要求调用每个方法或函数时都检查错误，导致代码重复。</p>
+<p>这说得也许没错，但Go语言处理错误的方式比其他语言更灵活，因为可像其他类型一样在函数之间传递错误。这通常意味着代码要简短得多。如果您要更深入地了解这一点，可阅读Rob Pike的博文《Errors are Values》。</p>
+<h1 id="理解错误类型"><a href="#理解错误类型" class="headerlink" title="理解错误类型"></a><span style="color:#339AFF;">理解错误类型</span></h1><p>在Go语言中，错误是一个值。标准库声明了接口error，如下所示。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> error <span class="keyword">interface</span> &#123;</span><br><span class="line">    Error() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个接口只有一个方法——Error，它返回一个字符串。</p>
+<h1 id="创建错误"><a href="#创建错误" class="headerlink" title="创建错误"></a><span style="color:#339AFF;">创建错误</span></h1><p>您已知道如何使用错误，但如果要创建并返回错误，该怎么办呢？标准库中的errors包支持创建和操作错误。</p>
 <p>程序清单10.2演示了如何创建并打印错误。</p>
 <blockquote>
 <p>程序清单10.2 创建并打印错误</p>
 </blockquote>
-<p>如果您运行这个示例，将打印如下错误。gorun example02.go<br>Something went wrong<br>这个示例演示了如何创建并检查错误，对其中的代码解读如下。》使用errors包中的方法New创建一个错误。<br>》使用if语句检查这个错误值是否为nil。<br>》如果不为nil，就将它打印出来。<br>TRY IT YOURSELF<br>创建错误<br>在这个示例中，您将明白如何创建错误。<br>1，在文本编辑器中打开文件hour10/example02.go，尝试理解它是做什么的。如果需要，请参阅前面对这些代码的解读。<br>2.在终端中使用命令go runexample02.go运行这个程序。<br>3.您将看到如下消息。<br>Something went wrong<br>10.4设置错误的格式<br>除errors包外，标准库中的fimt包还提供了方法Errorf，可用于设置返回的错误字符串的格式，如程序清单10.3所示。这能够让您将多个值合并成更有意义的错误字符串，从而动态地创建错误字符串。<br>程序清单10.3使用fmt包设置错误字符串的格式</p>
-<p>如果您运行这个程序，将打印如下错误字符串。go run example03.go<br>The Drummer Richard Jupp quit<br>TRYIT YOURSELF<br>设置错误字符串的格式<br>在这个示例中，您将明白如何设置错误字符串的格式。<br>1.在文本编辑器中打开文件hour10/example03，尝试理解它是做什么的。<br>2.在终端中使用命令gorunexample03.go运行这个程序。<br>3.您将看到一条消息。<br>The Drummer Richard Jupp quit<br>4.修改返回值并再次运行这个程序。您明白使用变量有助于让这条消息变成动态的了吗？</p>
-<h1 id="从函数返回错误"><a href="#从函数返回错误" class="headerlink" title="从函数返回错误"></a>从函数返回错误</h1><p>本章开头说过，Go语言的做法是从函数和方法中返回一个错误值。前面介绍了如何创建并返回错误，程序清单10.4是一个这样的示例。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"errors"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    err := errors.New(<span class="string">"Something went wrong"</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err) <span class="comment">// Something went wrong</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果您运行这个示例，将打印如下错误。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">go run example02.go</span><br><span class="line">Something went wrong</span><br></pre></td></tr></table></figure></p>
+<p>这个示例演示了如何创建并检查错误，对其中的代码解读如下。</p>
+<ul>
+<li>使用errors包中的方法New创建一个错误。</li>
+<li>使用if语句检查这个错误值是否为nil。</li>
+<li>如果不为nil，就将它打印出来。</li>
+</ul>
+<h1 id="设置错误的格式"><a href="#设置错误的格式" class="headerlink" title="设置错误的格式"></a><span style="color:#339AFF;">设置错误的格式</span></h1><p>除errors包外，标准库中的fmt包还提供了方法Errorf，可用于设置返回的错误字符串的格式，如程序清单10.3所示。这能够让您将多个值合并成更有意义的错误字符串，从而动态地创建错误字符串。</p>
 <blockquote>
-<p>程序清单10.4返回错误</p>
+<p>程序清单10.3 使用fmt包设置错误字符串的格式</p>
 </blockquote>
-<p>在这个示例中，一个函数返回错误，而调用者对其进行处理。对其中的代码解读如下。》将整数值19传递给函数Half。<br>》函数Half检查这个值是否为偶数。这里使用了Go语言中的求模运算符，它返回除法<br>运算的余数。如果余数不为零，传入的值就不可能是偶数。在这里，余数确实不为零。函数Half返回-1和一个错误值。<br>》调用者检查是否有错误，这里发现确实有错误。<br>》打印这个错误，程序到此结束。<br>如果您运行这个程序，将打印一个错误。<br>gorun function.gc<br>Cannot half 19<br>这个示例演示了Go语言错误处理方式的一个优点错误处理不是在函数中，而是在调用函数的地方进行的。这在错误处理方面提供了极大的灵活性，而不是简单地一刀切。</p>
-<h1 id="错误和可用性"><a href="#错误和可用性" class="headerlink" title="错误和可用性"></a>错误和可用性</h1><p>除从技术角度考虑Go语言的错误处理方式和错误生成方式外，还需从以用户为中心的角度考虑错误。编写供他人使用的库或包时，您编写和使用错误的方式将极大地影响可用性。使用您编写的库时，用户可能遇到错误，并尝试从错误中恢复。请看下面的错误，您认为自已能够轻松地处理它或从中恢复吗？<br>You broke something! Good luck!!<br>这条错误消息很糟糕，因为它没有提供有关哪里出现问题的线索，也没有提供有关如何恢复的建议。下面的错误消息更好。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">No config file found. Please create one at ~/.foorc.</span><br></pre></td></tr></table></figure></p>
-<p>为什么这样说呢？有如下几个原因。<br>》具体地指出了问题所在。<br>提供了问题解决方案。<br>对用户更有礼貌。<br>如果库用户相信错误会以一致的方式返回，且包含有用的错误消息，则用户能够从错误中恢复的可能性将高得多。他们很可能也会认为您编写的库不仅很有用，而且值得信任。</p>
-<h1 id="慎用panic"><a href="#慎用panic" class="headerlink" title="慎用panic"></a>慎用panic</h1><p>panic是Go语言中的一个内置函数，它终止正常的控制流程并引发恐慌（panicking），导致程序停止执行。出现普通错误时，并不提倡这种做法，因为程序将停止执行，并且没有</p>
-<p>任何回旋余地。程序清单10.5表明，panic导致程序立即停止执行。程序清单10.5使用panic来停止执行程序<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
-<p>运行这个示例将引发panic，导致程序崩溃。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">gorun panic.ga</span><br><span class="line">This is executed</span><br><span class="line">panic: Oh no. I can <span class="keyword">do</span> no more. Goodbye.</span><br><span class="line">goroutine l [running]:</span><br><span class="line">Panic (0x48a560, 0xc42000a320)</span><br><span class="line">/usr/lib/go/src/runtime/panic.go:5oo +0x1a1</span><br><span class="line">main.main()</span><br><span class="line">/home/go/golang-book-examples/hour1o /example05.go:7 +0xef <span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure></p>
-<p>调用panic后，程序将停止执行，因此打印This is notexecuted的代码行根本没有机会执行。在Go代码中，常常滥用下面的做法，这实际是说朋友，咱们无路可走，只能让程序崩溃了。在有些情况下，这样做是合适的，但通常不应这样做。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line"><span class="built_in">panic</span>(err)</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    name, role := <span class="string">"Richard Jupp"</span>, <span class="string">"Drummer"</span></span><br><span class="line">    err := fmt.Errorf(<span class="string">"The %v %v quit"</span>, role, name)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果您运行这个程序，将打印如下错误字符串。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">go run example03.go</span><br><span class="line">The Drummer Richard Jupp quit</span><br></pre></td></tr></table></figure></p>
+<h1 id="从函数返回错误"><a href="#从函数返回错误" class="headerlink" title="从函数返回错误"></a><span style="color:#339AFF;">从函数返回错误</span></h1><p>本章开头说过，Go语言的做法是从函数和方法中返回一个错误值。前面介绍了如何创建并返回错误，程序清单10.4是一个这样的示例。</p>
+<blockquote>
+<p>程序清单10.4 返回错误</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Half takes an integer and returns half the value</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Half</span><span class="params">(numberToHalf <span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> numberToHalf%<span class="number">2</span> != <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>, fmt.Errorf(<span class="string">"Cannot half %v"</span>, numberToHalf)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> numberToHalf / <span class="number">2</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    n, err := Half(<span class="number">19</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Println(n)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在这个示例中，一个函数返回错误，而调用者对其进行处理。对其中的代码解读如下。</p>
+<ul>
+<li>将整数值19传递给函数Half。</li>
+<li>函数Half检查这个值是否为偶数。这里使用了Go语言中的求模运算符，它返回除法运算的余数。如果余数不为零，传入的值就不可能是偶数。在这里，余数确实不为零。</li>
+<li>函数Half返回-1和一个错误值。</li>
+<li>调用者检查是否有错误，这里发现确实有错误。</li>
+<li>打印这个错误，程序到此结束。</li>
+</ul>
+<p>如果您运行这个程序，将打印一个错误。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">go run function.go</span><br><span class="line">Cannot half 19</span><br></pre></td></tr></table></figure></p>
+<p>这个示例演示了Go语言错误处理方式的一个优点：错误处理不是在函数中，而是在调用函数的地方进行的。这在错误处理方面提供了极大的灵活性，而不是简单地一刀切。</p>
+<h1 id="错误和可用性"><a href="#错误和可用性" class="headerlink" title="错误和可用性"></a><span style="color:#339AFF;">错误和可用性</span></h1><p>除从技术角度考虑Go语言的错误处理方式和错误生成方式外，还需从以用户为中心的角度考虑错误。编写供他人使用的库或包时，您编写和使用错误的方式将极大地影响可用性。使用您编写的库时，用户可能遇到错误，并尝试从错误中恢复。请看下面的错误，您认为自已能够轻松地处理它或从中恢复吗？<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">You broke something! Good luck!!</span><br></pre></td></tr></table></figure></p>
+<p>这条错误消息很糟糕，因为它没有提供有关哪里出现问题的线索，也没有提供有关如何恢复的建议。下面的错误消息更好。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">No config file found. Please create one at ~/.foorc.</span><br></pre></td></tr></table></figure></p>
+<p>为什么这样说呢？有如下几个原因。</p>
+<ul>
+<li>具体地指出了问题所在。</li>
+<li>提供了问题解决方案。</li>
+<li>对用户更有礼貌。</li>
+</ul>
+<p>如果库用户相信错误会以一致的方式返回，且包含有用的错误消息，则用户能够从错误中恢复的可能性将高得多。他们很可能也会认为您编写的库不仅很有用，而且值得信任。</p>
+<h1 id="慎用panic"><a href="#慎用panic" class="headerlink" title="慎用panic"></a><span style="color:#339AFF;">慎用panic</span></h1><p>panic是Go语言中的一个内置函数，它终止正常的控制流程并引发恐慌（panicking），导致程序停止执行。出现普通错误时，并不提倡这种做法，因为程序将停止执行，并且没有任何回旋余地。程序清单10.5表明，panic导致程序立即停止执行。</p>
+<blockquote>
+<p>程序清单10.5 使用panic来停止执行程序</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">"This is executed"</span>)</span><br><span class="line">    <span class="built_in">panic</span>(<span class="string">"Oh no. I can do no more. Goodbye."</span>)</span><br><span class="line">    fmt.Println(<span class="string">"This is not executed"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行这个示例将引发panic，导致程序崩溃。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">go run panic.g0</span><br><span class="line">This is executed</span><br><span class="line">panic: Oh no. I can <span class="keyword">do</span> no more. Goodbye.</span><br><span class="line"></span><br><span class="line">goroutine 1 [running]:</span><br><span class="line">panic(0x48a560, 0xc42000a320)</span><br><span class="line">    /usr/lib/go/src/runtime/panic.go:5oo + 0x1a1</span><br><span class="line">    main.main()</span><br><span class="line">    /home/go/golang-book-examples/hour10 /example05.go:7 + 0xef </span><br><span class="line">    <span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure></p>
+<p>调用panic后，程序将停止执行，因此打印This is not executed的代码行根本没有机会执行。</p>
+<p>在Go代码中，常常滥用下面的做法，这实际是说：朋友，咱们无路可走，只能让程序崩溃了。在有些情况下，这样做是合适的，但通常不应这样做。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="built_in">panic</span>(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>在下面的情形下，使用panic可能是正确的选择。</p>
-<p>》程序处于无法恢复的状态。这可能意味着无路可走了，或者再往下执行程序将带来更多的问题。在这种情况下，最佳的选择是让程序崩溃。<br>》发生了无法处理的错误。<br>TRY IT YOURSELF<br>使用panic<br>在这个示例中，您将明白如何使用panic<br>1.在文本编辑器中打开文件hour10/example05.go，尝试理解它是做什么的。 2.在终端中使用命令gorunexample05.go运行这个程序。<br>3.注意到出现了panics，导致程序停止执行。</p>
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>本章介绍了Go语言处理错误的方式。您学习了如何使用错误，再接着学习了如何创建错误；接下来，您了解了Go语言独特的错误处理方式一由调用者负责处理错误；然后，您获悉除从技术角度了解错误的工作原理外，还应考虑错误使用方式并让调用者能够从错误中恢复最后，您了解到panic会导致程序立即停止执行，因此应尽量少用。</p>
-<h1 id="问与答"><a href="#问与答" class="headerlink" title="问与答"></a>问与答</h1><p>问：在Go代码中，iferr！=nil随处可见。这看起来重复太多，请问这种做法是最佳的吗？答：虽然这看起来重复太多，但能够检查错误实际上是Go语言的特色，这给程序员提供了极大的控制权。虽然可采用办法和第三方包来减少这样的重复，但大多数Go程序员都喜欢能够随心所欲地处理错误。<br>问真的应该关心错误吗？<br>答：绝对应该！要编写富有弹性而稳定的代码，处理错误至关重要。对程序可能出现的错误以及如何从中恢复这些问题考虑得越多，代码的质量就越好。<br>问：Go支持异常吗？<br>答：不同于Java等其他语言，Go语言不支持传统的try-catch-finally控制结构，而向函数或方法的调用者报告错误。Go语言将错误作为返回值，这只是它做出的一种设计决策，但对这种处理错误的方式仍存在争议。<br>10.10<br>作业<br>作业包含小测验和答案，旨在加深对本章内容的理解。请尽可能先回答所有的问题再看后面的答案。<br>10.10.1<br>小测验<br>1.Go语言处理错误的方式有何独特之处？ 2.在Go语言中，可在错误中使用变量吗？ 3.在什么情况下该使用panic？<br>10.10.2答案<br>1.在Go语言中，可从函数返回多个值，一种约定是将错误作为最后一个返回值。这样可自定义错误并将其返回给调用者，由调用者决定如何处理错误。其他语言认为，不管发生什么错误，都应让程序立即崩溃而Go语言更灵活，它让方法或函数的调用者决定如何处理错误。</p>
-<p>2.是的。事实上，可使用任何代码来生成错误，再返回它。在博文《Errors are Values》 中，RobPike阐述了如下观点。<br>“可对值进行编程，而错误是值，因此可对错误进行编程。错误不像异常，因为错误没什么特别之处，而未处理的异常可能导致程序崩溃。”<br>3.仅当程序无法从错误中恢复时，才使用panic。panic是没有办法的办法，仅当让程序崩溃是最负责任的选择时才应使用panic。<br>10.11练习<br>1.在您编写程序或使用计算机的过程中，是否遇到过错误让您沮丧的情形？这样的沮丧表现在什么方面呢？<br>2，在网上搜索用于读取并分析toml格式文件的第三方包。通过阅读其主页，您知道这个包的功能和用法吗？请安装这个包，并创建一个简单的程序以证明您明白了其功能和用法。</p>
+<ul>
+<li>程序处于无法恢复的状态。这可能意味着无路可走了，或者再往下执行程序将带来更多的问题。在这种情况下，最佳的选择是让程序崩溃。</li>
+<li>发生了无法处理的错误。</li>
+</ul>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>本章介绍了Go语言处理错误的方式。您学习了如何使用错误，再接着学习了如何创建错误；接下来，您了解了Go语言独特的错误处理方式一由调用者负责处理错误；然后，您获悉除从技术角度了解错误的工作原理外，还应考虑错误使用方式并让调用者能够从错误中恢复最后，您了解到panic会导致程序立即停止执行，因此应尽量少用。</p>
+<h1 id="问与答"><a href="#问与答" class="headerlink" title="问与答"></a><span style="color:#339AFF;">问与答</span></h1><p>问：在Go代码中，if err != nil随处可见。这看起来重复太多，请问这种做法是最佳的吗？</p>
+<p>答：虽然这看起来重复太多，但能够检查错误实际上是Go语言的特色，这给程序员提供了极大的控制权。虽然可采用办法和第三方包来减少这样的重复，但大多数Go程序员都喜欢能够随心所欲地处理错误。</p>
+<p>问：真的应该关心错误吗？</p>
+<p>答：绝对应该！要编写富有弹性而稳定的代码，处理错误至关重要。对程序可能出现的错误以及如何从中恢复这些问题考虑得越多，代码的质量就越好。</p>
+<p>问：Go支持异常吗？</p>
+<p>答：不同于Java等其他语言，Go语言不支持传统的try-catch-finally控制结构，而向函数或方法的调用者报告错误。Go语言将错误作为返回值，这只是它做出的一种设计决策，但对这种处理错误的方式仍存在争议。</p>
+<h1 id="作业"><a href="#作业" class="headerlink" title="作业"></a><span style="color:#339AFF;">作业</span></h1><h2 id="小测验"><a href="#小测验" class="headerlink" title="小测验"></a><span style="color:#339AFF;">小测验</span></h2><ul>
+<li>1，Go语言处理错误的方式有何独特之处？ </li>
+<li>2，在Go语言中，可在错误中使用变量吗？ </li>
+<li>3，在什么情况下该使用panic？</li>
+</ul>
+<h2 id="答案"><a href="#答案" class="headerlink" title="答案"></a><span style="color:#339AFF;">答案</span></h2><ul>
+<li>1，在Go语言中，可从函数返回多个值，一种约定是将错误作为最后一个返回值。这样可自定义错误并将其返回给调用者，由调用者决定如何处理错误。其他语言认为，不管发生什么错误，都应让程序立即崩溃而Go语言更灵活，它让方法或函数的调用者决定如何处理错误。</li>
+<li>2，是的。事实上，可使用任何代码来生成错误，再返回它。在博文《Errors are Values》中，RobPike阐述了如下观点。“可对值进行编程，而错误是值，因此可对错误进行编程。错误不像异常，因为错误没什么特别之处，而未处理的异常可能导致程序崩溃。”</li>
+<li>3，仅当程序无法从错误中恢复时，才使用panic。panic是没有办法的办法，仅当让程序崩溃是最负责任的选择时才应使用panic。</li>
+</ul>
+<h1 id="练习"><a href="#练习" class="headerlink" title="练习"></a><span style="color:#339AFF;">练习</span></h1><ul>
+<li>1，在您编写程序或使用计算机的过程中，是否遇到过错误让您沮丧的情形？这样的沮丧表现在什么方面呢？</li>
+<li>2，在网上搜索用于读取并分析toml格式文件的第三方包。通过阅读其主页，您知道这个包的功能和用法吗？请安装这个包，并创建一个简单的程序以证明您明白了其功能和用法。</li>
+</ul>
 
       
     </div>
@@ -689,7 +760,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">424</span>
+                    <span class="site-state-item-count">438</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -906,23 +977,23 @@
                 
                 
                   <li>
-                    <a href="/2021/09/18/第15章-内存管理/" title="第15章 内存管理" target="_blank">第15章 内存管理</a>
+                    <a href="/2021/09/28/插座/" title="插座" target="_blank">插座</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/18/第14章-安全与测试/" title="第14章 安全与测试" target="_blank">第14章 安全与测试</a>
+                    <a href="/2021/09/24/第24章-部署Go语言代码/" title="第24章 部署Go语言代码" target="_blank">第24章 部署Go语言代码</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/18/第13章-文件处理/" title="第13章 文件处理" target="_blank">第13章 文件处理</a>
+                    <a href="/2021/09/24/第23章-Go语言时间编程/" title="第23章 Go语言时间编程" target="_blank">第23章 Go语言时间编程</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/18/第12章-I-O编程/" title="第12章 I/O编程" target="_blank">第12章 I/O编程</a>
+                    <a href="/2021/09/24/第22章-正则表达式简介/" title="第22章 正则表达式简介" target="_blank">第22章 正则表达式简介</a>
                   </li>
                 
                   <li>
-                    <a href="/2021/09/18/第11章-网络编程/" title="第11章 网络编程" target="_blank">第11章 网络编程</a>
+                    <a href="/2021/09/24/第21章-处理文件/" title="第21章 处理文件" target="_blank">第21章 处理文件</a>
                   </li>
                 
               </ul>
@@ -948,7 +1019,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#错误处理及Go语言的独特之处"><span class="nav-number">1.</span> <span class="nav-text">错误处理及Go语言的独特之处</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#创建错误"><span class="nav-number">2.</span> <span class="nav-text">创建错误</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#从函数返回错误"><span class="nav-number">3.</span> <span class="nav-text">从函数返回错误</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#错误和可用性"><span class="nav-number">4.</span> <span class="nav-text">错误和可用性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#慎用panic"><span class="nav-number">5.</span> <span class="nav-text">慎用panic</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">6.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#问与答"><span class="nav-number">7.</span> <span class="nav-text">问与答</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#错误处理及Go语言的独特之处"><span class="nav-number">1.</span> <span class="nav-text">错误处理及Go语言的独特之处</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#理解错误类型"><span class="nav-number">2.</span> <span class="nav-text">理解错误类型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#创建错误"><span class="nav-number">3.</span> <span class="nav-text">创建错误</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#设置错误的格式"><span class="nav-number">4.</span> <span class="nav-text">设置错误的格式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#从函数返回错误"><span class="nav-number">5.</span> <span class="nav-text">从函数返回错误</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#错误和可用性"><span class="nav-number">6.</span> <span class="nav-text">错误和可用性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#慎用panic"><span class="nav-number">7.</span> <span class="nav-text">慎用panic</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">8.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#问与答"><span class="nav-number">9.</span> <span class="nav-text">问与答</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#作业"><span class="nav-number">10.</span> <span class="nav-text">作业</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#小测验"><span class="nav-number">10.1.</span> <span class="nav-text">小测验</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#答案"><span class="nav-number">10.2.</span> <span class="nav-text">答案</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#练习"><span class="nav-number">11.</span> <span class="nav-text">练习</span></a></li></ol></div>
             
 
           </div>
@@ -983,7 +1054,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">4m</span>
+    <span title="站点总字数">4.1m</span>
   
 
   
@@ -994,7 +1065,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">60:59</span>
+    <span title="站点阅读时长">62:40</span>
   
 </div>
 
