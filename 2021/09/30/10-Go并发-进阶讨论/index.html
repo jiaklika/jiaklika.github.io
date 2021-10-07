@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="keywords" content="Mastering Go">
+<meta property="og:type" content="article">
+<meta property="og:title" content="10-Go并发-进阶讨论">
+<meta property="og:url" content="http://yoursite.com/2021/09/30/10-Go并发-进阶讨论/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2021/09/30/10-Go并发-进阶讨论/1.png">
+<meta property="og:updated_time" content="2021-09-30T08:31:40.476Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="10-Go并发-进阶讨论">
+<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:image" content="http://yoursite.com/2021/09/30/10-Go并发-进阶讨论/1.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2021/09/30/10-Go并发-进阶讨论/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>10-Go并发-进阶讨论 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/09/30/10-Go并发-进阶讨论/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="放弃会成为一种习惯">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">10-Go并发-进阶讨论
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2021-09-30 13:41:59 / 修改时间：16:31:40" itemprop="dateCreated datePublished" datetime="2021-09-30T13:41:59+08:00">2021-09-30</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">35k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">32 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>总结一下，这章作者最主要想表达什么观点？</li>
+</ul>
+<a id="more"></a>
+<p>上一章介绍了goroutinesGo中最重要的特性，channels和pipelines。这章在讨论共享变量，sync.Mutex和sync.RwMutex类型前，将继续从上章留下的这点出发来了解更多关于goroutines，channels和select关键字。这章也包括一些代码示例用于说明信号channels，缓冲channels，空channels和channels的channels的使用。另外，这章的前期您将了解俩个技巧用于一个goroutine在给定时间后的超时处理，因为没人能保证所有的goroutines能在期望的时间前都完成。这章将以检查竞争条件，context标准包和工作池来结束。</p>
+<p>在玩转Go的本章中，您将了解到如下主题：</p>
+<ul>
+<li>select关键字</li>
+<li>Go调度器如何工作</li>
+<li>俩个技巧用于一个完成时长超过预期的goroutine的超时处理。信号channels<br>缓冲channels</li>
+<li>空channels</li>
+<li>监控goroutines</li>
+<li>channels 的channels</li>
+<li>共享内存和互斥器</li>
+<li>sync.Mutex和sync.RWMutex类型</li>
+<li>contenxt包和它的功能</li>
+<li>工作池</li>
+<li>探测竞争条件</li>
+</ul>
+<p>重温调度器</p>
+<p>调度器负责以有效的方式在可用资源上分配要完成的工作量。这节，我们将检查Go调度器的操作方式比上一章更深入些。您已经知道了Go工作使用m：n调度器（或M：N调度器）来调度goroutines一它比系统线程（使用系统线程）更轻量。然而先上我们来复习一些必要理论和一些有用的术语定义。</p>
+<p>Go使用fork-join并发模型。这个模型的fork部分代表一个程序在任何时间点创建的子分支。类似地，Go并发模型的join部分是子分支将要接受的位置并加入它的父级。除此之外，收集goroutines结果的sync.Wait()和channles都是连接点，而任何新goroutine都会创建子分支。</p>
+<p>fork-join模型的fork阶段和C语言中的fork（2）调用完全是两回事</p>
+<p>公平调度策略是相当直接的，并有一个简单的实现，它在可用的处理器间均匀地共享所有负载。首先，这可能看起来是完美的策略，因为当它保持所有的处理器被均等占用时不必考虑太多事情。事实证明情况并非如此，因为大多数分布式任务通常依赖于其他任务。因此，最终一些处理器使用不足或者说一些处理器使用过剩。</p>
+<p>在Go中goroutine是一个任务，而调用goroutine之后的所有内容是一个延续。在Go调度器使用的work stealing策略中，一个未充分利用的（逻辑）处理器会从其他处理搜寻额外的工作。当它找到了这些工作，它就会从其他处理器偷取它们，这就是work stealing策略名称当由来。还有Go队列和窃取延续的work-stealing算法。一个间歇接合点，如其名所示，是一个执行线程在接合处间歇的点并开始寻找其他工作去做。尽管所有的任务窃取和延续窃取都有间歇接合点，但延续部分发生的更频繁；因此，Go算法与延续部分工作而不是任务。</p>
+<p>延续窃取的主要缺点是它需要来自编程语言的编译器的额外工作。幸运地，Go提供了额外的帮助，因此在它的work-stealing策略中使用延续窃取。</p>
+<p>延续窃取的一个好处是当您尽使用函数或具有多个goroutine的单个线程时，您可用获得相同的结果。这是完全合理的，因为这这两种情况下，在任何给定的时间都只执行一件事。</p>
+<p>现在，让我们回到Go中使用的m：n调度算法。严格讲，在任何时候，您都有m个goroutines被执行并计划运行在n个系统线程上，使用最多GOMAXPROCS个逻辑处理器。稍后您将了解GOMAXPROCS。</p>
+<p>Go调度器使用三种主要实体工作：系统线程（M）与使用的操作系统有关，goroutines（G）和逻辑处理器（P）。Go程序能使用的处理器数量由GOMAXPROCS环境变量定义一一在任何给定时间里有最多GOMAXPROCS个处理器。</p>
+<p>下图说明了这点：</p>
+<img src="/2021/09/30/10-Go并发-进阶讨论/1.png">
+<p>这个插图告诉我们有俩个不同类型的队列：一个全局队列和一个关联到每个逻辑处理器的本地队列。全局队列里的Goroutines为了执行会被分配到逻辑处理器的队列中。因此，Go调度器为了避免正在执行的goroutines只在每个逻辑处理器的本地队列中，需要检查全局队列。然而，全局队列不是总在被检查，意思是它没有比本地队列更有优势。另外，每个逻辑处理器有多个线程，并且窃取发生在可用逻辑处理器的本地队列之间。最后，注意当需要时，Go调度器被允许创建跟多的系统线程。然而，系统线程相当昂贵，就是说处理系统线程太多会使您的Go应用变慢。</p>
+<p>注意在程序中为了性能使用更多的goroutines不是万能方法，因为除了各种调用sync.Add()，sync.Wait()，和sync.Done()外，更多的goroutines由于需要Go调度器做额外工作会使您的程序变慢。</p>
+<p>Go调度器，作为大多数Go组件总是在进化，就是说负责Go调度器的人不断努力改进它的性能，通过对它的工作方式做微小改变。然而这个核心原理保持一致</p>
+<p>所有这些细节有用吗？我想是的！为了使用goroutines写代码您需要知道所有这些吗？当然不！然而，当奇怪的事情发生时，或者您对Go调度器是如果工作的好奇，知道场景背后发生了什么一定能帮到您。这当然能使您成为更好的开发者！</p>
+<p>环境变量GOMAXPROCS</p>
+<p>这个GOMAXPROCS环境变量（和Go函数）允许您限制操作系统线程数，它能同时执行用户级Go代码。Go1.5版本开始，GOMAXPROCS的默认值应该是您Unix机器的内核数。</p>
+<p>如果您决定分配给GOMAXPROCS的值小于您的Unix机器的内核数的话，可能会影响您的程序的性能。然而，使用比可用内核大的GOMAXPROCS值也一定不会使您的程序运行的快。</p>
+<p>您可用通过编程的方式来发现GOMAXPROCS环境变量的值，即相关代码。在下面的maxprocs.go程序中找到：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"runtime"</span> )</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getGOMAXPROCS</span><span class="params">()</span><span class="title">int</span></span>&#123;</span><br><span class="line"><span class="keyword">return</span> runtime.GOMAXPROCS(<span class="number">0</span>) ]</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">fmt.Printf(<span class="string">"GOMAXPROCS:%d\n"</span>,getGOMAXPROCS()) <span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>在一台Inteli7处理器的机器上执行maxprocs.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run maxprocs.go GOMAXPROCS:8</span><br></pre></td></tr></table></figure></p>
+<p>然而，您可以在程序执行前，通过改变GOMAXPROCS环境变量的值来修改上面的输出。在bash（1）Unix shell里执行下面的命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> version</span><br><span class="line">go version go1.9.4 darwin/amd64</span><br><span class="line"><span class="variable">$export</span> GOMAXPROCS=800;gorun maxprocs.go GOMAXPROCS:808</span><br><span class="line"><span class="variable">$export</span> GOMAXPROCS=4;go run maxprocs.go GOMAXPROCS:4</span><br></pre></td></tr></table></figure></p>
+<p>select关键字</p>
+<p>您很快就会了解到，select关键字非常强大，它可以在各种情况下做很多事情。Go中的select语句看起来像channels的switch语句。实际上，这意味着select允许goroutine等待多个通信操作。因此，您从select获得的主要好处就是它使您能够使用一个select块处理多个channels。因此，您可以在channels上进行非阻塞操作。</p>
+<p>使用多channels和select关键字的最大问题是死锁。就是说为了避免此类死锁，您在设计和开发过程中要格外的小心。</p>
+<p>select.go的代码将闸明select关键字的用法。这个程序分五部分来介绍。</p>
+<p>select.go的第一部分展示如下代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>math/rand<span class="string">" "</span>os</span><br><span class="line"><span class="string">"strconv' "</span>time<span class="string">'</span></span><br><span class="line"><span class="string">)</span></span><br></pre></td></tr></table></figure></p>
+<p>来自select.go的第二部分代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">gen</span><span class="params">(min, max <span class="keyword">int</span>, createNumber <span class="keyword">chan</span> <span class="keyword">int</span>, end <span class="keyword">chan</span> <span class="keyword">bool</span>)</span></span>&#123; <span class="keyword">for</span>&#123;</span><br><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> createNumber &lt;- rand.Intn(max-min) +min: <span class="keyword">case</span>&lt;-end:</span><br><span class="line"><span class="built_in">close</span>(end)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="keyword">case</span> &lt;- time.After(<span class="number">4</span>* time.Second):</span><br><span class="line">fmt.Println(<span class="string">"\ntime.After()!"</span>)</span><br><span class="line"><span class="number">1</span></span><br><span class="line"><span class="number">2</span></span><br></pre></td></tr></table></figure></p>
+<p>那么，在select块中的代码真正发生了什么？这个特别的select语句有三种情况。注意select语句不需要default分支。您可以把这个select语句的第三个分支当作default分支。time.After()函数在指定时间过后返回，因此它将在其他channels被阻塞时解锁select语句。</p>
+<p>select语句不是按顺序计算的，因为所有的channels都是同时检查的。如果在select语句中没有channels是准备好的，那么select语句就会阻塞，直到有一个channels准备好。如果select语句中有多个channels准备好，那么Go运行时就会在这些准备好的channles中随机选择一个。Go运行时在这些准备好的channels之间做随机选择时尽量做到一致和公平</p>
+<p>select.go的第三部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">rand. Seed(time.Now().Unix()) createNumber := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>) end :=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(os.Args)!=<span class="number">2</span>&#123;</span><br><span class="line">fmt. Println(<span class="string">"Please give me an integer!"</span>) <span class="keyword">return</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure></p>
+<p>select.go 程序的第四部分包含如下代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">n,_:=strconv.Atoi(os.Args[<span class="number">1</span>])</span><br><span class="line">fmt. Printf(<span class="string">"Going to create %d random numbers.\n"</span>, n) <span class="keyword">go</span> gen(,<span class="number">2</span>*n,createNumber, end)</span><br><span class="line"><span class="keyword">for</span> i:=e;i&lt;n;i++&#123;</span><br><span class="line">fmt.Printf(<span class="string">"%d"</span>,&lt;-createNumber) <span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>没有检查strconv.Atoi()返回的错误值是为节省一些空间。您在真实应用中不应该这样做</p>
+<p>select.go程序的剩余代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span></span><br><span class="line">time.Sleep(<span class="number">5</span>* time.Second) fmt. Println(<span class="string">"Exting..."</span>) end&lt;-<span class="literal">true</span></span><br></pre></td></tr></table></figure></p>
+<p>time.Sleep（5*time.second）语句的主要目地是给gen()中的time.After()函数足够的时间返回，从而激活select语句中的相关分支。</p>
+<p>main()函数最后的一条语句是通过激活在gen()里的select语句中的case《-end分支来终止程序并执行相关代码。</p>
+<p>执行select.go将产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run select.go 10</span><br><span class="line">Going to create 10 random nubmers. 12 178 14 19 9 2 0 19 5</span><br><span class="line">time.After()!</span><br><span class="line">Exiting.</span><br></pre></td></tr></table></figure></p>
+<p>select最大优点就是它可以连接，编排和管理多个channels。当channels连接goroutines 时，select连接那些连接goroutines的channels。因此，如果select语句不是Go并发模型中唯一重要的部分，也是之一。</p>
+<p>goroutine超时检查的两种方式</p>
+<p>这节介绍两个非常重要的技巧来帮助您处理goroutines超时。简单说，这两个技巧帮您解决不得不一直等待一个goroutine完成它的工作，并且让您完全控制等待goroutine结束的时间。这两个技巧都使用方便的select关键字的功能并结合上节中使用过的time.After()函数。</p>
+<p>方式1</p>
+<p>第一个技巧的源码保存在time0ut1.go中，并分为四部分介绍。time0ut1.go的第一部分显示如下代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt"</span> <span class="string">"time' )</span></span><br><span class="line"><span class="string">time0ut1.go第二段代码如下：</span></span><br><span class="line"><span class="string">func main()&#123;</span></span><br><span class="line"><span class="string">c1 :=make(chan string)</span></span><br><span class="line"><span class="string">go func()&#123;</span></span><br><span class="line"><span class="string">time.Sleep(time.Second *3) c&lt;-"</span>c1OK<span class="string">'</span></span><br><span class="line"><span class="string">&#125;()</span></span><br></pre></td></tr></table></figure></p>
+<p>time.sleep()调用用于模拟函数完成其工作通常需要的时间。在这个例子里，匿名函数以goroutine方式执行，它将在大约3秒（time.Second*3）后写消息到c1channel<br>time0ut1.go 的第三段包含如下代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span>&#123;</span><br><span class="line">caseres:=&lt;-c1:</span><br><span class="line">fmt.Println(res)</span><br><span class="line"><span class="keyword">case</span> &lt;- time.After(time.Second*<span class="number">1</span>): fmt. Println(<span class="string">"timeout c1"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>time.After()函数调用的目地是等待指定时间。这个例子中，您不用关心time.After()返回的实际值，但实际上time.After()函数调用介绍意味着超时了。例子中由于time.After()函数指定的值小于上节以goroutine方式执行的time.Sleep()调用中使用的值，您极有可能得到一个超时信息。</p>
+<p>time0ut1.go的其余代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">c2 :=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">time.Sleep(<span class="number">3</span>* time.Second) c2&lt;-<span class="string">"c20K"</span></span><br><span class="line">&#125;()</span><br><span class="line"><span class="number">7</span></span><br><span class="line"><span class="keyword">select</span>&#123;</span><br><span class="line"><span class="keyword">case</span> res :=&lt;-c2:</span><br><span class="line">fmt. Println(res)</span><br><span class="line"><span class="keyword">case</span> &lt;- time.After(<span class="number">4</span>* time.Second): fmt.Println(<span class="string">"timeout c2"</span>)</span><br><span class="line"><span class="number">1.</span></span><br></pre></td></tr></table></figure></p>
+<p>上面这段代码执行一个goroutine并使用time.After（4* time.Second）定义了一个4秒的超时期限，由于time.Sleep()的调用，这个<br>goroutine将执行大约3秒。如果time.After（4*time.second）调用的返回在您从select块的第一个分支里的c2channel获得值之后，那么就不会超时否则，将超时！然而，在这个例子中，time.After()调用的值提供了足够的时间对于time.Sleep()调用的返回，因此您极可能不会得到一个超时信息。<br>执行time0ut1.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run time0ut1.go timeoutc1</span><br><span class="line">c2OK</span><br></pre></td></tr></table></figure></p>
+<p>正如期望的，第一个goroutine没有完成它的工作，而第二哥有足够的时间去完成。</p>
+<p>方式2</p>
+<p>第二个技巧的源码保存在time0ut2.go中，并分为五部分来介绍。这次，超时时间作为命令行参数提供给程序。</p>
+<p>time0ut2.go的第一部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>ns</span><br><span class="line"><span class="string">"strconv'</span></span><br><span class="line"><span class="string">"</span>sync<span class="string">' "time'</span> )</span><br></pre></td></tr></table></figure></p>
+<p>time0ut2.go的第二段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">timeout</span><span class="params">(w*sync.WaitGroup,t time.Duration)</span> <span class="title">bool</span></span> &#123; temp :=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">time.Sleep(<span class="number">5</span>* time.Second)</span><br><span class="line"><span class="keyword">defer</span> <span class="built_in">close</span>(temp)</span><br><span class="line">W.Wait() &#125;()</span><br><span class="line"><span class="number">0</span></span><br><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span>&lt;-temp:</span><br><span class="line"><span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line"><span class="keyword">case</span> &lt;-time.After(t): returntrue</span><br><span class="line"><span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>上面的代码里，time. After()调用使用的时间周期是timeout()函数的一个参数，就是说它可变。再次，select块实现了超时逻辑。另外，w.Wait()调用使timeout()函数无期限的等待一个匹配的sync.Done()函数来结束。当w.Wait()调用返回，select表达式的第一个分支就会执行。</p>
+<p>time0ut2.go的第三段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">arguments :=os.Args</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(arguments)!=<span class="number">2</span>&#123;</span><br><span class="line">fmt.Println(<span class="string">"Need a time duration!"</span>) <span class="keyword">return</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line"><span class="keyword">var</span> w sync.WaitGroup</span><br><span class="line">w.Add(<span class="number">1</span>)</span><br><span class="line">t,err :=strconv.Atoi(arguments[<span class="number">1</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt. Println(err)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>time0ut2.go的第四部分如下<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">duration := time.Duration(<span class="keyword">int32</span>(t))* time.Millisecond fmt.Printf(<span class="string">"Timeout period is %s\n"</span>, duration)</span><br><span class="line"><span class="keyword">if</span> timeout(&amp;w, duration)&#123;</span><br><span class="line">fmt.Println(<span class="string">"Timed out!"</span>) &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">fmt Println(<span class="string">"OK!"</span>) <span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>time.Duration()函数转换一个整数值给一个之后使用到的time.Duration变量。</p>
+<p>time0ut2.go的其余代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">w.Done()</span><br><span class="line"><span class="keyword">if</span> timeout(&amp;w, duration)&#123;</span><br><span class="line">fmt. Println(<span class="string">"Timed out!"</span>) &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">fmt.Println(<span class="string">"OK!"</span>) <span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>一旦w.Done()调用执行，之前的timeout()函数将返回。然而第二次调用timeout()没有要等待的sync.Done()语句。</p>
+<p>执行time0ut2.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run time0ut2.go10000 Timeout period is 10s</span><br><span class="line">Timedout!</span><br><span class="line">OK!</span><br></pre></td></tr></table></figure></p>
+<p>执行time0ut2.go的超时周期比匿名goroutine的time.Sleep（5<em> time Second）长。然而，没有必要的w.Done()调用，匿名goroutine不能返回因为time.After()调用先结束了，所以第一个if表达式的timeout()函数返回true。第二个if表达式，匿名函数不必等待，因为time.Sleep（5\</em>time.Second）将先于time.After（t）结束，所以timeout()函数返回false：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run time0ut2.go100 Timeout period is 10oms Timedout!</span><br><span class="line">Timed out!</span><br></pre></td></tr></table></figure></p>
+<p>然而，第二次执行，这个超时周期太短了，所以这两个timeout()的执行都没有足够的时间完成，因此都超时了。</p>
+<p>所以，当定义一个超时周期时，确保您选择了一个恰当的值，否则您的结果可能不是您期望的那样。</p>
+<p>重温Channel（通道）</p>
+<p>一旦掌握了select关键字，Gochannels可以以几种独特的方式做更多事要比您在第9章（并发-Goroutines，Channel和Pipeline）学到的。这节将揭晓Gochannels的这些使用方法。</p>
+<p>要记住channel类型的零值是nil，并且如果您发送一个消息给以关闭的channel，程序将崩溃。然而，如果您尝试从已关闭的channel读取的话，会得到channel类型的零值。因此，关闭channel后，您不能再往里写，但您能一直读。</p>
+<p>为了能关闭channel，channel不必是只接受。另外，一个nilchannel总是阻塞的。channels的这个特性非常有用，当您想要禁用select表达式的一个分支时，可以分配一个nil值给一个channel变量。</p>
+<p>最后，如果您要关闭一个nil channel，程序就会崩溃。最好的说明是下面这个closeNilChannel.go程序：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">var</span> c <span class="keyword">chan</span> <span class="keyword">string</span> <span class="built_in">close</span>(c)</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<p>执行closeNilchannel.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run closeNilchannel.go panic: close of nil channel</span><br><span class="line">goroutine 1 [running]:</span><br><span class="line">main.main()</span><br><span class="line">/Users/mtsouk/closeNilChannel.go:5 +0x2a <span class="built_in">exit</span> status2</span><br></pre></td></tr></table></figure></p>
+<p>信号通道</p>
+<p>信号通道是一个仅用来发送信号的通道。简单说，当您想要通知别人一些事情时可以使用信号通道。信号通道不能用来传输数据。</p>
+<p>您不能混淆信号通道和在第8章（GoUNIX系统编程）讨论的Unix信号处理，它们是完全不同的概念。</p>
+<p>在这章后面的指定goroutines的执行顺序一节，您将看到使用信号通道的代码例子。</p>
+<p>可缓冲通道</p>
+<p>这小节的主题是可缓冲通道。这些通道允许Go调度器快速把任务放入队列，为了能够处理更多的请求。而且，您可以使用缓冲通道作为信号量来限制整个应用程序。<br>这里介绍的技术工作如下：所有进入的请求被转发到通道里，由它来逐个处理。当通道处理完一个请求后，它就发送消息给原来当调用者说它准备处理新当请求了。因此这个通道的缓冲能力限制它能保存的并发请求数。</p>
+<p>这个技术用bufChannel.go中的代码来帮助介绍，分为四个部分。 </p>
+<p>bufChannel.go 的第一部分代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">'fmt</span></span><br></pre></td></tr></table></figure></p>
+<p>bufChannel.go 的第二部分代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">numbers :=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>，<span class="number">5</span>) counter:=<span class="number">10</span></span><br></pre></td></tr></table></figure></p>
+<p>这个numbers通道的定义给它提供了存储五个整数的空间。bufChannel.go的第三部分代码显示如下<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i:=<span class="number">0</span>;i&lt;counter;i++&#123;</span><br><span class="line"><span class="keyword">select</span>&#123;</span><br><span class="line"><span class="keyword">case</span> numbers &lt;-i:</span><br><span class="line"><span class="keyword">default</span>:</span><br><span class="line">fmt.Println(<span class="string">"Not enough space for"</span>, i)</span><br></pre></td></tr></table></figure></p>
+<p>上面这段代码里，我们试图放10个整数到numbers通道。然而，由于numbers通道只有5个整数的空间，您就不能把10个整数都存入进去。<br>bufChannel.go的其余代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">7</span></span><br><span class="line"><span class="keyword">for</span> i :=<span class="number">8</span>;i&lt;counter + <span class="number">5</span>;i++&#123;</span><br><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line">casenum :=&lt;-numbers:</span><br><span class="line">fmt.Println(num)</span><br><span class="line"><span class="keyword">default</span>:</span><br><span class="line">fmt.Println(<span class="string">"Nothing more to be done!"</span>) <span class="keyword">break</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line"><span class="number">7</span></span><br></pre></td></tr></table></figure></p>
+<p>上面的代码里，我们试着使用for循环和select表达式读取<br>numbers通道中的内容。只要numbers通道里有内容可读，select表达式的第一个分支就会执行。如果numbers通道是空的，这个default分支就会执行。<br>执行bufChannel.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$gorunbufChannel</span>.gc Not enough space <span class="keyword">for</span> 5 Not enough space <span class="keyword">for</span> 6 Not enough space <span class="keyword">for</span> 7 Not enough space for8 Not enough space <span class="keyword">for</span> 9 e</span><br><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>! Nothing more to be <span class="keyword">done</span>!</span><br></pre></td></tr></table></figure></p>
+<p>值为nil的通道<br>这节，您将了解到值为nil的通道。这些是通道的特殊类型，因为它们总是阻塞的。空通道的使用说明在nilchannel.go中，分为四个代码片段来介绍。<br>nilChannel.go的第一部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"math/rand"</span> <span class="string">"time'</span></span><br><span class="line"><span class="string">)</span></span><br><span class="line"><span class="string">nilChannel.go的第二段代码显示如下：</span></span><br><span class="line"><span class="string">func add(c chan int)&#123;</span></span><br><span class="line"><span class="string">sum:=e</span></span><br><span class="line"><span class="string">t :=time.NewTimer(time.Second) for&#123;</span></span><br><span class="line"><span class="string">select &#123;</span></span><br><span class="line"><span class="string">case input :=&lt;-c:</span></span><br><span class="line"><span class="string">sum = sum + input case &lt;-t.c:</span></span><br><span class="line"><span class="string">C=nil</span></span><br><span class="line"><span class="string">fmt. Println(sum)</span></span><br><span class="line"><span class="string">.</span></span><br><span class="line"><span class="string">add()函数展示了如何使用空通道。《-t.c表达式按在</span></span><br></pre></td></tr></table></figure></p>
+<p>time.NewTimer()调用中指定的时间阻塞t计时器的c通道。不要混淆函数的参数c通道和t计时器的t.c通道。它会触发select表达式的相关分支的执行，给c通道分配nil值并打印sum变量。<br>nilchannel.go的第三段代码如下：<br>func send(c chan int){ for{<br>c&lt;- rand.Intn(10) 7</p>
+<p>send()函数的目的是产生随机数并持续发送它们到一个通道里，只要这个通道是打开的。<br>nilChannel.go 的其余代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">c:=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line"><span class="keyword">go</span> add(c)</span><br><span class="line"><span class="keyword">go</span> send(c)</span><br><span class="line">time.Sleep(<span class="number">3</span>* time.Second) &#125;</span><br></pre></td></tr></table></figure></p>
+<p>使用time.Sleep()函数是为了给这俩个goroutines足够的操作时间。执行nilChannel.go将产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run nilChannel.go 13167523</span><br><span class="line"><span class="variable">$go</span> run nilchannel.go 12988362</span><br></pre></td></tr></table></figure></p>
+<p>由于执行add()函数中的select表达式的第一个分支的次数不固定，所以您执行nilChannel.go会得到不同的结果。</p>
+<p>传送channel的通道</p>
+<p>传送channel的通道是一种特殊的通道变量，它与通道工作而不是其他类型的变量。不过，您仍然要给一个传送channel的通道声明一个数据类型。您可以在一行使用chan关键字两次定义一个传送channel的通道，如下所示：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">c1 :=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">chan</span> <span class="keyword">int</span>)</span><br></pre></td></tr></table></figure></p>
+<p>这章介绍的其他类型的通道都比传递channel的通道要简单方便。</p>
+<p>用chSquare.go代码来说明传递channel的通道的使用，分为四个部分来介绍。<br>chSquare.go 的第一部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"os"</span></span><br><span class="line"><span class="string">"strconv' "</span>time<span class="string">" )</span></span><br><span class="line"><span class="string">var times int</span></span><br></pre></td></tr></table></figure></p>
+<p>chSquare.go 的第二段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f1</span><span class="params">(ccchan <span class="keyword">chan</span> <span class="keyword">int</span>, f <span class="keyword">chan</span> <span class="keyword">bool</span>)</span></span>&#123; c:=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line">cc&lt;-c</span><br><span class="line"><span class="keyword">defer</span> <span class="built_in">close</span>(c)</span><br><span class="line">]</span><br><span class="line">sum:=<span class="number">8</span></span><br><span class="line"><span class="keyword">select</span>&#123;</span><br><span class="line">casex:=&lt;-c:</span><br><span class="line"><span class="keyword">for</span> i:=;i&lt;=x;i++&#123; sum= sum+i</span><br><span class="line"><span class="number">11</span></span><br><span class="line">c&lt;-sum</span><br><span class="line"><span class="keyword">case</span>&lt;-f:</span><br><span class="line">returr</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<p>声明一个常规的int通道，您把它发送给传递通道的通道变量。然后您使用select表达式从常规的int通道读取数据和使用f信号通道来退出函数。</p>
+<p>一旦您从c通道读取了信号值，便开始了一个for循环来计算从0到信号值的所有整数之和。接下来，您发送这个计算值给cint通道，执行结束。</p>
+<p>chSquare.go 的第三部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">arguments :=os.Args</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(arguments)!=<span class="number">2</span>&#123;</span><br><span class="line">fmt . Println(<span class="string">"Need just one integer argument!"</span>) <span class="keyword">return</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line">times, err := strconv.Atoi(arguments[<span class="number">1</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt.Println(err)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line">]</span><br><span class="line">cc:=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">chan</span> <span class="keyword">int</span>)</span><br></pre></td></tr></table></figure></p>
+<p>上面代理里的最后一句表达式声明了一个名为cc的传递通道的通道变量，它是这个程序的开始，因为一切都依赖与它：cc变量传递给f1()函数，并被接下来的for循环中使用。</p>
+<p>chSquare.go的其他代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i :=<span class="number">1</span>;i&lt;times + <span class="number">1</span>;i++&#123; f:=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line"><span class="keyword">go</span> f1(cc，f)</span><br><span class="line">ch:=&lt;-cc</span><br><span class="line">ch&lt;-i</span><br><span class="line"><span class="keyword">for</span> sum := <span class="keyword">range</span> ch &#123;</span><br><span class="line">fmt.Print(<span class="string">"Sum("</span>，i，<span class="string">")="</span>,sum) <span class="number">1</span></span><br><span class="line">fmt.Println()</span><br><span class="line">time Sleep(time.Second)</span><br><span class="line"><span class="built_in">close</span>(f)</span><br><span class="line"><span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>f通道是一个信号通道，用来当真正的工作完成时结束goroutine。ch ：=&lt;-cc表达式允许您从传递通道的通道获得一个常规的通道，使用ch&lt;-i发送一个int值给它。之后，您使用for循环从它读取数据。尽管f1()函数编写为发送一个值回来，但您也可以读取多个值。注意i的每个值都被不同的goroutine执行。</p>
+<p>信号通道的类型可以是任何您想要的类型，包括上面用到的bool和下节要用到的struct{}类型的信号通道。一个struct{}信号通道的优点是不能发送数据给它，这能减少错误和错误的想法。<br>执行chsquare.go将产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$gorun</span> chSquare.go4 Sum(1)=1</span><br><span class="line">Sum(2)=3</span><br><span class="line">Sum(3)=6</span><br><span class="line">Sum(4)=10</span><br><span class="line"><span class="variable">$go</span> run chSquare.go 6 Sum(1)=1</span><br><span class="line">Sum(2)=3</span><br><span class="line">Sum(3)=6</span><br><span class="line">Sum(4)=10</span><br><span class="line">Sum(5)=15</span><br><span class="line">Sum(6)=21</span><br></pre></td></tr></table></figure></p>
+<p>指定通道的执行顺序</p>
+<p>尽管您不应该对goroutines的执行顺序做任何假设，但当您需要控制这个顺序时是可以的。这小节介绍一个使用信号通道的技巧。</p>
+<p>您可能会问为什么简单函数能够更容易的控制执行顺序，还要选择按顺序执行goroutines。这个答案很简单：goroutines能够操作并发并等待其他goroutines结束，而在普通的函数却不能！</p>
+<p>说明这个主题的Go程序命名为define0rder.go，并分了五部分来介绍。</p>
+<p>define0rder.go的第一部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt"</span> <span class="string">"time' )</span></span><br><span class="line"><span class="string">func A(a, b chan struct&#123;&#125;)&#123; &lt;-a</span></span><br><span class="line"><span class="string">fmt.Println("</span>A()!<span class="string">") time.Sleep(time.Second) close(b)</span></span><br><span class="line"><span class="string">]</span></span><br></pre></td></tr></table></figure></p>
+<p>A()函数能被存储在a参数的通道中并阻塞。一旦在main函数中通道被解除阻塞，函数A()将开始工作。最后，它关闭b通道，解除在函数B()中的另个函数的阻塞。</p>
+<p>define0rder.go的第二段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">B</span><span class="params">(a,b <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span></span>&#123; &lt;-a</span><br><span class="line">fmt.Println(<span class="string">"B()!"</span>) <span class="built_in">close</span>(b)</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<p>B()中的逻辑和函数A()相同。这个函数被阻塞直到a通道关闭。然后它做自己的工作并关闭b通道。注意a和b通道值这个函数的参数名。</p>
+<p>define0rder.go 的第三段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">C</span><span class="params">(a <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span></span>&#123; &lt;-a</span><br><span class="line">fmt.Println(<span class="string">"C()!"</span>) <span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>C()函数被阻塞并等待a通道关闭再开始工作。defineOrder.go的第四部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">x :=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;) y:=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;) z:=<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>这三个通道作为三个函数的参数。defineorder.go的最后一段如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">goC(z) <span class="keyword">go</span> A(x,y) <span class="keyword">go</span> C(z) <span class="keyword">go</span> B(y，z) goC(z)</span><br><span class="line"><span class="number">1</span></span><br><span class="line"><span class="built_in">close</span>(x)</span><br><span class="line">time .Sleep(<span class="number">3</span>* time.Second)</span><br></pre></td></tr></table></figure></p>
+<p>执行define0rder.go将产生期望的输出，即使c()函数被调用了多次：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$gorun</span> define0rder.go</span><br><span class="line">A()!</span><br><span class="line">B()!</span><br><span class="line">C()!</span><br><span class="line">C()!</span><br><span class="line">C()!</span><br><span class="line">C()!</span><br></pre></td></tr></table></figure></p>
+<p>以goroutines调用C()函数多次会工作的很好，因为C()没有关闭任何通道。然而，如果您调用A()或B()多次的话，您可能会得到如下错误信息：</p>
+<p>如您所见，A()函数被调用了俩次。然而，由于A()函数关闭了一个A()通道，它的goroutines中的一个将发现通道已经关闭并产生一个崩溃。如果您调用B多次会得到同样的崩溃信息。</p>
+<p>通过共享变量来共享内存</p>
+<p>通过共享变量来共享内存是Unix线程间彼此通信非常普通的方式。一个互斥变量是一个互相排斥变量的简称，它主要用于线程同步和在有多个写操作同时发生时保护共享数据。互斥工作类似于容量为一的缓冲通道，它允许最多一个goroutine在任何给定时间访问共享变量。这就是说没有办法让俩个或更多goroutines同时去更新一个变量。</p>
+<p>一个并发程序的关键部分是代码不能被所有进程，线程或如当前的所有goroutines同时执行。代码需要用互斥体保护起来。因此，识别代码的关键部分会使整个程序处理非常简单，您应该注意这个任务。</p>
+<p>当两个关键部分使用相同的sync.Mutex或sync.RWMutex变量时，您不能把其中一个嵌入另一个。不惜任何代价一定要避免跨函数传播互斥体，因为那会很难看出您是否做了嵌套。</p>
+<p>下面两小节将说明sync.Mutex和sync.RWMutex类型的使用。</p>
+<p>sync.Mutex类型</p>
+<p>sync.Mutex类型是Go实现的一个互斥体。它的定义可以在sync目录的mutex.go文件中找到，内容如下：</p>
+<p>sync.Mutex类型的定义没有什么特别的。所有的工作都是由sync.lock()和sync.Unlock()来做的，它们分别能加锁和解锁sync.Mutex互斥体。给互斥体上锁意味着没人可以操作它，直到使用 sync. Unlock()函数解锁。</p>
+<p>mutex.go程序分为五部分介绍，来说明sync.Mutex类型的使用。</p>
+<p>mutex.go的第一段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>os<span class="string">"</span></span><br><span class="line"><span class="string">"</span>strconv<span class="string">' "sync"</span></span><br><span class="line"><span class="string">"time" )</span></span><br><span class="line"><span class="string">var (</span></span><br><span class="line"><span class="string">msync.Mutex v1int</span></span><br><span class="line"><span class="string">3</span></span><br></pre></td></tr></table></figure></p>
+<p>mutex.go的第二段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">change</span><span class="params">(i <span class="keyword">int</span>)</span></span>&#123; m.Lock()</span><br><span class="line">time.Sleep(time.Second) v1=v1+<span class="number">1</span></span><br><span class="line"><span class="keyword">if</span> v1% <span class="number">10</span>==<span class="number">0</span>&#123;</span><br><span class="line">v1 =v1<span class="number">-10</span>*i <span class="number">0</span></span><br><span class="line">m.Unlock()</span><br><span class="line"><span class="number">0</span></span><br></pre></td></tr></table></figure></p>
+<p>这个函数的关键部分是m.Lock()和m.Unlock()之间的代码。mutex.go的第三部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">read</span><span class="params">()</span><span class="title">int</span></span> &#123; m.Lock()</span><br><span class="line">a:=v1</span><br><span class="line">m.Unlock() returna &#125;</span><br></pre></td></tr></table></figure></p>
+<p>同样，这个函数的关键部分也由m.Lock()和m.Unlock()表达式限定。</p>
+<p>mutex.go的第四部分代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(os.Args)!=<span class="number">2</span>&#123;</span><br><span class="line">fmt.Println(<span class="string">"Please give me an integer!"</span>) <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line">numGR, err :=strconv.Atoi(os.Args[<span class="number">1</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt. Println(err)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line">]</span><br><span class="line"><span class="keyword">var</span> waitGroup sync.WaitGroup</span><br></pre></td></tr></table></figure></p>
+<p>mutex.go的最后一段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">fmt.Printf(<span class="string">"%d"</span>,read())</span><br><span class="line"><span class="keyword">for</span> i:=<span class="number">0</span>;i&lt;numGR;i++&#123; waitGroup.Add(<span class="number">1</span>)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(iint)</span></span>&#123;</span><br><span class="line"><span class="keyword">defer</span> waitGroup.Done() change(i)</span><br><span class="line">fmt.Printf(<span class="string">"-&gt;%d"</span>,read()) &#125;(i)</span><br><span class="line">]</span><br><span class="line"><span class="number">1</span></span><br><span class="line">waitGroup.Wait()</span><br><span class="line">fmt.Printf(<span class="string">"-&gt;%d\n"</span>,read())</span><br></pre></td></tr></table></figure></p>
+<p>执行mutex.go将产生如下输出：<br>如果您从change()函数移除m.Lock()和m.Unlock()表达式，这个程序会产生类似如下输出：</p>
+<p>输出中发生改变的原因是所有goroutines同时去修改共享变量，这也是随机输出的主要原因。</p>
+<p>忘记解锁mutex的后果</p>
+<p>这节，您会看到如果您忘记解锁sync.Mutex的后果。您将使用forgetMutex.go代码来做这个，把它分两部分来介绍。</p>
+<p>forgetMutex.go第一段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"svnc"</span></span><br><span class="line"><span class="keyword">var</span> m sync.Mutex</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">function</span><span class="params">()</span></span>&#123;</span><br><span class="line">m.Lock()</span><br><span class="line">fmt.Println(<span class="string">"Locked!"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>这个程序的所有问题是由于开发者忘记释放msync.Mutex互斥体的锁导致的。然而，如果您的程序只调用function()一次，那一切正常！</p>
+<p>forgetMutex.go的第二段如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">var</span> w sync.WaitGroup</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">defer</span> w.Done() function()</span><br><span class="line">&#125;()</span><br><span class="line">W.Add(<span class="number">1</span>)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">defer</span> w.Done() function()</span><br><span class="line">&#125;()</span><br><span class="line">w.Add(<span class="number">1</span>)</span><br><span class="line">W.Wait()</span><br></pre></td></tr></table></figure></p>
+<p>main()函数没有任何问题，它创建两个goroutines并等它们完成。</p>
+<p>执行forgetMutex.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$gorunforgetMutex</span>.go</span><br><span class="line">Locked!</span><br><span class="line">fatal error: all goroutines are asleep - deadlock!</span><br><span class="line">goroutine 1 [semacquire]:</span><br><span class="line">sync. runtime_Semacquire(exc420012e9c)</span><br><span class="line">/usr/<span class="built_in">local</span>/cellar/go/1.9.4/libexec/src/runtime/sema.go:56+o sync.(*WaitGroup).Wait(0xc420012090)</span><br><span class="line">/usr/<span class="built_in">local</span>/cellar/go/1.9.4/libexec/src/sync/waitgroup.go:131 /Users/mtsouk/forgetMutex.go:30 +0xb6</span><br><span class="line">goroutine 5 [semacquire]:</span><br><span class="line">sync.runtime_SemacquireMutex(0x115c6fc,0x0)</span><br><span class="line">/usr/<span class="built_in">local</span>/Cellar/go/1.9.4/libexec/src/runtime/sema.go:71+0 sync.(*Mutex).Lock(0x115c6f8)</span><br><span class="line">/usr/<span class="built_in">local</span>/Cellar/go/1.9.4/libexec/src/sync/mutex.go:134+0x /Users/mtsouk/forgetMutex.go:11 +0x2dmain.main.func1(0xc420 /Users/mtsouk/forgetMutex.go:20 +0x48 created by main.main /Users/mtsouk/forgetMutex.go:18 +0x58 <span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure></p>
+<p>所以，忘记解锁sync.Mutex互斥体会产生崩溃即使是最简单的程序。这同样适用于您将在下一节中使用的sync.RWMutex类型的互斥锁。</p>
+<p>sync.RWMutex类型</p>
+<p>sync.RMutex类型是另外一种互斥体，它是sync.Mutex的改进版，在sync目录的rwmutex.go文件中定义如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123; W</span><br><span class="line">Mutex</span><br><span class="line">writerSem</span><br><span class="line"><span class="keyword">uint32</span></span><br><span class="line">readerSem</span><br><span class="line"><span class="keyword">uint32</span></span><br><span class="line">readerCount <span class="keyword">int32</span> readerWait <span class="keyword">int32</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>换句话说，sync.RwMutex是基于sync.Mutex做了必要的添加和改进。</p>
+<p>现在让我们来说说sync.RwMutex是如果改进sync.Mutex的。尽管使用sync.RwMutex互斥锁只允许有一个函数执行写操作，但您能有多个属于sync.RWMutex互斥锁的读取者。然而，有一件事您要注意：除非sync.RWMutex互斥锁的所有读取者解锁，您不能为写操作给它上锁，这也是为了实现多互斥锁读取而付出的代价。<br>RLock()和RUnlock()是出于读取的目的帮您与sync.RWMutex互斥体工作的函数，它们分别用于上锁和解锁互斥体。当您为了写操作想要上锁和解锁一个sync.RMutex互斥体时，用在sync.Mutex互斥体的Lock()和Unlock()函数仍适用。因此为了读操作RLock()函数应该与RUnlock()配对调用。最后，显而易见，您不应该修改在RLock()和RUnlock()代码块间的任何共享变量。</p>
+<p>rwMutex.go代码说明了sync.RWMutex类型的使用和通途。程序分六部分介绍，并且相同的函数有俩个稍有不同的版本。第一个为读操作使用sync.RWMutex互斥体，第二个为读操作使用sync.Mutex互斥体。这两个函数之间的不同表现会帮助您理解为了读取操作使用sync.RWMutex互斥体的好处更多。</p>
+<p>rwMutex.go的第一部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"nc"</span> <span class="string">"svnc"</span> <span class="string">"time'</span></span><br><span class="line"><span class="string">var Password = secret&#123;password: "</span>myPasswor</span><br><span class="line"><span class="keyword">type</span> secret <span class="keyword">struct</span> &#123;</span><br><span class="line">RWM</span><br><span class="line">sync.RWMutex</span><br><span class="line">M</span><br><span class="line">sync.Mutex</span><br><span class="line">password</span><br><span class="line"><span class="keyword">string</span></span><br><span class="line">,</span><br></pre></td></tr></table></figure></p>
+<p>secret结构有一个共享变量，一个sync.RWMutex互斥锁和一个sync.Mutex互斥锁。</p>
+<p>rwMutex.go 的第二段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Change</span><span class="params">(c *secret, pass <span class="keyword">string</span>)</span></span>&#123; c.RWM.Lock()</span><br><span class="line">fmt.Println(<span class="string">"LChange"</span></span><br><span class="line">time.Sleep(<span class="number">10</span>* time.Second) c.password = pass</span><br><span class="line">C.RWM.Unlock()</span><br><span class="line">.</span><br></pre></td></tr></table></figure></p>
+<p>Change()函数修改共享变量，意味着您需要使用一个排他锁，这就是使用Lock()和Unlock()函数的原因。当做变更时离不开使用排他锁！</p>
+<p>rwMutex.go 的第三部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">show</span><span class="params">(c*secret)</span> <span class="title">string</span></span> &#123; C.RWM.RLock()</span><br><span class="line">fmt Println(<span class="string">"show"</span>)</span><br><span class="line">time.Sleep(<span class="number">3</span> * time.Second) deferC.RWM.RUnlock()</span><br><span class="line"><span class="keyword">return</span> C.password</span><br><span class="line">.</span><br></pre></td></tr></table></figure></p>
+<p>show()函数使用RLock()和RUnlock()函数是因为它的关键部分是用来读取共享变量的。因此，尽管goroutines能够读取共享变量，但是在不使用Lock()和Unlock()函数的情况下，所有goroutines都不能修改共享变量。但是，只要有人使用互斥锁读取共享变量，Lock()函数就会被一直阻塞。</p>
+<p>rwMutex.go 的第四段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">showWithLock</span><span class="params">(c *secret)</span> <span class="title">string</span></span> &#123; C.M.Lock()</span><br><span class="line">fmt.Println(<span class="string">"showWithLock"</span>) time.Sleep(<span class="number">3</span>* time.Second) <span class="keyword">defer</span> c.M.Unlock()</span><br><span class="line"><span class="keyword">return</span> c.password</span><br><span class="line">.</span><br></pre></td></tr></table></figure></p>
+<p>showWithLock()函数和show()函数之间唯一的不同是showWithLock()函数为了读操作使用了排他锁，这意味着只有一个showWithlock()函数能读取secret结构体的password字段。</p>
+<p>rwMutex.go 的第五段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">var</span> showFunction = <span class="function"><span class="keyword">func</span><span class="params">(c *secret)</span> <span class="title">string</span></span> &#123;<span class="keyword">return</span> <span class="string">""</span>&#125; <span class="keyword">if</span> <span class="built_in">len</span>(os.Args)!=<span class="number">2</span>&#123;</span><br><span class="line">fmt.Println(<span class="string">"Using sync.RWMutex!"</span>)</span><br><span class="line">showFunction =show</span><br><span class="line">&#125;<span class="keyword">else</span> &#123;</span><br><span class="line">fmt. Println(<span class="string">"Using sync.Mutex!"</span>)</span><br><span class="line">showFunction = showWithlock</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">var</span> waitGroup sync.WaitGroup</span><br><span class="line">fmt.Println(<span class="string">"Pass:"</span>, showFunction(&amp;Password))</span><br></pre></td></tr></table></figure></p>
+<p>rwMutex.go的其余代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i:=<span class="number">0</span>;i&lt;<span class="number">15</span>;i++&#123;</span><br><span class="line">waitGroup.Add(<span class="number">1</span>)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">defer</span> waitGroup Done()</span><br><span class="line">fmt. Println(<span class="string">"Go Pass:"</span>, showFunction(&amp;Password)) &#125;()</span><br><span class="line">]</span><br><span class="line">]</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">waitGroup.Add(<span class="number">1</span>)</span><br><span class="line"><span class="keyword">defer</span> waitGroup.Done()</span><br><span class="line">Change(&amp;Password，<span class="string">"123456"</span>)</span><br><span class="line">&#125;()</span><br><span class="line">waitGroup Wait()</span><br><span class="line">fmt.Println(<span class="string">"Pass:"</span>, showFunction(&amp;Password))</span><br></pre></td></tr></table></figure></p>
+<p>执行rwMutex.go两次并使用time（1）命令行工具测试这个程序的两个版本将产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$time</span> go run rwMutex.go 1o &gt;/dev/null</span><br><span class="line">real0m51.206s</span><br><span class="line">user0m0.130s</span><br><span class="line">sys 0m0.074s</span><br><span class="line"><span class="variable">$time</span> go run rwMutex.go &gt;/dev/null</span><br><span class="line">real0m22.191s user0m0.135s sys 0m0.071s</span><br></pre></td></tr></table></figure></p>
+<p>注意上面命令结尾处的》/dev/null是为了忽略这两个命令的输出。因此，使用sync.RwMutex互斥体的版本要比使用sync.Mutex的版本快很多。</p>
+<p>通过goroutine共享内存</p>
+<p>本主题的最后一小节说明了如何使用专用的goroutine共享数据。尽管，共享内存是线程间彼此通信的传统方法，但Go具有内置的同步功能，允许单个goroutine拥有共享数据。这意味着其他goroutines必须发送消息给这个拥有共享数据的单独goroutine，这可以防止数据损坏。这样的goroutine 叫监视器goroutine。这Go的术语中，这是通过通信来共享而不是通过共享来通信。</p>
+<p>该技术通过使用monitor.go源文件来说明，分五部分来介绍。monitor.go程序使用监视器goroutine随机产生数字。</p>
+<p>monitor.go的第一部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>math/rand<span class="string">' "os</span></span><br><span class="line"><span class="string">"strconv'</span> <span class="string">"svnc' "</span>time<span class="string">" 3</span></span><br><span class="line"><span class="string">var readValue = make(chan int) var writeValue = make(chan int)</span></span><br></pre></td></tr></table></figure></p>
+<p>readValue管道用于读取随机数，而writeValue管道用于得到新随机数。<br>monitor.go的第二段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">set</span><span class="params">(newValue <span class="keyword">int</span>)</span></span>&#123;</span><br><span class="line">writeValue &lt;-newValue <span class="number">1</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">read</span><span class="params">()</span><span class="title">int</span></span>&#123;</span><br><span class="line"><span class="keyword">return</span> &lt;-readValue <span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>set()函数的目的是共享变量的值，而read()函数的目的是读取已保存变量的值。<br>monitor.go程序的第三段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">monitor</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">var</span> value <span class="keyword">int</span></span><br><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> newValue := &lt;-writeValue: value = newValue</span><br><span class="line">fmt.Printf(<span class="string">"%d"</span>,value) casereadValue &lt;- value:</span><br><span class="line">.</span><br><span class="line">.</span><br></pre></td></tr></table></figure></p>
+<p>这个程序的所有逻辑都在这个monitor()函数里了。最具体地说，select语句编排了整个程序的操作。当您有读请求时，read()函数试图从由monitor()函数控制的readValue管道读取数据。返回保存在value变量中的当前值。另一方面，当您想要修改存储值时，可以调用set()。往writeValue管道写数据也由select语句处理。结果就是，不使用monitor()函数没人可以处理value共享变量。</p>
+<p>monitor.go的第四部分代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(os.Args)!=<span class="number">2</span>&#123;</span><br><span class="line">fmt. Println(<span class="string">"Please give an integer!"</span>) <span class="keyword">return</span></span><br><span class="line">]</span><br><span class="line">n, err :=strconv.Atoi(os.Args[<span class="number">1</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt.Println(err)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line">fmt. Printf(<span class="string">"Going to create %d random numbers.\n"</span>, n) rand. Seed(time.Now().Unix())</span><br><span class="line"><span class="keyword">go</span> monitor()</span><br></pre></td></tr></table></figure></p>
+<p>monitor.go的最后一段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&#125;</span><br><span class="line"><span class="keyword">var</span> w sync.WaitGroup</span><br><span class="line">forr:=;r&lt;n;r++&#123;</span><br><span class="line">w.Add(<span class="number">1</span>)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">defer</span> w.Done()</span><br><span class="line">set(rand.Intn(<span class="number">10</span> * n))</span><br><span class="line">&#125;()</span><br><span class="line">]</span><br><span class="line">W.Wait()</span><br><span class="line">fmt.Printf(<span class="string">"\nLast value:%d\n"</span>, read())</span><br></pre></td></tr></table></figure></p>
+<p>执行monitor.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run monitor.go20</span><br><span class="line">Going to create 20 random numbers.</span><br><span class="line">89 88 166 42 149 89 20 84 44 178 184 28 52 121 62 91 31c117 140 Last value:106</span><br><span class="line"><span class="variable">$go</span> run monitor.go10</span><br><span class="line">Going to create 10 random numbers.</span><br><span class="line">30 16 66 70 65 45 31 57 62 26</span><br><span class="line">Last value:26</span><br></pre></td></tr></table></figure></p>
+<p>个人而言，我更喜欢使用监视器goroutine而不是传统的共享内存技术，因为使用监视器goroutine 的实现更安全，更贴合Go的哲学思想</p>
+<p>竞争状态</p>
+<p>数据竞争状态是两个多个运行中的如线程和goroutines试图控制或修改共享的资源或程序变量。严格讲，数据竞争发生在当两个或多个指令访问同一个内存地址，它们中至少有一个在此执行写操作。</p>
+<p>当运行或构建Go源文件时使用-race标志会开启Go竞争监视器，它会使编译器创建一个典型的可执行文件的修改版。这个修改版可以记录所有对共享变量的访问以及发生的同步事件，包括调用sync.Mutex和sync.WaitGroup。分析相关事件后，竞争监视器打印一份报告来帮助您识别潜在问题，这样您就可以修正它们了。</p>
+<p>请看下面的Go代码，它保存为racec.go。这个程序分三部分来介绍。 raceC.go 的第一部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>os<span class="string">'</span></span><br><span class="line"><span class="string">"strconv'</span></span><br><span class="line"><span class="string">"sync' )</span></span><br><span class="line"><span class="string">func main()&#123;</span></span><br><span class="line"><span class="string">arguments:=os.Args</span></span><br><span class="line"><span class="string">if len(arguments)!=2&#123;</span></span><br><span class="line"><span class="string">fmt.Println("</span>Give me a natural number!<span class="string">")</span></span><br><span class="line"><span class="string">os.Exit(1)</span></span><br><span class="line"><span class="string">]</span></span><br><span class="line"><span class="string">numberGR, err :=strconv.Atoi(os.Args[1]) if err !=nil&#123;</span></span><br><span class="line"><span class="string">fmt. Println(err)</span></span><br><span class="line"><span class="string">return</span></span><br><span class="line"><span class="string">1</span></span><br></pre></td></tr></table></figure></p>
+<p>raceC.go 的第二段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> waitGroup sync. WaitGroup <span class="keyword">var</span> iint</span><br><span class="line">k :=<span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">int</span>)</span><br><span class="line">k[<span class="number">1</span>]=<span class="number">12</span></span><br><span class="line"><span class="keyword">for</span> i = e;i&lt;numGR;i++&#123; waitGroup.Add(<span class="number">1</span>)</span><br><span class="line">gofunc()&#123;</span><br><span class="line"><span class="keyword">defer</span> waitGroup.Done() k[i]=i</span><br><span class="line">&#125;()</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<p>raceC.go 的其余代码如下<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0</span></span><br><span class="line">k[<span class="number">2</span>]=<span class="number">10</span></span><br><span class="line">waitGroup. Wait()</span><br><span class="line">fmt.Println(<span class="string">"k=%v\n"</span>，k)</span><br></pre></td></tr></table></figure></p>
+<p>好像许多goroutines同时访问kmap还不够，我们在调用sync.Wait()函数前再添加一个访问kmap的语句。</p>
+<p>如果您执行racec.go，会获得如下没有任何警告或错误信息的输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run raceC.go10</span><br><span class="line">k = map[int]int&#123;7:10,2:10，10:10，1:12&#125; <span class="variable">$go</span> run raceC.go 10</span><br><span class="line">k = map[int]int&#123;2:10，10:10，1:12，8:8，9:9 <span class="variable">$go</span> run raceC.go19</span><br><span class="line">k = map[int]int&#123;10:10，1:12，6:7，7:7，2:10&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果您仅执行一次racec.go，当打印kmap内容的时候尽管您没有得到期望的，但一切看起来正常。然而，多次执行racec.go告诉我们这有些错误，主要是每次执行产生不同的输出。</p>
+<p>如果我们决定使用Go竞争监视器分析raceC.go，我们可以获得更多信息及意外输出：</p>
+<p>竞争监视器发现两处数据竞争。每个都在它的输出里用WARNING：DATARACE消息开头。</p>
+<p>第一个数据竞争发生在main.main.func1()内，它由一个goroutine执行的for循环调用。这的问题由Previous write消息表示。检查相关代码后，很容易看到实际问题是匿名函数没带参数，意思是在for循环中使用的i值不同准确识别，因为这是个写操作，在for循环内不断改变。</p>
+<p>第二处数据竞争信息是Write at 0x00c420074180 by goroutine 7。如果您阅读相关输出，会看到这个数据竞争是关于写操作的，并且至少有两个goroutines在执行。因为这两个goroutine有相同的名字（main.main.func1()），这表明我们谈论的是同一个goroutine。这两个goroutine试图写同一个变量，这就是数据竞争状态！</p>
+<p>Go用main.main.func1()记号命名一个内部地匿名函数。如果您有不同地匿名函数，它们的名字同样会不同</p>
+<p>您可以问之际，现在为了修正这两个数居竞争引起的问题我能做什么？好的，您可以重写racec.go的main()函数如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">arguments := os.Args</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(arguments)!=<span class="number">2</span>&#123;</span><br><span class="line">fmt. Println(<span class="string">"Give me a natural number!"</span>) os.Exit(<span class="number">1</span>)</span><br><span class="line">numGR,err :=srconv.Atoi(os.Args[<span class="number">1</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt. Println(err)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="number">0</span></span><br><span class="line"><span class="keyword">var</span> waitGroup syncWaitGroup <span class="keyword">var</span> iint</span><br><span class="line">k :=<span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">int</span>) k[<span class="number">1</span>]=<span class="number">12</span></span><br><span class="line"><span class="keyword">for</span> i=<span class="number">0</span>;i&lt;numGR;i++&#123; waitGroup.Add(<span class="number">1</span>)</span><br><span class="line"><span class="keyword">go</span> runc(j <span class="keyword">int</span>)&#123;</span><br><span class="line"><span class="keyword">defer</span> waitGroup.Done() aMutex.Lock()</span><br><span class="line">k[j]=j</span><br><span class="line">aMutex.Unlock() &#125;(i)</span><br><span class="line"><span class="number">1</span></span><br><span class="line">waitGroup.Wait()</span><br><span class="line">k[<span class="number">2</span>]=<span class="number">10</span></span><br><span class="line">fmt.Printf(<span class="string">"k=%#v\n"</span>,k)</span><br></pre></td></tr></table></figure></p>
+<p>aMutex变量是一个定义在main()函数外的全局sync.Mutex变量，它可以在程序的任何地方访问到。尽管这不必要，不过有这样一个全局变量可以免得您总是把它传给函数。</p>
+<p>把这个新版本racec.go保存为noRacec.go并执行它产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run noRaceC.go10</span><br><span class="line">k = map[int]int&#123;1:1，00，5:5，3:3,6:6，9:9，2:10，4:4，7:7，8:</span><br></pre></td></tr></table></figure></p>
+<p>用Go竞争监测器运行noRacec.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$gorun</span> -racenoRaceC.go10</span><br><span class="line">k = map[int]int&#123;5:5，7:7，9:9，11,00，4:4，6:6，8:8，2:10，3:</span><br></pre></td></tr></table></figure></p>
+<p>注意当访问kmap时，您需要一个锁机制。如果您没有使用这样的机制并且只修改了由goroutine执行的匿名函数的实现的话，您会从go runnoRaceC.go获得如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这个根本问题是显而易见的：并发map写操作。</p>
+<p>关于context包</p>
+<p>context包的主要用途是定义Context类型和支持取消！是的，您没听错；context包的主要用途是支持取消操作，因为有时为了某种原因，您想要废弃正在做的操作。然而，能提供一些关于您取消决定的额外信息是非常有帮助的。context包就能让您做到这点！</p>
+<p>如果您浏览一下context包点源码，就会认识到它的实现是相当的简单一甚至Context类型的实现也非常简单，而context包是非常重要的。</p>
+<p>context包以前是作为外部Go包存在，但在Go1.7版本，它第一次作为标准Go包出现。因此，如果您有个较老的Go版本，再没先下载context包前，您不能跟着这节学习。</p>
+<p>Context类型是一个有四个方法的接口，方法名为Deadline()，Done()，Err()，Value()。好消息是您不需要实现 Context接口的所有方法- -您只需要使用如context.WithCancel()和context.WithTimeout()函数修改Context变量就行。</p>
+<p>下面是使用context包的示例，用simpleContext.go文件源码，分六部分来介绍。</p>
+<p>simpleContext.go的第一部分代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"context"</span> <span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>os<span class="string">'</span></span><br><span class="line"><span class="string">"strconv'</span> <span class="string">"time"</span> )</span><br></pre></td></tr></table></figure></p>
+<p>simpleContext.go 的第二部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f1</span><span class="params">(tint)</span></span>&#123;</span><br><span class="line">c1:=context.Background()</span><br><span class="line">c1,cancel :=context.WithCancel(c1) <span class="keyword">defer</span> cancel()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">time .Sleep(<span class="number">4</span>* time.Second) cancel()</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure></p>
+<p>f1()函数只需要一个时延参数，因为其他的都定义在函数里了。注意cancel变量的类型是context.CancelFunc。</p>
+<p>您需要调用context.Background()函数来初始化一个空Context参数。context.WithCancel()函数使用一个存在的Context创建一个子类并执行取消操作。context.WithCancel()函数也会创建一个Done通道，如上面的代码所示当cancel()函数被调用时，或者当父context的Done通道关闭时，它会被关闭。</p>
+<p>simplecontext.go的第三部分包含f1()函数的其余部分：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span>&#123;</span><br><span class="line"><span class="keyword">case</span> &lt;- c1.Done():</span><br><span class="line">fmt.Println(<span class="string">"f1():"</span>,c1.Err())</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="keyword">case</span> r :=&lt;-time.After(time.Duration(t)* time.Second): fmt.Println(<span class="string">"f1():"</span>，r)</span><br><span class="line"><span class="number">1</span></span><br><span class="line"><span class="keyword">return</span></span><br></pre></td></tr></table></figure></p>
+<p>这里您看到了Context变量的Done()函数的使用。当这个函数被调用时，您有一个取消操作。Context.Done()的返回值是一个通道，否则您就不能在select语句中使用它了。</p>
+<p>simpleContext.go的第四部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f2</span><span class="params">(t <span class="keyword">int</span>)</span></span>&#123;</span><br><span class="line">c2:=context.Background()</span><br><span class="line">c2,cancel := context.WithTimeout(c2, time.Duration(t)*time. <span class="keyword">defer</span> cancel()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">time.Sleep(<span class="number">4</span>* time.Second) cancel()</span><br><span class="line">&#125;()</span><br><span class="line">r</span><br><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> &lt;-c2.Done():</span><br><span class="line">fmt.Println(<span class="string">"f2():"</span>，c2.Err())</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="keyword">case</span> r := &lt;-time.After(time.Duration(t)*time.Second): fmt. Println(<span class="string">"f2():"</span>，r)</span><br><span class="line">]</span><br><span class="line"><span class="keyword">return</span></span><br></pre></td></tr></table></figure></p>
+<p>这部分展示了context.WithTimeout()函数的使用，它需要两个参数：Context参数和time.Duration参数。当超时到达时，cancel()函数自动调用。</p>
+<p>simpleContext.go 的第五部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f3</span><span class="params">(t <span class="keyword">int</span>)</span></span>&#123;</span><br><span class="line">c3 :=context.Background()</span><br><span class="line">deadline := time.Now().Add(time.Duration(<span class="number">2</span>*t)* time.Second) c3, cancel := context.withDeadline(c3, deadline)</span><br><span class="line"><span class="keyword">defer</span> cancel()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">time .Sleep(<span class="number">4</span>* time.Second) cancel()</span><br><span class="line">&#125;()</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">select</span>&#123;</span><br><span class="line"><span class="keyword">case</span> &lt;-c3.Done():</span><br><span class="line">fmt.<span class="built_in">println</span>(<span class="string">"f3():"</span>,c3.Err())</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="keyword">case</span> r :=&lt;-time.After(time.Duration(t)* time.Second): fmt. Println(<span class="string">"f3():"</span>，r)</span><br><span class="line">.</span><br><span class="line"><span class="keyword">return</span></span><br></pre></td></tr></table></figure></p>
+<p>上面的代码说明了context.WithDeadline()函数的使用，它需要两个参数：Context变量和一个表示操作将要截止的时间。当期限到了，cancel()函数自动调用。</p>
+<p>simpleContext.go的最后一段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(os.Args)!=<span class="number">2</span>&#123;</span><br><span class="line">fmt.Println(<span class="string">"Need a delay!"</span>) <span class="keyword">return</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line">delay, err :=strconv.Atoi(os.Args[<span class="number">1</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt. Print1n(err)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line">fmt.Println(<span class="string">"Delay:"</span>, delay)</span><br><span class="line">)</span><br><span class="line">f1(delay) f2(delay) f3(delay)</span><br></pre></td></tr></table></figure></p>
+<p>执行simplecontext.go产生如下输出：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$<span class="keyword">go</span> run simpleContext.<span class="keyword">go</span> <span class="number">4</span></span><br><span class="line">Delay:<span class="number">4</span></span><br><span class="line">f1():<span class="number">2018</span><span class="number">-02</span><span class="number">-13</span> <span class="number">23</span>:<span class="number">30</span>:<span class="number">00.271587</span>+<span class="number">0200</span>EET m-+<span class="number">4.003435078</span> f2():<span class="number">2018</span><span class="number">-02</span><span class="number">-13</span> <span class="number">23</span>:<span class="number">30</span>:<span class="number">00.272678</span>+<span class="number">0200</span>EET m-+<span class="number">8.004706996</span> f3():<span class="number">2018</span><span class="number">-02</span><span class="number">-1323</span>:<span class="number">30</span>:<span class="number">00.273738</span>+<span class="number">0200E67</span> m-+<span class="number">12.005937567</span> $<span class="keyword">go</span> run simpleContext.<span class="keyword">go</span> <span class="number">10</span></span><br><span class="line">Delay:<span class="number">10</span></span><br><span class="line">f1():context canceled</span><br><span class="line">f2():context canceled</span><br><span class="line">f3():context canceled</span><br></pre></td></tr></table></figure></p>
+<p>输出较长的行是time.After()函数调用的返回值。它们代表程序正常操作。意味着如果该程序执行超时就会立刻被取消。</p>
+<p>这与使用context包一样简单，因为介绍的代码没有对Context接口做任何重要的工作。不过，下节的Go代码将介绍一个更真实的例子。</p>
+<p>context使用的高级示例</p>
+<p>使用useContext.go程序代码将更好，更深入的说明context包的功能，该代码分为五部分来介绍。</p>
+<p>这个例子中，您将创建一个快速响应的HTTP客户端，这是一个很常见的需求。事实上，几乎所有的HTTP客户端都支持这个功能，您将学习另一个HTTP请求超时的技巧，在第12章（Go网络编程基础）。</p>
+<p>useContext.go程序需要两个命令行参数：要连接的服务器URL和应该等待的延迟。如果该程序只有一个命名行参数，那么延迟将是5秒。</p>
+<p>useContext.go的第一段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"context' "</span>fmt<span class="string">'</span></span><br><span class="line"><span class="string">"io/ioutil" "net/http" "os'</span></span><br><span class="line"><span class="string">"strconv' "</span>sync<span class="string">"</span></span><br><span class="line"><span class="string">"</span>time<span class="string">' )</span></span><br><span class="line"><span class="string">var C</span></span><br><span class="line"><span class="string">myUrl</span></span><br><span class="line"><span class="string">delay W</span></span><br><span class="line"><span class="string">1]</span></span><br><span class="line"><span class="string">string</span></span><br><span class="line"><span class="string">int=s</span></span><br><span class="line"><span class="string">sync.WaitGroup</span></span><br><span class="line"><span class="string">type myData struct &#123;</span></span><br><span class="line"><span class="string">*http.Response err error</span></span><br><span class="line"><span class="string">1</span></span><br></pre></td></tr></table></figure></p>
+<p>myUr1和delay都是全局变量，因此它们能从代码的任意位置访问。另外，有一个名为w的sync..WaitGroup变量也是全局的，还有一个名为myData的结构体用于把web服务器的响应和一个错误变量绑在一起。</p>
+<p>useContext.go的第二部分代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">connect</span><span class="params">(c context.context)</span> <span class="title">error</span></span> &#123; <span class="keyword">defer</span> w.Done()</span><br><span class="line">data :=<span class="built_in">make</span>(<span class="keyword">chan</span> myData,<span class="number">1</span>)</span><br><span class="line">tr:=&amp;http.Transport&#123;&#125;</span><br><span class="line">httpClient :=&amp;http.client&#123;Transport:tr&#125;</span><br><span class="line">req,_:=http.NewRequest(<span class="string">"GET"</span>,myUrl,<span class="literal">nil</span>)</span><br></pre></td></tr></table></figure></p>
+<p>上面的代码处理HTTP连接。</p>
+<p>您会了解更多关于开发web服务器和客户端的内容，在第12章（Go网络编程基础）。</p>
+<p>useContext.go的第三段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">response, err := httpClient.Do(req) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt. Println(err)</span><br><span class="line">data &lt;- myData&#123;<span class="literal">nil</span>,err&#125; <span class="keyword">return</span></span><br><span class="line">&#125;<span class="keyword">else</span> &#123;</span><br><span class="line">pack :=myData&#123;response,err&#125; data &lt;- pack</span><br><span class="line">&#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure></p>
+<p>useContext.go的第四段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> &lt;-c.Done():</span><br><span class="line">tr.CancelRequest(req)</span><br><span class="line">&lt;-data</span><br><span class="line">fmt.Println(<span class="string">"The request was cancelled!"</span>) <span class="keyword">return</span> c.Err()</span><br><span class="line"><span class="keyword">case</span> ok:= &lt;-data:</span><br><span class="line">err:=ok.err</span><br><span class="line">resp:=ok.r</span><br><span class="line"><span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt. Println(<span class="string">"Error select:"</span>, err) <span class="keyword">return</span> err</span><br><span class="line"><span class="number">1</span></span><br><span class="line"><span class="keyword">defer</span> resp.Body.<span class="built_in">close</span>()</span><br><span class="line">realHTTPData, err :=ioutil.ReadAll(resp.Body) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt.Println(<span class="string">"Error select:"</span>, err)</span><br><span class="line"><span class="keyword">return</span> err</span><br><span class="line">n2</span><br><span class="line">fmt.Println(<span class="string">"Server Response:%s\n"</span>,realHTTPData)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">return</span> <span class="literal">nil</span></span><br></pre></td></tr></table></figure></p>
+<p>useContext.go的其余代码实现了main()函数，如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(os.Args)==<span class="number">1</span>&#123;</span><br><span class="line">fmt.<span class="built_in">println</span>(<span class="string">"Need a URL and a delay!"</span>) <span class="keyword">return</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line">myUrl = os.Args[<span class="number">1</span>]</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(os.Args)==<span class="number">3</span>&#123;</span><br><span class="line">t. err := strconv.Atoi(os.Args[<span class="number">2</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt.Println(err)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line"><span class="number">1</span></span><br><span class="line">delay= t</span><br><span class="line"><span class="number">7</span></span><br><span class="line">fmt. Println(<span class="string">"Delay:"</span>, delay)</span><br><span class="line">c:=context.Background()</span><br><span class="line">c, cancel := contedxt.WithTimeout(c,time.Duration(delay)*ti <span class="keyword">defer</span> cancel()</span><br><span class="line">fmt.Printf(<span class="string">"Connecting to %s \n"</span>,myUrl) W.Add(<span class="number">1</span>)</span><br><span class="line"><span class="keyword">go</span> connect(c)</span><br><span class="line">W.Wait()</span><br><span class="line">fmt. Println(<span class="string">"Exiting..."</span>)</span><br></pre></td></tr></table></figure></p>
+<p>context.WithTimeout()方法定义了超时期限。connect()函数作为一个goroutine执行，将会正常终止或cancel()函数执行时终止。</p>
+<p>尽管没必要知道服务端的操作，但看一下Go版本的随机减速的web服务器也是好的；一个随机数生成器决定您的web服务器有多慢。slwwww.go的源码内容如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"math/rand' "</span>net/http<span class="string">' "os</span></span><br><span class="line"><span class="string">"time'</span> m</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">random</span><span class="params">(min, max <span class="keyword">int</span>)</span><span class="title">int</span></span> &#123;</span><br><span class="line"><span class="keyword">return</span> rand.Intn(max-min)+min <span class="number">1</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">myHandler</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span>&#123; delay :=random(e，<span class="number">15</span>)</span><br><span class="line">time.sleep(time.Duration(delay)* time.Second)</span><br><span class="line"><span class="number">7</span></span><br><span class="line">fmt.Fprintf(w,<span class="string">"Servring:%s\n"</span>，r.URL.Path) fmt.Fprintf(w,<span class="string">"Dealy:%d\n"</span>, delay)</span><br><span class="line">fmt.Printf(<span class="string">"Served:%s\n"</span>,r.Host)</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">seed :=time.Now().Unix() rand Seed(seed)</span><br><span class="line">PORT:=“:<span class="number">8001</span><span class="string">'</span></span><br><span class="line"><span class="string">arguments :=os.Args</span></span><br><span class="line"><span class="string">if len(arguments) ==1&#123;</span></span><br><span class="line"><span class="string">fmt.Println("Using default port nubmer:", PORT) &#125;else &#123;</span></span><br><span class="line"><span class="string">PORT=</span></span><br><span class="line"><span class="string">+ arguments[1]</span></span><br><span class="line"><span class="string">]</span></span><br><span class="line"><span class="string">.</span></span><br><span class="line"><span class="string">http.HandleFunc("/", myHandler)</span></span><br><span class="line"><span class="string">err :=http.ListenAndServer(PORT, nil) if err !=nil&#123;</span></span><br><span class="line"><span class="string">fmt. Println(err)</span></span><br><span class="line"><span class="string">Os.Exit(10)</span></span><br><span class="line"><span class="string">]</span></span><br></pre></td></tr></table></figure></p>
+<p>如您所见，您不需要在slowwww.go文件中使用context包，因为那是web客户端的工作，它会决定需要多长时间等待响应。</p>
+<p>myHandler()函数的代码负责web服务器的减速处理。如介绍的那样，延迟可以由random（e，15）函数在0到14秒随机产生。<br>如果您使用如wget（1）的工具访问slwwww.go服务器的话，会收到如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$wget</span>-q0-http://localhost:8001/ Serving:/</span><br><span class="line">Delay:4</span><br><span class="line"><span class="variable">$wget</span>-qO-http://localhost:8001/ Serving:/</span><br><span class="line">Delay:13</span><br></pre></td></tr></table></figure></p>
+<p>这是因为wget（1）的默认超时时间比较大。</p>
+<p>当slowwww.go已经在另一个Unix shell里运行后，用方便的time（1）工具处理执行useContext.go的输出如下：<br>这个输出显示只有第三个命令确实从HTTP服务器获得了响应一第一和第二个命令都超时了！</p>
+<p>工作池</p>
+<p>通常讲，工作池是一组分配了处理任务的线程。或多或少，Apache web服务器是这样工作的：主进程接受所有传入请求，然后转发到工作进程以获得服务。一旦，一个工作进程完成工作，它就准备为新客户端提供服务。不过，在这有些不同，因为我们的工作池使用goroutines代替线程。另外，线程不能在服务完请求后经常销毁，因为结束线程和创建线程的代价太高，而goroutines在完成它的任务后就可以销毁。<br>很快您就会看到，Go中的工作池用缓冲通道来实现的，因为它允许您限制同时执行的goroutines数量。</p>
+<p>接下来的程序workPool.go分为五部分来介绍。这个程序实现一个简单的任务：它将处理整数并打印它们的平方，使用一个单独goroutine来服务每个请求。尽管workerPool.go比较简单，但是它基本可以作为实现更复杂任务的程序模板。</p>
+<p>这是一个高级技巧，它能帮您在Go中使用goroutines创建服务进程来接收并服务多个客户端！</p>
+<p>workerPool.go的第一部分如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span>(</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"os'</span></span><br><span class="line"><span class="string">"</span>strconv <span class="string">"svnc"</span> <span class="string">"time' )</span></span><br><span class="line"><span class="string">type Client struct &#123; idint</span></span><br><span class="line"><span class="string">integer int &#125;</span></span><br><span class="line"><span class="string">type Data struct &#123; job Client</span></span><br><span class="line"><span class="string">squareint ]</span></span><br></pre></td></tr></table></figure></p>
+<p>这里您可以看到一个技巧，使用client结构来分配一个唯一标识给每个要处理的请求。Data结构用于把由程序产生实际结果的客户端数据组合起来。简单说，Client结构持有每个请求的输入数据，而Data结构有请求的结果。</p>
+<p>workerPool.go的第二段代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span></span><br><span class="line">size=<span class="number">1</span>e</span><br><span class="line">clients = <span class="built_in">make</span>(<span class="keyword">chan</span> Client, size) data = <span class="built_in">make</span>(<span class="keyword">chan</span> Data, size)</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">worker</span><span class="params">(w*sync.waitGroup)</span></span>&#123;</span><br><span class="line"><span class="keyword">for</span> c := <span class="keyword">range</span> clients &#123;</span><br><span class="line">squre :=c.integer *c.integer output :=Data&#123;c,square&#125;</span><br><span class="line">data &lt;- output</span><br><span class="line">time.Sleep(time.Second) <span class="number">1</span></span><br><span class="line">W.Done()</span><br><span class="line"><span class="number">1.</span></span><br></pre></td></tr></table></figure></p>
+<p>上面的代码由两处有趣的地方。第一处是创建了三个全局变量。clients和data缓冲通道分别用于获得新的客户端请求和写入结果。如果您想要程序运行的快些，您可以增加这个size参数的值。</p>
+<p>第二处是worker()函数的实现，它读取clients通道来获得新的请求去服务。一旦处理完成，结果就会写入data通道。使用time. Sleep（time.second）语句的延迟不是必要的，但它使您更好地了解生成的输出的打印方式。</p>
+<p>*workerPool.go’的第三部分包含如下代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">makeWP</span><span class="params">(n <span class="keyword">int</span>)</span></span>&#123;</span><br><span class="line"><span class="keyword">var</span> w sync. WaitGroup</span><br><span class="line"><span class="keyword">for</span> i:=<span class="number">0</span>;i&lt;n;i++&#123; w.Add(<span class="number">1</span>)</span><br><span class="line"><span class="keyword">go</span> worker(&amp;w)</span><br><span class="line"><span class="number">0</span></span><br><span class="line">W.Wait()</span><br><span class="line"><span class="built_in">close</span>(data)</span><br><span class="line">)</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">create</span><span class="params">(n <span class="keyword">int</span>)</span></span>&#123;</span><br><span class="line"><span class="keyword">for</span> i :=;i&lt;n;i++&#123;</span><br><span class="line">c:=Client&#123;i，i&#125; clients&lt;-c</span><br><span class="line">]</span><br><span class="line"><span class="built_in">close</span>(clients)</span><br><span class="line">了</span><br></pre></td></tr></table></figure></p>
+<p>上面的代码实现了两个名为makeWP()和create()的函数。makeWP()函数的目的是为了处理所有请求生成需要的worker()goroutines。虽然w.Add（1）函数在makeWP()中调用，但w.Done()是在worker()函数里调用的，当worker完成它的任务时。</p>
+<p>create()函数的目的是使用client类型恰当地创建所有的请求，然后把它们写入clients通道进行处理。注意clients通道是被worker()函数读取的。</p>
+<p>workerPool.go的第四部分代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">fmt. Println(<span class="string">"Capacity of clients:"</span>, <span class="built_in">cap</span>(clients)) fmt.printin(<span class="string">"Capacity of data:"</span>, <span class="built_in">cap</span>(data))</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(os.Args)!=<span class="number">3</span>&#123;</span><br><span class="line">fmt. Println(<span class="string">"Need #jobs and #workers!"</span>) os.Exit(<span class="number">1</span>)</span><br><span class="line">]</span><br><span class="line">nJobs, err :=strconv.Atoi(os.Args[<span class="number">1</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt. Println(err)</span><br><span class="line"><span class="keyword">return</span></span><br><span class="line">nWorkers, err :=strconv.Atoi(os.Args[<span class="number">2</span>]) <span class="keyword">if</span> err !=<span class="literal">nil</span>&#123;</span><br><span class="line">fmt. Println(err)</span><br><span class="line">returr</span><br></pre></td></tr></table></figure></p>
+<p>在上面的代码里，您看到了读取命令行参数之前，会使用cap()函数获取通道的容量。</p>
+<p>如果worker的数量大于clients缓冲通道容量，那么goroutines的数量将会增加到与clients通道的大小相同。简单讲，任务数量比worker大，任务将以较小的数量供应。</p>
+<p>这个程序允许您使用命令行参数定义worker和任务的数量。但为了修改clients和data通道的大小，您需要修改源代码。</p>
+<p>workerPool.go的其余部分如下：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">go</span> create(nJobs)</span><br><span class="line">finished := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">for</span> d := <span class="keyword">range</span> data &#123;</span><br><span class="line">fmt.Println(<span class="string">"Client ID:%d\tint:"</span>,d.job.id)</span><br><span class="line">fmt. Println(<span class="string">"%dtsquare:%d\n"</span>,d.job.integer,d.squa ]</span><br><span class="line">finished &lt;-<span class="literal">true</span></span><br><span class="line">&#125;()</span><br><span class="line">makeWP(nworkers)</span><br><span class="line">fmt.Println(<span class="string">":%v\n"</span>,&lt;-finished)</span><br></pre></td></tr></table></figure>
+<p>首先，您调用create()函数模拟要处理的客户端请求。一个匿名goroutine用于读取data通道并打印输出到屏幕上。finished通道用于阻塞程序直到匿名goroutine读完data通道。因此，这个finished通道不需要指定类型！最后，您调用makeWP()函数来真正处理请求。fmt.Printf()语句块里的《-finished语句的意思是不允许程序结束直到有往finished通道里写数据。写数据的是main()函数中的匿名goroutine。另外，虽然这个匿名函数往finished通道里写true值，但您也可以往里写false并同样解除main()函数的阻塞。您可以自己试一下！</p>
+<p>执行workerPool.go产生如下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run workerPool.go155 Capacity of clients:10 Capacity of data:10 ClientID:e</span><br><span class="line">int:e</span><br><span class="line">ClientID:4</span><br><span class="line">int:4</span><br><span class="line">ClientID:1</span><br><span class="line">int:1</span><br><span class="line">ClientID:3</span><br><span class="line">int:3</span><br><span class="line">ClientID:2</span><br><span class="line">int:2</span><br><span class="line">ClientID:5</span><br><span class="line">int:5</span><br><span class="line">ClientID:6</span><br><span class="line">int:6</span><br><span class="line">ClientID:7</span><br><span class="line">int:7</span><br><span class="line">ClientID:8</span><br><span class="line">int:8</span><br><span class="line">ClientID:9</span><br><span class="line">int:9</span><br><span class="line">ClientID:10</span><br><span class="line">int:10</span><br><span class="line">ClientID:11</span><br><span class="line">int:11</span><br><span class="line">ClientID:12</span><br><span class="line">int:12</span><br><span class="line">ClientID:13</span><br><span class="line">int:13</span><br><span class="line">ClientID:14</span><br><span class="line">int:14</span><br><span class="line">:<span class="literal">true</span></span><br><span class="line">square:o square:16 square:1 square:9 square:4 square:25 square:36 square:49 square:64 square:81 square:100 square:121 square:144 square:169 square:196</span><br></pre></td></tr></table></figure></p>
+<p>当您希望在main()函数中为每个单独的请求提供服务而不希望得到它的响应时，就像在workerpool.go中发生的那样，您需要担心的事情就很少了。在main()函数中既要使用goroutines处理请求，又要从它们获得响应，一个简单的办法是使用共享内存或者一个监视进程来搜集数据而不只是打印它们到屏幕上。</p>
+<p>最后，workerPool.go程序的工作是非常的简单，因为worker()函数不会失败。当您必须在计算机网络上工作或使用其他可能会失败的资源时，情况就不是这样了。</p>
+<p>延展阅读<br>下面是非常有用的资源：</p>
+<ul>
+<li>可以在<a href="http://golang.org/pkg/sync/" target="_blank" rel="noopener">http://golang.org/pkg/sync/</a>查看sync包文档。</li>
+<li>可以在<a href="https://golang.org/pkg/context/" target="_blank" rel="noopener">https://golang.org/pkg/context/</a>查看context包文档。</li>
+<li>访问<a href="https://golang.org/src/runtime/proc.go" target="_blank" rel="noopener">https://golang.org/src/runtime/proc.go</a>了解更多关于Go调度器多实现。</li>
+<li>可以在浏览Go调度器的设计文档。</li>
+</ul>
+<h1 id="练习"><a href="#练习" class="headerlink" title="练习"></a>练习</h1><ul>
+<li>使用缓冲通道实现一个并发版本的wc（1）。</li>
+<li>接着，使用共享内存实现一个并发版本的wx（1）。</li>
+<li>最后，使用监视goroutine实现一个并发版本的wx（1）。</li>
+<li>修改workerPool.go的源码来保存结果到文件里。处理文件时，使用互斥锁和关键部分，或者一个监视goroutine来保证在磁盘上写入您的数据。</li>
+<li>当workerPool.go的size全局变量为1时会发生什么？为什么？</li>
+<li>修改workerPool.go的源码来实现wc（1）支持命令行功能。，修改workerPool.go的源码来实现clients和data缓冲通道的大小可以通过命令行参数来定义。</li>
+<li>使用监视goroutine写一个并发版本的find（1）命令行工具。</li>
+<li>修改simplecontext.go源码，把在f1()，f2()，f3()中使用的匿名函数改为一个单独的函数。这个改动的难点是什么？</li>
+<li>修改simpleContext.go 的源码，让f1()，f2()，f3()函数使用外部创建的Context变量而不是它们自己的。</li>
+<li>修改useContext.go源码，使用context.WithDeadline()或者context.WithCancel()来代替context. WithTimeout()。<br>，最后，使用sync.Mutex互斥锁时间一个并发版本的find（1）命令行工具。</li>
+</ul>
+<h1 id="本章小结"><a href="#本章小结" class="headerlink" title="本章小结"></a>本章小结</h1><p>这章解决了许多关于goroutine的重要主题。然而，主要的是阐明select语句的作用。另外是说明context标准包的使用。</p>
+<p>由于select语句的功能，通道是非常好的Go方式来互连Go程序的组件。</p>
+<p>并发程序又许多规则；但是，最重要的规则是您应该避免共享，除非有万不得已的情况。并发程序中，共享数据是所有bug的根本原因。</p>
+<p>从这章您必须记住尽管共享内存是在同一个进程的线程之上交换数据的唯一方法，但Go提供了更好的方法给每个goroutine来通信。因此，在你的代码里使用共享内存前，考虑一下Go的语法。虽然如此，如果您真的不得不使用共享内存，您可能会考虑使用监视goroutine来代替。</p>
+<p>下章的主要话题是代码测试，代码优化和代码分析。除了这些主题，您会了解到基准测试，交叉编译和找出隐藏代码。</p>
+<p>下章的最后，您也会了解到怎样文档化您的代码并使用godoc工具生成HTML输出。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Mastering-Go/" rel="tag"># Mastering Go</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/09/30/9-并发-Goroutine，Channel和Pipeline/" rel="next" title="9-并发-Goroutine，Channel和Pipeline">
+                <i class="fa fa-chevron-left"></i> 9-并发-Goroutine，Channel和Pipeline
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2021/09/30/11-代码测试，优化及分析/" rel="prev" title="11-代码测试，优化及分析">
+                11-代码测试，优化及分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">放弃会成为一种习惯</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">451</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">17</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">60</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2021/09/30/13-网络编程-构建服务器与客户端/" title="13-网络编程-构建服务器与客户端" target="_blank">13-网络编程-构建服务器与客户端</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2021/09/30/12-Go网络编程基础/" title="12-Go网络编程基础" target="_blank">12-Go网络编程基础</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2021/09/30/11-代码测试，优化及分析/" title="11-代码测试，优化及分析" target="_blank">11-代码测试，优化及分析</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2021/09/30/10-Go并发-进阶讨论/" title="10-Go并发-进阶讨论" target="_blank">10-Go并发-进阶讨论</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2021/09/30/9-并发-Goroutine，Channel和Pipeline/" title="9-并发-Goroutine，Channel和Pipeline" target="_blank">9-并发-Goroutine，Channel和Pipeline</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#练习"><span class="nav-number">1.</span> <span class="nav-text">练习</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#本章小结"><span class="nav-number">2.</span> <span class="nav-text">本章小结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">4.4m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">66:26</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
