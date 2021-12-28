@@ -103,18 +103,26 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="手把手带你写一个Web框架">
 <meta property="og:type" content="article">
 <meta property="og:title" content="02｜Context：请求控制器，让每个请求都在掌控之中">
 <meta property="og:url" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-12-20T03:16:50.860Z">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/1.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/2.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/3.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/4.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/5.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/6.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/7.webp">
+<meta property="og:updated_time" content="2021-12-28T02:27:33.130Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="02｜Context：请求控制器，让每个请求都在掌控之中">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/1.webp">
 
 
 
@@ -426,12 +434,24 @@
                 
               
 
-              <time title="创建时间：2021-12-20 11:04:34 / 修改时间：11:16:50" itemprop="dateCreated datePublished" datetime="2021-12-20T11:04:34+08:00">2021-12-20</time>
+              <time title="创建时间：2021-12-20 11:04:34" itemprop="dateCreated datePublished" datetime="2021-12-20T11:04:34+08:00">2021-12-20</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-12-28 10:27:33" itemprop="dateModified" datetime="2021-12-28T10:27:33+08:00">2021-12-28</time>
               
             
           </span>
@@ -477,7 +497,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">7.8k</span>
+                <span title="本文字数">14k</span>
               
 
               
@@ -491,7 +511,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">7 分钟</span>
+                <span title="阅读时长">12 分钟</span>
               
             </div>
           
@@ -512,47 +532,123 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
-<p>上一讲我们使用 net/http 搭建了一个最简单的 HTTP 服务，为了帮你理解服务启动逻辑，我用思维导图梳理了主流程，如果你还有不熟悉，可以再回顾一下。今天我将带你进一步丰富我们的框架，添加上下文 Context 为请求设置超时时间。从主流程中我们知道（第三层关键结论），HTTP 服务会为每个请求创建一个 Goroutine 进行服务处理。在服务处理的过程中，有可能就在本地执行业务逻辑，也有可能再去下游服务获取数据。如下图，本地处理逻辑 A，下游服务 a/b/c/d， 会形成一个标准的树形逻辑链条。</p>
-<p>在这个逻辑链条中，每个本地处理逻辑，或者下游服务请求节点，都有可能存在超时问题。而对于 HTTP 服务而言，超时往往是造成服务不可用、甚至系统瘫痪的罪魁祸首。系统瘫痪也就是我们俗称的雪崩，某个服务的不可用引发了其他服务的不可用。比如上图中，如果服务 d 超时，导致请求处理缓慢甚至不可用，加剧了 Goroutine 堆积，同时也造成了服务 a/b/c 的请求堆积，Goroutine 堆积，瞬时请求数加大，导致 a/b/c 的服务都不可用，整个系统瘫痪，怎么办？最有效的方法就是从源头上控制一个请求的“最大处理时长”，所以，对于一个 Web 框架而言，“超时控制”能力是必备的。今天我们就用 Context 为框架增加这个能力。context 标准库设计思路</p>
-<p>如何控制超时，官方是有提供 context 标准库作为解决方案的，但是由于标准库的功能并不够完善，一会我们会基于标准库，来根据需求自定义框架的 Context。所以理解其背后的设计思路就可以了。为了防止雪崩，context 标准库的解决思路是：在整个树形逻辑链条中，用上下文控制器 Context，实现每个节点的信息传递和共享。具体操作是：用 Context 定时器为整个链条设置超时时间，时间一到，结束事件被触发，链条中正在处理的服务逻辑会监听到，从而结束整个逻辑链条，让后续操作不再进行。明白操作思路之后，我们深入 context 标准库看看要对应具备哪些功能。按照上一讲介绍的了解标准库的方法，我们先通过 go doc context | grep “^func” 看提供了哪些库函数（function）：</p>
-<p>其中，WithCancel 直接创建可以操作退出的子节点，WithTimeout 为子节点设置了超时时间（还有多少时间结束），WithDeadline 为子节点设置了结束时间线（在什么时间结束）。但是这只是表层功能的不同，其实这三个库函数的本质是一致的。怎么理解呢？我们先通过 go doc context | grep “^type” ，搞清楚 Context 的结构定义和函数句柄，再来解答这个问题。</p>
-<p>这个库虽然不大，但是设计感强，比较抽象，并不是很好理解。所以这里，我把 Context 的其他字段省略了。现在，我们只理解核心的 Done() 方法和 CancelFunc 这两个函数就可以了。在树形逻辑链条上，一个节点其实有两个角色：一是下游树的管理者；二是上游树的被管理者，那么就对应需要有两个能力：一个是能让整个下游树结束的能力，也就是函数句柄 CancelFunc；另外一个是在上游树结束的时候被通知的能力，也就是 Done() 方法。同时因为通知是需要不断监听的，所以 Done() 方法需要通过 channel 作为返回值让使用方进行监听。看官方代码示例：</p>
-<p>主线程创建了一个 1 毫秒结束的定时器 Context，在定时器结束的时候，主线程会通过 Done() 函数收到事件结束通知，然后主动调用函数句柄 cancelFunc 来通知所有子 Context 结束（这个例子比较简单没有子 Context）。我打个更形象的比喻，CancelFunc 和 Done 方法就像是电话的话筒和听筒，话筒 CancelFunc，用来告诉管辖范围内的所有 Context 要进行自我终结，而通过监听听筒 Done 方法，我们就能听到上游父级管理者的终结命令。总之，CancelFunc 是主动让下游结束，而 Done 是被上游通知结束。搞懂了具体实现方法，我们回过头来看这三个库函数 WithCancel / WithDeadline / WithTimeout 就很好理解了。</p>
-<p>它们的本质就是“通过定时器来自动触发终结通知”，WithTimeout 设置若干秒后通知触发终结，WithDeadline 设置未来某个时间点触发终结。对应到 Context 代码中，它们的功能就是：为一个父节点生成一个带有 Done 方法的子节点，并且返回子节点的 CancelFunc 函数句柄。</p>
-<p>我们用一张图来辅助解释一下，Context 的使用会形成一个树形结构，下游指的是树形结构中的子节点及所有子节点的子树，而上游指的是当前节点的父节点。比如图中圈起来的部分，当 WithTimeout 调用 CancelFunc 的时候，所有下游的 With 系列产生的 Context 都会从 Done 中收到消息。Context 是怎么产生的现在我们已经了解标准库 context 的设计思路了，在开始写代码之前，我们还要把 Context 放到 net/http 的主流程逻辑中，其中有两个问题要搞清楚：Context 在哪里产生？它的上下游逻辑是什么？要回答这两个问题，可以用我们在上一讲介绍的思维导图方法，因为主流程已经拎清楚了，现在你只需要把其中 Context 有关的代码再详细过一遍，然后在思维导图上标记出来就可以了。<br>这里，我已经把 Context 的关键代码都用蓝色背景做了标记，你可以检查一下自己有没有标漏。</p>
-<p>照旧看图梳理代码流程，来看蓝色部分，从前到后的层级梳理就不再重复讲了，我们看关键位置。从图中最后一层的代码 req.ctx = ctx 中看到，每个连接的 Context 最终是放在 request 结构体中的。而且这个时候， Context 已经有多层父节点。因为，在代码中，每执行一次 WithCancel、WithValue，就封装了一层 Context，我们通过这一张流程图能清晰看到最终 Context 的生成层次。</p>
-<p>你发现了吗，其实每个连接的 Context 都是基于 baseContext 复制来的。对应到代码中就是，在为某个连接开启 Goroutine 的时候，为当前连接创建了一个 connContext，这个 connContext 是基于 server 中的 Context 而来，而 server 中 Context 的基础就是 baseContext。所以，Context 从哪里产生这个问题，我们就解决了，但是如果我们想要对 Context 进行必要的修改，还要从上下游逻辑中，找到它的修改点在哪里。生成最终的 Context 的流程中，net/http 设计了两处可以注入修改的地方，都在 Server 结构里面，一处是 BaseContext，另一处是 ConnContext。</p>
-<p>BaseContext 是整个 Context 生成的源头，如果我们不希望使用默认的 context.Backgroud()，可以替换这个源头。而在每个连接生成自己要使用的 Context 时，会调用 ConnContext ，它的第二个参数是 net.Conn，能让我们对某些特定连接进行设置，比如要针对性设置某个调用 IP。这两个函数的定义我写在下面的代码里了，展示一下，你可以看看。</p>
-<p>最后，我们回看一下 req.ctx 是否能感知连接异常。</p>
-<p>是可以的，因为链条中一个父节点为 CancelContext，其 cancelFunc 存储在代表连接的 conn 结构中，连接异常的时候，会触发这个函数句柄。好，讲完 context 库的核心设计思想，以及在 net/http 的主流程逻辑中嵌入 context 库的关键实现，我们现在心中有图了，就可以撸起袖子开始写框架代码了。你是不是有点疑惑，为啥要自己先理解一遍 context 标准库的生成流程，咱们直接动手干不是更快？有句老话说得好，磨刀不误砍柴功。我们确实是要自定义，不是想直接使用标准库的 Context，因为它完全是标准库 Context 接口的实现，只能控制链条结束，封装性并不够。但是只有先搞清楚了 context 标准库的设计思路，才能精准确定自己能怎么改、改到什么程度合适，下手的时候才不容易懵。下面我们就基于刚才讲的设计思路，从封装自己的 Context 开始，写今天的核心逻辑，也就是为单个请求设置超时，最后考虑一些边界场景，并且进行优化。</p>
-<p>我们还是再拉一个分支 geekbang/02，接着上一节课的代码结构，在框架文件夹中封装一个自己的 Context。封装一个自己的 Context在框架里，我们需要有更强大的 Context，除了可以控制超时之外，常用的功能比如获取请求、返回结果、实现标准库的 Context 接口，也都要有。我们首先来设计提供获取请求、返回结果功能。先看一段未封装自定义 Context 的控制器代码：</p>
-<p>这段代码重点是操作调用了 http.Request 和 http.ResponseWriter ，实现 WebService 接收和处理协议文本的功能。但这两个结构提供的接口粒度太细了，需要使用者非常熟悉这两个结构的内部字段，比如 response 里设置 Header 和设置 Body 的函数，用起来肯定体验不好。如果我们能将这些内部实现封装起来，对外暴露语义化高的接口函数，那么我们这个框架的易用性肯定会明显提升。什么是好的封装呢？再看这段有封装的代码：</p>
-<p>你可以明显感受到封装性高的 Foo2 函数，更优雅更易读了。首先它的代码量更少，而且语义性也更好，近似对业务的描述：从请求体中获取 foo 参数，并且封装为 Map，最后 JSON 输出。思路清晰了，所以这里可以将 request 和 response 封装到我们自定义的 Context 中，对外提供请求和结果的方法，我们把这个 Context 结构写在框架文件夹的 context.go 文件中：</p>
-<p>对 request 和 response 封装的具体实现，我们到第五节课封装的时候再仔细说。然后是第二个功能，标准库的 Context 接口。标准库的 Context 通用性非常高，基本现在所有第三方库函数，都会根据官方的建议，将第一个参数设置为标准 Context 接口。所以我们封装的结构只有实现了标准库的 Context，才能方便直接地调用。到底有多方便，我们看使用示例：</p>
-<p>这里使用了 go-redis 库，它每个方法的参数中都有一个标准 Context 接口，这让我们能将自定义的 Context 直接传递给 rdb.Set。所以在我们的框架上实现这一步，只需要调用刚才封装的 request 中的 Context 的标准接口就行了，很简单，我们继续在 context.go 中进行补充：</p>
-<p>这里举例了两个 method 的实现，其他的都大同小异就不在文稿里展示，你可以先自己写，然后对照我放在GitHub上的完整代码检查一下。自己封装的 Context 最终需要提供四类功能函数：base 封装基本的函数功能，比如获取 http.Request 结构context 实现标准 Context 接口request 封装了 http.Request 的对外接口response 封装了 http.ResponseWriter 对外接口完成之后，使用我们的 IDE 里面的结构查看器（每个 IDE 显示都不同），就能查看到如下的函数列表：</p>
-<p>有了我们自己封装的 Context 之后，控制器就非常简化了。把框架定义的 ControllerHandler 放在框架目录下的 controller.go 文件中：</p>
-<p>把处理业务的控制器放在业务目录下的 controller.go 文件中：</p>
-<p>参数只有一个 framework.Context，是不是清爽很多，这都归功于刚完成的自定义 Context。为单个请求设置超时上面我们封装了自定义的 Context，从设计层面实现了标准库的 Context。下面回到我们这节课核心要解决的问题，为单个请求设置超时。如何使用自定义 Context 设置超时呢？结合前面分析的标准库思路，我们三步走完成：继承 request 的 Context，创建出一个设置超时时间的 Context；创建一个新的 Goroutine 来处理具体的业务逻辑；设计事件处理顺序，当前 Goroutine 监听超时时间 Contex 的 Done() 事件，和具体的业务处理结束事件，哪个先到就先处理哪个。</p>
-<p>理清步骤，我们就可以在业务的 controller.go 文件中完成业务逻辑了。第一步生成一个超时的 Context：</p>
-<p>这里为了最终在浏览器做验证，我设置超时事件为 1s，这样最终验证的时候，最长等待 1s 就可以知道超时是否生效。第二步创建一个新的 Goroutine 来处理业务逻辑：</p>
-<p>为了最终的验证效果，我们使用 time.Sleep 将新 Goroutine 的业务逻辑事件人为往后延迟了 10s，再输出“ok”，这样最终验证的时候，效果比较明显，因为前面的超时设置会在 1s 生效了，浏览器就有表现了。到这里我们这里先不急着进入第三步，还有错误处理情况没有考虑到位。这个新创建的 Goroutine 如果出现未知异常怎么办？需要我们额外捕获吗？其实在 Golang 的设计中，每个 Goroutine 都是独立存在的，父 Goroutine 一旦使用 Go 关键字开启了一个子 Goroutine，父子 Goroutine 就是平等存在的，他们互相不能干扰。而在异常面前，所有 Goroutine 的异常都需要自己管理，不会存在父 Goroutine 捕获子 Goroutine 异常的操作。所以切记：在 Golang 中，每个 Goroutine 创建的时候，我们要使用 defer 和 recover 关键字为当前 Goroutine 捕获 panic 异常，并进行处理，否则，任意一处 panic 就会导致整个进程崩溃！这里你可以标个重点，面试会经常被问到。</p>
-<p>搞清楚这一点，我们回看第二步，做完具体业务逻辑就结束是不行的，还需要处理 panic。所以这个 Goroutine 应该要有两个 channel 对外传递事件：</p>
-<p>现在第二步才算完成了，我们继续写第三步监听。使用 select 关键字来监听三个事件：异常事件、结束事件、超时事件。</p>
-<p>接收到结束事件，只需要打印日志，但是，在接收到异常事件和超时事件的时候，我们希望告知浏览器前端“异常或者超时了”，所以会使用 c.Json 来返回一个字符串信息。三步走到这里就完成了对某个请求的超时设置，你可以通过 go build、go run 尝试启动下这个服务。如果你在浏览器开启一个请求之后，浏览器不会等候事件处理 10s，而在等待我们设置的超时事件 1s 后，页面显示“time out”就结束这个请求了，就说明我们为某个事件设置的超时生效了。边界场景到这里，我们的超时逻辑设置就结束且生效了。但是，这样的代码逻辑只能算是及格，为什么这么说呢？因为它并没有覆盖所有的场景。我们的代码逻辑要再严谨一些，把边界场景也考虑进来。这里有两种可能：</p>
-<p>异常事件、超时事件触发时，需要往 responseWriter 中写入信息，这个时候如果有其他 Goroutine 也要操作 responseWriter，会不会导致 responseWriter 中的信息出现乱序？超时事件触发结束之后，已经往 responseWriter 中写入信息了，这个时候如果有其他 Goroutine 也要操作 responseWriter， 会不会导致 responseWriter 中的信息重复写入？你先分析第一个问题，是很有可能出现的。方案不难想到，我们要保证在事件处理结束之前，不允许任何其他 Goroutine 操作 responseWriter，这里可以使用一个锁（sync.Mutex）对 responseWriter 进行写保护。在框架文件夹的 context.go 中对 Context 结构进行一些设置：</p>
-<p>在刚才写的业务文件夹 controller.go 中也进行对应的修改：</p>
-<p>那第二个问题怎么处理，我提供一个方案。我们可以设计一个标记，当发生超时的时候，设置标记位为 true，在 Context 提供的 response 输出函数中，先读取标记位；当标记位为 true，表示已经有输出了，不需要再进行任何的 response 设置了。同样在框架文件夹中修改 context.go：</p>
-<p>在业务文件夹中修改 controller.go：</p>
-<p>好了，到了这里，我们就完成了请求超时设置，并且考虑了边界场景。剩下的验证部分，我们写一个简单的路由函数，将这个控制器路由在业务文件夹中创建一个 route.go:</p>
-<p>并修改 main.go：</p>
-<p>就可以运行了。完整代码照旧放在 GitHub 的 geekbang/02 分支上了。</p>
-<p>小结今天，我们定义了一个属于自己框架的 Context，它有两个功能：在各个 Goroutine 间传递数据；控制各个 Goroutine，也就是是超时控制。这个自定义 Context 结构封装了 net/http 标准库主逻辑流程产生的 Context，与主逻辑流程完美对接。它除了实现了标准库的 Context 接口，还封装了 request 和 response 的请求。你实现好了 Context 之后，就会发现它跟百宝箱一样，在处理具体的业务逻辑的时候，如果需要获取参数、设置返回值等，都可以通过 Context 获取。封装后，我们通过三步走为请求设置超时，并且完美地考虑了各种边界场景。你是不是觉得我们这一路要思考的点太多了，又是异常，又是边界场景。但是这里我要特别说明，其实真正要衡量框架的优劣，要看什么？就是看细节。所有框架的基本原理和基本思路都差不多，但是在细节方面，各个框架思考的程度是不一样的，才导致使用感天差地别。所以如果你想完成一个真正生产能用得上的框架，这些边界场景、异常分支，都要充分考虑清楚。</p>
-<p>思考题在 context 库的官方文档中有这么一句话：Do not store Contexts inside a struct type;instead, pass a Context explicitly to each function that needs it.The Context should be the first parameter.大意是说建议我们设计函数的时候，将 Context 作为函数的第一个参数。你能理解官方为什么如此建议，有哪些好处？可以结合你的工作经验，说说自己的看法。</p>
+<p>上一讲我们使用net/http搭建了一个最简单的HTTP服务，为了帮你理解服务启动逻辑，我用思维导图梳理了主流程，如果你还有不熟悉，可以再回顾一下。</p>
+<p>今天我将带你进一步丰富我们的框架，添加上下文Context为请求设置超时时间。</p>
+<p>从主流程中我们知道（第三层关键结论），HTTP服务会为每个请求创建一个Goroutine进行服务处理。在服务处理的过程中，有可能就在本地执行业务逻辑，也有可能再去下游服务获取数据。如下图，本地处理逻辑A，下游服务a/b/c/d，会形成一个标准的树形逻辑链条。</p>
+<img src="/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/1.webp">
+<p>在这个逻辑链条中，每个本地处理逻辑，或者下游服务请求节点，都有可能存在超时问题。<strong>而对于HTTP服务而言，超时往往是造成服务不可用、甚至系统瘫痪的罪魁祸首。</strong></p>
+<p>系统瘫痪也就是我们俗称的雪崩，某个服务的不可用引发了其他服务的不可用。比如上图中，如果服务d超时，导致请求处理缓慢甚至不可用，加剧了Goroutine堆积，同时也造成了服务a/b/c的请求堆积，Goroutine堆积，瞬时请求数加大，导致a/b/c的服务都不可用，整个系统瘫痪，怎么办？</p>
+<p>最有效的方法就是从源头上控制一个请求的“最大处理时长”，所以，对于一个Web框架而言，“超时控制”能力是必备的。今天我们就用Context为框架增加这个能力。</p>
+<h1 id="context标准库设计思路"><a href="#context标准库设计思路" class="headerlink" title="context标准库设计思路"></a><span style="color:#339AFF;">context标准库设计思路</span></h1><p>如何控制超时，官方是有提供context标准库作为解决方案的，但是由于标准库的功能并不够完善，一会我们会基于标准库，来根据需求自定义框架的Context。所以理解其背后的设计思路就可以了。</p>
+<p>为了防止雪崩，context标准库的解决思路是：<strong>在整个树形逻辑链条中，用上下文控制器Context，实现每个节点的信息传递和共享。</strong></p>
+<p>具体操作是：用Context定时器为整个链条设置超时时间，时间一到，结束事件被触发，链条中正在处理的服务逻辑会监听到，从而结束整个逻辑链条，让后续操作不再进行。</p>
+<p>明白操作思路之后，我们深入context标准库看看要对应具备哪些功能。</p>
+<p>按照上一讲介绍的了解标准库的方法，我们先通过<code>go doc context | grep &quot;^func&quot;</code>看提供了哪些库函数（function）：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建退出Context</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithCancel</span><span class="params">(parent Context)</span> <span class="params">(ctx Context, cancel CancelFunc)</span></span>&#123;&#125;</span><br><span class="line"><span class="comment">// 创建有超时时间的Context</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithTimeout</span><span class="params">(parent Context, timeout time.Duration)</span> <span class="params">(Context, CancelFunc)</span></span>&#123;&#125;</span><br><span class="line"><span class="comment">// 创建有截止时间的Context</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithDeadline</span><span class="params">(parent Context, d time.Time)</span> <span class="params">(Context, CancelFunc)</span></span>&#123;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其中，WithCancel直接创建可以操作退出的子节点，WithTimeout为子节点设置了超时时间（还有多少时间结束），WithDeadline为子节点设置了结束时间线（在什么时间结束）。</p>
+<p>但是这只是表层功能的不同，其实这三个库函数的本质是一致的。怎么理解呢？</p>
+<p>我们先通过<code>go doc context | grep &quot;^type&quot;</code>，搞清楚Context的结构定义和函数句柄，再来解答这个问题。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Context <span class="keyword">interface</span> &#123;</span><br><span class="line">    <span class="comment">// 当Context被取消或者到了deadline，返回一个被关闭的channel</span></span><br><span class="line">    Done() &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 函数句柄</span></span><br><span class="line"><span class="keyword">type</span> CancelFunc <span class="function"><span class="keyword">func</span><span class="params">()</span></span></span><br></pre></td></tr></table></figure></p>
+<p>这个库虽然不大，但是设计感强，比较抽象，并不是很好理解。所以这里，我把Context的其他字段省略了。现在，我们只理解核心的Done()方法和CancelFunc这两个函数就可以了。</p>
+<p>在树形逻辑链条上，<strong>一个节点其实有两个角色：一是下游树的管理者；二是上游树的被管理者</strong>，那么就对应需要有两个能力：</p>
+<ul>
+<li>一个是能让整个下游树结束的能力，也就是函数句柄CancelFunc；</li>
+<li>另外一个是在上游树结束的时候被通知的能力，也就是Done()方法。同时因为通知是需要不断监听的，所以Done()方法需要通过channel作为返回值让使用方进行监听。</li>
+</ul>
+<p>看官方代码示例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"context"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> shortDuration = <span class="number">1</span> * time.Millisecond</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建截止时间</span></span><br><span class="line">    d := time.Now().Add(shortDuration)</span><br><span class="line">    <span class="comment">// 创建有截止时间的 Context</span></span><br><span class="line">    ctx, cancel := context.WithDeadline(context.Background(), d)</span><br><span class="line">    <span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用 select 监听 1s 和有截止时间的 Context 哪个先结束</span></span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> &lt;-time.After(<span class="number">1</span> * time.Second):</span><br><span class="line">        fmt.Println(<span class="string">"overslept"</span>)</span><br><span class="line">    <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">        fmt.Println(ctx.Err())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>主线程创建了一个1毫秒结束的定时器Context，在定时器结束的时候，主线程会通过Done()函数收到事件结束通知，然后主动调用函数句柄cancelFunc来通知所有子Context结束（这个例子比较简单没有子Context）。</p>
+<p>我打个更形象的比喻，CancelFunc和Done方法就像是电话的话筒和听筒，话筒CancelFunc，用来告诉管辖范围内的所有Context要进行自我终结，而通过监听听筒Done方法，我们就能听到上游父级管理者的终结命令。</p>
+<p>总之，CancelFunc是主动让下游结束，而Done是被上游通知结束。</p>
+<p>搞懂了具体实现方法，我们回过头来看这三个库函数WithCancel/WithDeadline/WithTimeout就很好理解了。</p>
+<p>它们的本质就是“通过定时器来自动触发终结通知”，WithTimeout设置若干秒后通知触发终结，WithDeadline设置未来某个时间点触发终结。</p>
+<p>对应到Context代码中，它们的功能就是：为一个父节点生成一个带有Done方法的子节点，并且返回子节点的CancelFunc函数句柄。</p>
+<img src="/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/2.webp">
+<p>我们用一张图来辅助解释一下，Context的使用会形成一个树形结构，下游指的是树形结构中的子节点及所有子节点的子树，而上游指的是当前节点的父节点。比如图中圈起来的部分，当WithTimeout调用CancelFunc的时候，所有下游的With系列产生的Context都会从Done中收到消息。</p>
+<h1 id="Context是怎么产生的"><a href="#Context是怎么产生的" class="headerlink" title="Context是怎么产生的"></a><span style="color:#339AFF;">Context是怎么产生的</span></h1><p>现在我们已经了解标准库context的设计思路了，在开始写代码之前，我们还要把Context放到net/http的主流程逻辑中，其中有两个问题要搞清楚：Context在哪里产生？它的上下游逻辑是什么？</p>
+<p>要回答这两个问题，可以用我们在上一讲介绍的思维导图方法，因为主流程已经拎清楚了，现在你只需要把其中Context有关的代码再详细过一遍，然后在思维导图上标记出来就可以了。</p>
+<p>这里，我已经把Context的关键代码都用蓝色背景做了标记，你可以检查一下自己有没有标漏。</p>
+<img src="/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/3.webp">
+<p>照旧看图梳理代码流程，来看蓝色部分，从前到后的层级梳理就不再重复讲了，我们看关键位置。</p>
+<p>从图中最后一层的代码req.ctx=ctx中看到，每个连接的Context最终是放在request结构体中的。</p>
+<p>而且这个时候，Context已经有多层父节点。因为，在代码中，每执行一次WithCancel、WithValue，就封装了一层Context，我们通过这一张流程图能清晰看到最终Context的生成层次。</p>
+<img src="/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/4.webp">
+<p>你发现了吗，其实每个连接的Context都是基于baseContext复制来的。对应到代码中就是，在为某个连接开启Goroutine的时候，为当前连接创建了一个connContext，这个connContext是基于server中的Context而来，而server中Context的基础就是baseContext。</p>
+<p>所以，Context从哪里产生这个问题，我们就解决了，但是如果我们想要对Context进行必要的修改，还要从上下游逻辑中，找到它的修改点在哪里。</p>
+<p>生成最终的Context的流程中，net/http设计了两处可以注入修改的地方，都在Server结构里面，一处是BaseContext，另一处是ConnContext。</p>
+<ul>
+<li>BaseContext是整个Context生成的源头，如果我们不希望使用默认的context.Backgroud()，可以替换这个源头。</li>
+<li>而在每个连接生成自己要使用的Context时，会调用ConnContext，它的第二个参数是net.Conn，能让我们对某些特定连接进行设置，比如要针对性设置某个调用IP。</li>
+</ul>
+<p>这两个函数的定义我写在下面的代码里了，展示一下，你可以看看。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Server <span class="keyword">struct</span> &#123;</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="comment">// BaseContext 用来为整个链条创建初始化 Context</span></span><br><span class="line">    <span class="comment">// 如果没有设置的话，默认使用 context.Background()</span></span><br><span class="line">    BaseContext <span class="function"><span class="keyword">func</span><span class="params">(net.Listener)</span> <span class="title">context</span>.<span class="title">Context</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ConnContext 用来为每个连接封装 Context</span></span><br><span class="line">    <span class="comment">// 参数中的 context.Context 是从 BaseContext 继承来的</span></span><br><span class="line">    ConnContext <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context, c net.Conn)</span> <span class="title">context</span>.<span class="title">Context</span></span>&#123;&#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最后，我们回看一下req.ctx是否能感知连接异常。</p>
+<img src="/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/5.webp">
+<p>是可以的，因为链条中一个父节点为CancelContext，其cancelFunc存储在代表连接的conn结构中，连接异常的时候，会触发这个函数句柄。</p>
+<p>好，讲完context库的核心设计思想，以及在net/http的主流程逻辑中嵌入context库的关键实现，我们现在心中有图了，就可以撸起袖子开始写框架代码了。</p>
+<p>你是不是有点疑惑，为啥要自己先理解一遍context标准库的生成流程，咱们直接动手干不是更快？有句老话说得好，磨刀不误砍柴功。</p>
+<p>我们确实是要自定义，不是想直接使用标准库的Context，因为它完全是标准库Context接口的实现，只能控制链条结束，封装性并不够。但是只有先搞清楚了context标准库的设计思路，才能精准确定自己能怎么改、改到什么程度合适，下手的时候才不容易懵。</p>
+<p>下面我们就基于刚才讲的设计思路，从封装自己的Context开始，写今天的核心逻辑，也就是为单个请求设置超时，最后考虑一些边界场景，并且进行优化。</p>
+<p>我们还是再拉一个分支geekbang/02，接着上一节课的代码结构，在框架文件夹中封装一个自己的Context。</p>
+<h1 id="封装一个自己的Context"><a href="#封装一个自己的Context" class="headerlink" title="封装一个自己的Context"></a><span style="color:#339AFF;">封装一个自己的Context</span></h1><p>在框架里，我们需要有更强大的Context，除了可以控制超时之外，常用的功能比如获取请求、返回结果、实现标准库的Context接口，也都要有。</p>
+<p>我们首先来设计提供获取请求、返回结果功能。</p>
+<p>先看一段未封装自定义Context的控制器代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"encoding/json"</span></span><br><span class="line">    <span class="string">"net/http"</span></span><br><span class="line">    <span class="string">"strconv"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 控制器</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo1</span><span class="params">(request *http.Request, response http.ResponseWriter)</span></span> &#123;</span><br><span class="line">    obj := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">        <span class="string">"data"</span>:   <span class="literal">nil</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 设置控制器 response 的 header 部分</span></span><br><span class="line">    response.Header().Set(<span class="string">"Content-Type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从请求体中获取参数</span></span><br><span class="line">    foo := request.PostFormValue(<span class="string">"foo"</span>)</span><br><span class="line">    <span class="keyword">if</span> foo == <span class="string">""</span> &#123;</span><br><span class="line">        foo = <span class="string">"10"</span></span><br><span class="line">    &#125;</span><br><span class="line">    fooInt, err := strconv.Atoi(foo)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        response.WriteHeader(<span class="number">500</span>)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 构建返回结构</span></span><br><span class="line">    obj[<span class="string">"data"</span>] = fooInt</span><br><span class="line">    byt, err := json.Marshal(obj)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        response.WriteHeader(<span class="number">500</span>)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 构建返回状态，输出返回结构</span></span><br><span class="line">    response.WriteHeader(<span class="number">200</span>)</span><br><span class="line">    response.Write(byt)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这段代码重点是操作调用了http.Request和http.ResponseWriter，实现WebService接收和处理协议文本的功能。但这两个结构提供的接口粒度太细了，需要使用者非常熟悉这两个结构的内部字段，比如response里设置Header和设置Body的函数，用起来肯定体验不好。</p>
+<p>如果我们能将这些内部实现封装起来，对外暴露语义化高的接口函数，那么我们这个框架的易用性肯定会明显提升。什么是好的封装呢？再看这段有封装的代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 控制器</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo2</span><span class="params">(ctx *framework.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    obj := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">        <span class="string">"data"</span>:   <span class="literal">nil</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 从请求体中获取参数</span></span><br><span class="line">    fooInt := ctx.FormInt(<span class="string">"foo"</span>, <span class="number">10</span>)</span><br><span class="line">    <span class="comment">// 构建返回结构</span></span><br><span class="line">    obj[<span class="string">"data"</span>] = fooInt</span><br><span class="line">    <span class="comment">// 输出返回结构</span></span><br><span class="line">    <span class="keyword">return</span> ctx.Json(http.StatusOK, obj)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>你可以明显感受到封装性高的Foo2函数，更优雅更易读了。首先它的代码量更少，而且语义性也更好，近似对业务的描述：从请求体中获取foo参数，并且封装为Map，最后JSON输出。</p>
+<p>思路清晰了，所以这里可以将request和response封装到我们自定义的Context中，对外提供请求和结果的方法，我们把这个Context结构写在框架文件夹的context.go文件中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 自定义 Context</span></span><br><span class="line"><span class="keyword">type</span> Context <span class="keyword">struct</span> &#123;</span><br><span class="line">    request        *http.Request</span><br><span class="line">    responseWriter http.ResponseWriter</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>对request和response封装的具体实现，我们到第五节课封装的时候再仔细说。</p>
+<p>然后是第二个功能，标准库的Context接口。</p>
+<p>标准库的Context通用性非常高，基本现在所有第三方库函数，都会根据官方的建议，将第一个参数设置为标准Context接口。所以我们封装的结构只有实现了标准库的Context，才能方便直接地调用。</p>
+<p>到底有多方便，我们看使用示例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Foo3</span><span class="params">(ctx *framework.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    rdb := redis.NewClient(&amp;redis.Options&#123;</span><br><span class="line">        Addr:     <span class="string">"localhost:6379"</span>,</span><br><span class="line">        Password: <span class="string">""</span>, <span class="comment">// no password set</span></span><br><span class="line">        DB:       <span class="number">0</span>,  <span class="comment">// use default DB</span></span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> rdb.Set(ctx, <span class="string">"key"</span>, <span class="string">"value"</span>, <span class="number">0</span>).Err()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里使用了go-redis库，它每个方法的参数中都有一个标准Context接口，这让我们能将自定义的Context直接传递给rdb.Set。</p>
+<p>所以在我们的框架上实现这一步，只需要调用刚才封装的request中的Context的标准接口就行了，很简单，我们继续在context.go中进行补充：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctx *Context)</span> <span class="title">BaseContext</span><span class="params">()</span> <span class="title">context</span>.<span class="title">Context</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ctx.request.Context()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctx *Context)</span> <span class="title">Done</span><span class="params">()</span> &lt;-<span class="title">chan</span> <span class="title">struct</span></span>&#123;&#125; &#123;</span><br><span class="line">    <span class="keyword">return</span> ctx.BaseContext().Done()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里举例了两个method的实现，其他的都大同小异就不在文稿里展示，你可以先自己写，然后对照我放在GitHub上的完整代码检查一下。</p>
+<p>自己封装的Context最终需要提供四类功能函数：</p>
+<ul>
+<li>base封装基本的函数功能，比如获取http.Request结构</li>
+<li>context实现标准Context接口</li>
+<li>request封装了http.Request的对外接口</li>
+<li>response封装了http.ResponseWriter对外接口</li>
+</ul>
+<p>完成之后，使用我们的IDE里面的结构查看器（每个IDE显示都不同），就能查看到如下的函数列表：</p>
+<img src="/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/6.webp">
+<p>有了我们自己封装的Context之后，控制器就非常简化了。把框架定义的ControllerHandler放在框架目录下的controller.go文件中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ControllerHandler <span class="function"><span class="keyword">func</span><span class="params">(c *Context)</span> <span class="title">error</span></span></span><br></pre></td></tr></table></figure></p>
+<p>把处理业务的控制器放在业务目录下的controller.go文件中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FooControllerHandler</span><span class="params">(ctx *framework.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ctx.Json(<span class="number">200</span>, <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">        <span class="string">"code"</span>: <span class="number">0</span>,</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>参数只有一个framework.Context，是不是清爽很多，这都归功于刚完成的自定义Context。</p>
+<h1 id="为单个请求设置超时"><a href="#为单个请求设置超时" class="headerlink" title="为单个请求设置超时"></a><span style="color:#339AFF;">为单个请求设置超时</span></h1><p>上面我们封装了自定义的Context，从设计层面实现了标准库的Context。下面回到我们这节课核心要解决的问题，为单个请求设置超时。</p>
+<p>如何使用自定义Context设置超时呢？结合前面分析的标准库思路，我们三步走完成：</p>
+<p>1，继承request的Context，创建出一个设置超时时间的Context；<br>2，创建一个新的Goroutine来处理具体的业务逻辑；<br>3，设计事件处理顺序，当前Goroutine监听超时时间Contex的Done()事件，和具体的业务处理结束事件，哪个先到就先处理哪个。</p>
+<p>理清步骤，我们就可以在业务的controller.go文件中完成业务逻辑了。第一步生成一个超时的Context：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">durationCtx, cancel := context.WithTimeout(c.BaseContext(), time.Duration(<span class="number">1</span>*time.Second))</span><br><span class="line"><span class="comment">// 这里记得当所有事情处理结束后调用 cancel，告知 durationCtx 的后续 Context 结束</span></span><br><span class="line"><span class="keyword">defer</span> cancel()</span><br></pre></td></tr></table></figure></p>
+<p>这里为了最终在浏览器做验证，我设置超时事件为1s，这样最终验证的时候，最长等待1s就可以知道超时是否生效。</p>
+<p>第二步创建一个新的Goroutine来处理业务逻辑：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">finish := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 这里做具体的业务</span></span><br><span class="line">    time.Sleep(<span class="number">10</span> * time.Second)</span><br><span class="line">    c.Json(<span class="number">200</span>, <span class="string">"ok"</span>)</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 新的 goroutine 结束的时候通过一个 finish 通道告知父 goroutine</span></span><br><span class="line">    finish &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure></p>
+<p>为了最终的验证效果，我们使用time.Sleep将新Goroutine的业务逻辑事件人为往后延迟了10s，再输出“ok”，这样最终验证的时候，效果比较明显，因为前面的超时设置会在1s生效了，浏览器就有表现了。</p>
+<p>到这里我们这里先不急着进入第三步，还有错误处理情况没有考虑到位。这个新创建的Goroutine如果出现未知异常怎么办？需要我们额外捕获吗？</p>
+<p>其实在Golang的设计中，每个Goroutine都是独立存在的，父Goroutine一旦使用Go关键字开启了一个子Goroutine，父子Goroutine就是平等存在的，他们互相不能干扰。而在异常面前，所有Goroutine的异常都需要自己管理，不会存在父Goroutine捕获子Goroutine异常的操作。</p>
+<p>所以切记：在Golang中，每个Goroutine创建的时候，我们要使用defer和recover关键字为当前Goroutine捕获panic异常，并进行处理，否则，任意一处panic就会导致整个进程崩溃！</p>
+<p>这里你可以标个重点，面试会经常被问到。</p>
+<p>搞清楚这一点，我们回看第二步，做完具体业务逻辑就结束是不行的，还需要处理panic。所以这个Goroutine应该要有两个channel对外传递事件：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个channal负责通知结束</span></span><br><span class="line">finish := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">1</span>)</span><br><span class="line"><span class="comment">// 这个channel负责通知panic异常</span></span><br><span class="line">panicChan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">interface</span>&#123;&#125;, <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 这里增加异常处理</span></span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">if</span> p := <span class="built_in">recover</span>(); p != <span class="literal">nil</span> &#123;</span><br><span class="line">            panicChan &lt;- p</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="comment">// 这里做具体的业务</span></span><br><span class="line">    time.Sleep(<span class="number">10</span> * time.Second)</span><br><span class="line">    c.Json(<span class="number">200</span>, <span class="string">"ok"</span>)</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 新的goroutine结束的时候通过一个finish通道告知父goroutine</span></span><br><span class="line">    finish &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure></p>
+<p>现在第二步才算完成了，我们继续写第三步监听。使用select关键字来监听三个事件：异常事件、结束事件、超时事件。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="comment">// 监听 panic</span></span><br><span class="line">    <span class="keyword">case</span> p := &lt;-panicChan:</span><br><span class="line">        ...</span><br><span class="line">        c.Json(<span class="number">500</span>, <span class="string">"panic"</span>)</span><br><span class="line">    <span class="comment">// 监听结束事件</span></span><br><span class="line">    <span class="keyword">case</span> &lt;-finish:</span><br><span class="line">        ...</span><br><span class="line">        fmt.Println(<span class="string">"finish"</span>)</span><br><span class="line">    <span class="comment">// 监听超时事件</span></span><br><span class="line">    <span class="keyword">case</span> &lt;-durationCtx.Done():</span><br><span class="line">        ...</span><br><span class="line">        c.Json(<span class="number">500</span>, <span class="string">"time out"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>接收到结束事件，只需要打印日志，但是，在接收到异常事件和超时事件的时候，我们希望告知浏览器前端“异常或者超时了”，所以会使用c.Json来返回一个字符串信息。</p>
+<p>三步走到这里就完成了对某个请求的超时设置，你可以通过gobuild、gorun尝试启动下这个服务。如果你在浏览器开启一个请求之后，浏览器不会等候事件处理10s，而在等待我们设置的超时事件1s后，页面显示“timeout”就结束这个请求了，就说明我们为某个事件设置的超时生效了。</p>
+<h1 id="边界场景"><a href="#边界场景" class="headerlink" title="边界场景"></a><span style="color:#339AFF;">边界场景</span></h1><p>到这里，我们的超时逻辑设置就结束且生效了。但是，这样的代码逻辑只能算是及格，为什么这么说呢？因为它并没有覆盖所有的场景。</p>
+<p>我们的代码逻辑要再严谨一些，把边界场景也考虑进来。这里有两种可能：</p>
+<p>1，异常事件、超时事件触发时，需要往responseWriter中写入信息，这个时候如果有其他Goroutine也要操作responseWriter，会不会导致responseWriter中的信息出现乱序？<br>2，超时事件触发结束之后，已经往responseWriter中写入信息了，这个时候如果有其他Goroutine也要操作responseWriter，会不会导致responseWriter中的信息重复写入？</p>
+<p>你先分析第一个问题，是很有可能出现的。方案不难想到，我们要保证在事件处理结束之前，不允许任何其他Goroutine操作responseWriter，这里可以使用一个锁（sync.Mutex）对responseWriter进行写保护。</p>
+<p>在框架文件夹的context.go中对Context结构进行一些设置：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Context <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 写保护机制</span></span><br><span class="line">    writerMux  *sync.Mutex</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 对外暴露锁</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctx *Context)</span> <span class="title">WriterMux</span><span class="params">()</span> *<span class="title">sync</span>.<span class="title">Mutex</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ctx.writerMux</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在刚才写的业务文件夹controller.go中也进行对应的修改：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FooControllerHandler</span><span class="params">(c *framework.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 请求监听的时候增加锁机制</span></span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> p := &lt;-panicChan:</span><br><span class="line">        c.WriterMux().Lock()</span><br><span class="line">        <span class="keyword">defer</span> c.WriterMux().Unlock()</span><br><span class="line">        ...</span><br><span class="line">        c.Json(<span class="number">500</span>, <span class="string">"panic"</span>)</span><br><span class="line">    <span class="keyword">case</span> &lt;-finish:</span><br><span class="line">        ...</span><br><span class="line">        fmt.Println(<span class="string">"finish"</span>)</span><br><span class="line">    <span class="keyword">case</span> &lt;-durationCtx.Done():</span><br><span class="line">        c.WriterMux().Lock()</span><br><span class="line">        <span class="keyword">defer</span> c.WriterMux().Unlock()</span><br><span class="line">        c.Json(<span class="number">500</span>, <span class="string">"time out"</span>)</span><br><span class="line">        c.SetTimeout()</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>那第二个问题怎么处理，我提供一个方案。我们可以设计一个标记，当发生超时的时候，设置标记位为true，在Context提供的response输出函数中，先读取标记位；当标记位为true，表示已经有输出了，不需要再进行任何的response设置了。</p>
+<p>同样在框架文件夹中修改context.go：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctx *Context)</span> <span class="title">SetHasTimeout</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ctx.hasTimeout = <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctx *Context)</span> <span class="title">Json</span><span class="params">(status <span class="keyword">int</span>, obj <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> ctx.HasTimeout() &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在业务文件夹中修改controller.go：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FooControllerHandler</span><span class="params">(c *framework.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> p := &lt;-panicChan:</span><br><span class="line">        ...</span><br><span class="line">    <span class="keyword">case</span> &lt;-finish:</span><br><span class="line">        fmt.Println(<span class="string">"finish"</span>)</span><br><span class="line">    <span class="keyword">case</span> &lt;-durationCtx.Done():</span><br><span class="line">        c.WriterMux().Lock()</span><br><span class="line">        <span class="keyword">defer</span> c.WriterMux().Unlock()</span><br><span class="line">        c.Json(<span class="number">500</span>, <span class="string">"time out"</span>)</span><br><span class="line">        <span class="comment">// 这里记得设置标记为</span></span><br><span class="line">        c.SetHasTimeout()</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>好了，到了这里，我们就完成了请求超时设置，并且考虑了边界场景。</p>
+<p>剩下的验证部分，我们写一个简单的路由函数，将这个控制器路由在业务文件夹中创建一个route.go:<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">registerRouter</span><span class="params">(core *framework.Core)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 设置控制器</span></span><br><span class="line">    core.Get(<span class="string">"foo"</span>, FooControllerHandler)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>并修改main.go：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 设置路由</span></span><br><span class="line">    registerRouter(core)</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>就可以运行了。完整代码照旧放在GitHub的geekbang/02分支上了。</p>
+<img src="/2021/12/20/02｜Context：请求控制器，让每个请求都在掌控之中/7.webp">
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>今天，我们定义了一个属于自己框架的Context，它有两个功能：在各个Goroutine间传递数据；控制各个Goroutine，也就是是超时控制。</p>
+<p>这个自定义Context结构封装了net/http标准库主逻辑流程产生的Context，与主逻辑流程完美对接。它除了实现了标准库的Context接口，还封装了request和response的请求。你实现好了Context之后，就会发现它跟百宝箱一样，在处理具体的业务逻辑的时候，如果需要获取参数、设置返回值等，都可以通过Context获取。</p>
+<p>封装后，我们通过三步走为请求设置超时，并且完美地考虑了各种边界场景。</p>
+<p>你是不是觉得我们这一路要思考的点太多了，又是异常，又是边界场景。但是这里我要特别说明，其实真正要衡量框架的优劣，要看什么？就是看细节。</p>
+<p>所有框架的基本原理和基本思路都差不多，但是在细节方面，各个框架思考的程度是不一样的，才导致使用感天差地别。所以如果你想完成一个真正生产能用得上的框架，这些边界场景、异常分支，都要充分考虑清楚。</p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>在context库的官方文档中有这么一句话：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Do not store Contexts inside a struct type;</span><br><span class="line">instead, pass a Context explicitly to each function that needs it.</span><br><span class="line">The Context should be the first parameter.</span><br></pre></td></tr></table></figure></p>
+<p>大意是说建议我们设计函数的时候，将Context作为函数的第一个参数。你能理解官方为什么如此建议，有哪些好处？可以结合你的工作经验，说说自己的看法。</p>
 
       
     </div>
@@ -645,8 +741,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -928,6 +1033,23 @@
       </div>
 
       
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#context标准库设计思路"><span class="nav-number">1.</span> <span class="nav-text">context标准库设计思路</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Context是怎么产生的"><span class="nav-number">2.</span> <span class="nav-text">Context是怎么产生的</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#封装一个自己的Context"><span class="nav-number">3.</span> <span class="nav-text">封装一个自己的Context</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#为单个请求设置超时"><span class="nav-number">4.</span> <span class="nav-text">为单个请求设置超时</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#边界场景"><span class="nav-number">5.</span> <span class="nav-text">边界场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">6.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#思考题"><span class="nav-number">7.</span> <span class="nav-text">思考题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
 
       
 
@@ -967,7 +1089,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">58:50</span>
+    <span title="站点阅读时长">58:55</span>
   
 </div>
 
