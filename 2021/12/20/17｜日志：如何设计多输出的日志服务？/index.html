@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-12-20T03:17:56.321Z">
+<meta property="og:updated_time" content="2021-12-28T12:14:50.456Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="17｜日志：如何设计多输出的日志服务？">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
@@ -426,12 +426,24 @@
                 
               
 
-              <time title="创建时间：2021-12-20 11:07:33 / 修改时间：11:17:56" itemprop="dateCreated datePublished" datetime="2021-12-20T11:07:33+08:00">2021-12-20</time>
+              <time title="创建时间：2021-12-20 11:07:33" itemprop="dateCreated datePublished" datetime="2021-12-20T11:07:33+08:00">2021-12-20</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-12-28 20:14:50" itemprop="dateModified" datetime="2021-12-28T20:14:50+08:00">2021-12-28</time>
               
             
           </span>
@@ -477,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">5.8k</span>
               
 
               
@@ -491,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">5 分钟</span>
               
             </div>
           
@@ -516,6 +528,38 @@
 <li>总结一下，这章作者最主要想表达什么观点？</li>
 </ul>
 <a id="more"></a>
+<p>上面两节课，我们将环境变量和配置服务作为一个服务注册到容器中了。这样，在业务中就能很方便获取环境变量和配置了。不知道你有没有逐渐体会到这种“一切皆服务”思想的好处。就像堆积积木，只要想好了一个服务的接口，我们逐步实现服务之后，这一个服务就是一块积木，之后可以用相同的思路实现各种服务的积木块，用它们来拼出我们需要的业务逻辑。这节课，我们就来实现另一个框架最核心的积木：日志服务。实现一个框架的服务，我们习惯了要创建三个文件：接口协议文件 framework/contract/log.go、服务提供者 framework/provider/log/provider.go、接口实例 framework/provider/log/service.go。日志接口协议说到日志服务，最先冒出来的一定是三个问题：什么样的日志需要输出？日志输出哪些内容？日志输出到哪里？一个个来分析。</p>
+<p>日志级别什么样的日志需要输出，这是个关于日志级别的问题。我们想要把日志分为几个级别？每个级别代表什么？这个日志级别其实在不同系统中有不同划分，比如 Linux 的syslog中将系统划分为以下八种日志级别：</p>
+<p>而 Java 的log4j将日志分为以下七种日志级别：</p>
+<p>其实仔细看，它们的日志级别差别都不大。比如都同意用 Error 级别代表运行时的错误情况，而 Warn 级别代表运行时可以弥补的错误、Info 级别代表运行时信息、debug 代表调试的时候需要打印的信息。不同点就在是否有 trace 级别以及 Error 级别往上的级别定义。syslog 没有 trace 级别，而在 Error 级别往上分别定义了 Emergency 级别、Alert 级别、Critical 级别。而 log4j 在 ERROR 上定义了两个级别 FATAL 和 OFF，也同时保留了 Trace 级别。在我看来，syslog 和 log4j 的日志区分主要是由于场景不同。syslog 比较偏向于操作系统的使用场景，它的分级语义更多是告诉我们系统的情况，比如 Alert 这个级别表示“系统有问题，需要立即采取行动”；而 log4j 的日志级别定义是从一个应用出发的，它的影响范围理论上会小一些，所以它很难定义比如像“需要立即采取行动”这样的级别。所以，这里我们主要参考 log4j 的日志级别方法，并做了一些小调整，归并为下列七种日志级别：</p>
+<p>panic，表示会导致整个程序出现崩溃的日志信息fatal，表示会导致当前这个请求出现提前终止的错误信息error，表示出现错误，但是不一定影响后续请求逻辑的错误信息warn，表示出现错误，但是一定不影响后续请求逻辑的报警信息info，表示正常的日志信息输出debug，表示在调试状态下打印出来的日志信息trace，表示最详细的信息，一般信息量比较大，可能包含调用堆栈等信息在 error 级别之上，我们把导致程序崩溃和导致请求结束的错误拆分出来，分为 panic 和 fatal 两个类型来定义级别。而其他的 error、warn、info、debug 都和其他的日志系统一致。另外也增加一个 trace 级别，当需要打印调用堆栈等这些比较详细的信息的时候，可以使用这种日志级别。日志级别是按照严重顺序从下往上排列的。也就是说，如果我们设置了日志输出级别为 info，那么 info 级别的日志及 info 级别往上，日志级别更高的 warn、error、fatal、panic 的日志，也需要被打印出来。</p>
+<p>按照这个思路，我们在 framework/contract/log.go 中定义的接口协议如下：</p>
+<p>在接口中，我们针对七种日志级别设置了七个不同的方法，并且提供 SetLevel 方法，来设置当前这个日志服务需要输出的日志级别。日志格式定义好了日志级别，下面该定义日志格式了。日志格式包括输出哪些内容、如何输出？首先明确下需要输出的日志信息，不外乎有下面四个部分：日志级别，输出当前日志的级别信息。日志时间，输出当前日志的打印时间。日志简要信息，输出当前日志的简要描述信息，一句话说明日志错误。日志上下文字段，输出当前日志的附带信息。这些字段代表日志打印的上下文。比如这就是一个完整的日志信息：</p>
+<p>上面那条日志，日志级别为 Info，时间为 2021-09-21 年 15:40:03，时区为 +08:00。简要信息 demo test error 表示这个日志希望打印的信息，剩下的 map 表示的 key、value 为补充的日志上下文字段。它对应的调用函数如下：</p>
+<p>这里我额外说一下日志上下文字段。它是一个 map 值，来源可能有两个：一个是用户在打印日志的时候传递的 map，比如上面代码中的 api 和 user；而另外一部分数据是可能来自 context，因为在具体业务开发中，我们很有可能把一些通用信息，比如 trace_id 等放在 context 里，这一部分信息也会希望取出放在日志的上下文字段中。所以这里有一个从 context 中获取日志上下文字段的方法。在 framework/contract/log.go 中定义其为 CtxFielder。</p>
+<p>明确了打印哪些信息，更要明确这些信息按照什么输出格式输出。这个输出格式也是一个通用方法 Fomatter，它的传入参数就是刚才的四个日志信息。</p>
+<p>同时在 log 服务协议中增加了 SetFormatter 和 SetCtxFielder 的方法。</p>
+<p>日志输出已经解决了前两个问题，明确了日志的级别和输出格式，那日志可以输出在哪些地方？其实我们在定义接口的时候，并不知道它会输出到哪里。但是只需要知道一定会输出到某个输出管道就可以了，之后在每个应用中使用的时候，我们再根据每个应用的配置，来确认具体的输出管道实现。目前这个输出管道我们使用 io.Writer 来进行设置：</p>
+<p>日志服务提供者日志接口协议文件就完成了，下面来实现日志的服务提供者，在 framework/provider/log/provider.go 中。在编写服务提供者的时候，我们需要先明确最终会提供哪些服务。对于日志服务，按照我们平时的使用情况，可以分为四类：控制台输出本地单个日志文件输出本地单个日志文件，自动进行切割输出自定义输出这四种输出我们都各自定义一个服务，分别放在 framework/provider/log/service/ 目录下的四个文件里：</p>
+<p>console.go 表示控制台输出，定义初始化实例方法 NewHadeConsoleLog；single.go 表述单个日志文件输出，定义初始化实例方法 NewHadeSingleLog；rotate.go 表示单个文件输出，但是自动进行切割，定义初始化实例方法 NewHadeRotateLog；custom.go 表示自定义输出，定义实例化方法 NewHadeCustomLog。那在服务提供者的 Register 注册服务实例方法中，我们设计成根据配置项“log.driver” ，来选择不同的实例化方法，默认为 NewHadeConsoleLog 方法。</p>
+<p>而上一节里面分析的，日志的几个配置：日志级别、输出格式方法、context 内容获取方法、输出方法，都以服务提供者 provider.go 中参数的方式提供。</p>
+<p>默认提供两种输出格式，一种是文本输出形式，比如上面举的那个例子，</p>
+<p>另外一种是 JSON 输出形式，如下：</p>
+<p>这两种输出除了格式不同，其中的内容应该是相同的。具体使用起来，文本输出更便于我们阅读，而 JSON 输出更便于机器或者程序阅读。在实现文件夹 framework/provider/log/formatter/ 里，我们增加两个文件 json.go 和 text.go 表示两种格式输出，对应的 TextFormatter 和 JsonFormatter 是对应的文本格式输出方法，这里就贴出 text.go 的具体实现，很简单，其他的差别不大，可以参考GitHub。</p>
+<p>再回到 framework/provider/log/provider.go，定义服务提供者的 Params 方法。比如获取格式化方法 Formatter，我们就设定成，先判断在初始化的时候，是否定义了服务提供者；如果没有，再判断配置项 log.formatter 是否指定了格式化方法 json/text，设置最终的 Formatter，并且传递实例化的方法。</p>
+<p>至于日志服务提供者的其他几个方法（Register、Boot、IsDefer、Name），就不在这里说明了，可以参考GitHub上的代码。日志服务的具体实现最后就到具体的日志服务的实现了。上面我们说，针对四种不同的输出方式，定义了四个不同的服务实例，这四个不同的服务实例都需要实现前面定义的日志服务协议。如果每个实例都实现一遍，还是非常麻烦的。这里可以使用一个技巧：类型嵌套。我们先创建一个通用的服务实例 HadeLog，在 HadeLog 中存放通用的字段，比如上述日志服务提供者传递的五个参数：container、level、ctxFielder、formatter、output。在 provider/log/services/log.go 中定义这个结构：</p>
+<p>接着在通用实例中，使用这几个必要的参数，就能实现日志协议的所有接口了，这里展示了 Info 方法是怎么打印信息的：</p>
+<p>可以看到，Info 打印最终调用 logf 方法，而 logf 方法的实现步骤也很清晰，简单梳理一下：先判断日志级别是否符合要求，如果不符合要求，则直接返回，不进行打印；再使用 ctxFielder，从 context 中获取信息放在上下文字段中；接着将日志信息按照 formatter 序列化为字符串；最后通过 output 进行输出。HadeLog 其他方法的实现和 Info 大同小异，这里就不展示所有代码了。实现了基础的 HadeLog 实例，接下来，就实现对应的四个不同输出类型的实例 HadeConsoleLog、HadeSingleLog、HadeRotateLog、HadeCustomLog。</p>
+<p>这里四个具体实例使用类型嵌套的方式，就能自动拥有 HadeLog 已经实现了的那些方法。比如在 framework/provider/log/service/console.log 中，使用类型嵌套实现 HadeConsoleLog：</p>
+<p>相当于 HadeConsoleLog 就已经实现了日志服务协议了。我们唯一要做的就是在实例化 HadeConosoleLog 的时候，将基础 HadeLog 中的通用字段进行填充。比如 HadeConsoleLog 最重要就是将输出类型 output 设置为控制台 os.stdout：</p>
+<p>四种输出文件其实都大同小异，这里就挑选一个最复杂的带有日志切割的 HadeRotateLog 来讲解。Golang 中日志切割有个非常好用的 file-rotatelogs，这个库的使用方法也不复杂，最核心的就是一个初始化操作 New：</p>
+<p>它有两个参数，第一个参数 p 是带目录的日志地址，可以允许有通配符代表日期的日志文件名。这里的通配符符合 Linux 的 strftime 的定义，具体哪个通配符代表日期、小时、分钟等可以参考 strftime 的文档说明。而第二个参数是 Option 数组，表示这个切割日志的一些配置，比如多久切割一次日志文件、切割后的日志文件保存多少天等。使用很简单，直接看我们对 HadeRotateLog 的具体实现。大致思路就是先定义结构，再实现初始化方法，在初始化方法中，我们实例化 file-rotatelogs 的初始化操作 New。首先定义了 HadeRotateLog 的结构，其中嵌套了基础实例结构 HadeLog，同时有这个结构特定的字段 folder 和 file：</p>
+<p>实例化的 NewHadeRotateLog 先获取参数，然后从配置文件中获取参数属性 folder、file、date_format、rotate_count、rotate_size、max_age、rotate_time，这些属性都和 file-rotatelogs 库实例化的 Option 参数一一对应。所以这里也展示一下我们的 log.yaml 配置文件可配置的 rotate：</p>
+<p>再回到 NewHadeRotateLog，设置了这些配置属性之后，我们实例化 file-rotatelogs，得到了一个符合 io.Writer 的输出，将这个输出使用 SetOutput 设置到嵌套的 HadeLog 中即可。</p>
+<p>本节课我们只是修改了框架目录中的日志服务相关的文件。文件目录：</p>
+<p>所有代码都放在 GitHub 上的 geekbang/17 分支，欢迎比对查看。小结我们这节课通过定义了日志级别、日志格式、日志输出，来实现了日志的级别，并且使用类型嵌套方法实现了四种本地日志输出方式。回顾今天实现的日志服务，你会发现和其他服务的实现思路是差不多的。我们在一个服务中，实现了多个实现类，但是所有的实现类都实现了同样的服务接口，最后能让我们根据配置来决定这个服务使用哪个实现类，其中还使用了嵌套方式，能节省大量重复性的代码。希望你能熟练掌握这种实现方式，因为我们的服务会越来越多，越上层的服务，比如数据库、缓存，它的具体实现就越是多种多样，到时候我们都可以用同样的套路来进行。思考题在微服务盛行的今天，全链路日志是非常重要的一个需求。全链路日志的需求本质就是在日志中增加 trace_id、span_id 这样的链路字段。具体实现有三点：</p>
+<p>在接收请求的时候，从请求 request 中解析全链路字段，存放进入 context 中在打印日志的时候从 context 中获取全链路字段序列化进入日志在发送请求的时候将全链路字段加入到 request 中你可以思考下这个功能应该怎么实现？</p>
+
       
     </div>
 
@@ -918,7 +962,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">3.9m</span>
+    <span title="站点总字数">4m</span>
   
 
   
@@ -929,7 +973,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">58:55</span>
+    <span title="站点阅读时长">59:54</span>
   
 </div>
 
