@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-12-28T13:25:14.197Z">
+<meta property="og:updated_time" content="2021-12-30T11:34:02.394Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="20｜提效（下）：实现调试模式加速开发效率">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2021-12-28 21:25:14" itemprop="dateModified" datetime="2021-12-28T21:25:14+08:00">2021-12-28</time>
+                <time title="修改时间：2021-12-30 19:34:02" itemprop="dateModified" datetime="2021-12-30T19:34:02+08:00">2021-12-30</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">12</span>
+                <span title="本文字数">5.6k</span>
               
 
               
@@ -503,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">5 分钟</span>
               
             </div>
           
@@ -525,6 +525,39 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
+<p>上一节课，我们讨论了调试模式的整体设计思路和关键的技术难点 - 反向代理，最后定义了具体的命令设计，包括三个二级命令，能让我们调试前端 / 后端，或者同时调试。现在，大的框架都建立好了，但是其中的细节实现还没有讨论。成败在于细节，今天我们就撸起袖子开始实现它们。配置项的设计简单回顾一下调试模式的架构设计。所有外部请求进入反响代理服务后，会由反向代理服务进行分发，前端请求分发到前端进程，后端请求分发到后端进程。</p>
+<p>在这个设计中，前端服务启动的时候占用哪个端口？后端服务启动的时候占用哪个端口？反向代理服务 proxy 启动的时候占用哪个端口呢？这些都属于配置项，需要在设计之初就规划好，所以我们先设计配置项的具体实现。由于调试模式配置项比较多，在 framework/command/dev.go 中，我们定义如下的配置结构 devConfig 来表示配置信息：</p>
+<p>这个结构可以说已经非常清晰了。结构根目录下的 Port 代表 proxy 的端口，而根目录下的 Backend 和 Frontend 分别代表后端和前端的配置。其中，前端只需要配置一个端口 Port，而后端，我们除了配置端口 Port 之外，还另外多了两个配置，一个是监听的文件夹 MonitorFolder，另外一个是监听文件夹的变更时间 RefreshTime，这两个配置都是和后端监听文件夹相关的，具体如何使用，我们在后面写 proxy 的方法 monitorBackend 再详细说。有了这个配置结构还不够，我们还要定义配置结构中每个值的赋值和默认值，在配置文件 app.yaml 中对应定义的配置字段如下：</p>
+<p>之后如果在配置文件中有配置这些字段，就使用配置文件中的字段，否则的话，则使用默认配置。对应到代码上，我们可以在 framework/command/dev.go 中实现一个 initDevConfig。实现思路也不难，参数只需要把服务容器传递进入就行了，在这个函数中，我们先定义好默认的配置，然后从容器中获取配置服务，通过配置服务，获取对应的配置文件的设置，如果配置文件有对应字段的话，就进行对应字段的配置。</p>
+<p>这里着重说一下 monitorFolder 这个配置的逻辑，如果配置文件中有定义这个配置的话，我们就使用配置文件的配置，否则我们就去目录服务中获取 AppFolder。其实这种有层次的配置方式，在配置服务那一节我们已经见过了，多使用这种配置方式能让框架可用性更高。但是之前第 12 节课，定义目录服务接口的时候，没有定义 App 的服务接口，所以我们得去稍微修改下目录服务接口 framework/contract/app.go，为其增加 AppFolder 这个目录接口：</p>
+<p>同时修改其对应实现 framework/provider/app/service.go，增加这个 AppFolder 的实现：</p>
+<p>到这里，配置结构 devConfig 及配置结构初始化方法 initDevConfig，就实现完成了。具体实现现在，来完成拼图的最后一个部分，回到 framework/command/dev.go 中，上节课只定义了 Proxy 结构，但是 Proxy 结构中的字段，我们没有讨论。首先有了上面定义的 devConfig 结构之后，Proxy 的结构中，应该有一个字段保存这个 Proxy 的配置信息 devConfig。其次，在 restart 前端或者后端的时候，由于新进程和旧进程都使用一样的端口，我们一定是先关闭旧的前端进程或者后端进程，才能启动新的前端或者后端进程。所以这里要记录一下前后端进程的进程 ID，设置了 backendPid 和 frontendPid 来存储进程 ID。</p>
+<p>下面我们就针对每个函数的具体实现一一说明，这里把上节课定义的各个函数简单再列一下，如果你对它们的功能有点模糊了，可以再回顾一下第 19 课。</p>
+<p>newProxyReverseProxy首先是 newProxyReverseProxy，它的核心逻辑就是创建 ReverseProxy，设置 Director、ModifyResponse、ErrorHandler 三个字段。但是我们在细节上要做一些补充。首先，既然已经在 proxy 中存了前后端的 PID，那就可以知道当下前端服务或者后端服务是否已经启动了。如果只启动了前端服务，我们直接代理前端就好了；如果只启动后端服务，就直接代理后端。而只有两个服务都启动了，我们才进行上一节课说的：先请求后端服务，遇到 404 了，再请求前端服务。同时稍微修改一下 director，对于前端一些固定的请求地址，比如 / 或者 /app.js，我们直接将这个地址固定请求前端。</p>
+<p>rebuildBackend / restartBackend下一个函数是 rebuildBackend。这个函数的作用是重新编译后端。那如何编译后端呢？还记得第 18 课中为编译后端定义了命令行么？所以在“调试命令”中，我们只需要调用“编译命令”就行了。编译前端 ./hade build frontend编译后端 ./hade build backend同时编译前后端 ./hade build all自编译 ./hade build self所以 rebuildBackend 这个函数，我们就是调用一次 ./hade build backend 。</p>
+<p>编译后端函数实现了，下面就是重启后端进程 restartBackend。我们当然也会记得在第 12 章将启动 Web 服务变成一个命令 ./hade app start 。所以重启后端服务的步骤就是：关闭旧进程（kill）启动新进程（./hade app start）但是这里有个小问题，之前启动进程的时候，进程端口是写死的。但是，现在需要固定启动的 App 的进程端口。所以要对 ./hade app start 命令进行一些改造。来修改 framework/command/app.go，我们增加一个 appAddress 地址，这个地址可以传递类似 localhost:8888 或者 :8888 这样的启动服务地址，并且在 appStartCommand 中使用这个 appAddress。</p>
+<p>这样，后端进程就可以通过命令 ./hade app start —address=:8888 这样的方式，来指定端口启动服务了。小问题解决之后，回到 framework/command/dev.go， 我们实现 restartBackend 方法。先杀死旧的进程，再通过命令 ./hade app start 带上参数 address，启动新的后端服务。启动之后，再将启动的进程 ID 存储到 proxy 结构的 backendPid 字段中：</p>
+<p>restartFrontend而重启前端服务的函数 restartFrontend 也是一样的逻辑，先关闭旧的前端进程，然后启动新的前端进程。这里同样也有一个问题，启动前端进程的命令是 npm run dev ，我们怎么固定其端口呢？在 Vue 中，我们可以通过设置环境变量 PORT，来规定前端进程的启动端口。也就是让启动命令变为 PORT=8071 npm run dev ，在 Golang 中启动一个命令，并为命令设置环境变量是这样设置的：</p>
+<p>所以启动前端服务的逻辑就如下，很简单，重点位置你可以看注释。</p>
+<p>startProxy下面我们来实现 startProxy 方法，它有两个参数，表示在启动 Proxy 时是否要启动前端、后端服务。这个方法的逻辑也并不复杂，步骤有四步，先根据参数判断是否启动后端服务，根据参数判断是否启动前端服务，然后使用 newProxyReverseProxy 来创建新的 ReverseProxy，最后启动 Proxy 服务。在代码中也做了步骤说明了：</p>
+<p>monitorBackend最后是一个 monitorBackend 方法，监控某个文件夹的变动，并且重新编译并且运行后端服务。这个方法我们重点说一下，有些逻辑还是比较绕的。首先，在前一节课说过了，可以使用 fsnotify 库对目录进行监控。那么对哪个目录进行监控呢？之前在配置 devConfig 中，定义了一个 Backend.MonitorFolder 目录，这个配置默认使用的是 AppFolder 目录。这个就是我们监控的目标目录。其次，每次有变化的时候，都要进行一次编译后端服务、杀死旧进程、重启新进程么？</p>
+<p>在开发过程中我们知道，每次调整一个逻辑的时候，是有可能短时间内重复修改、保存多个文件的，或者保存一个文件多次。而重新编译、重新启动进程的过程，又是有一定耗时的，如果每改一次就重来一次，可以想象这个体验是很差的。能怎么优化这种体验呢？我们可以使用一种计时时间机制。这个机制的逻辑就是，每次有文件变动，并不立刻进行实质的操作，而是开启一个计时时间，如果这个时间内，没有任何后续的文件变动了，那么在计时时间到了之后，我们再进行实质的操作。而如果在计时时间内，有任何更新的文件变动，我们就将计时时间机制重新开始计时。这种机制能有一定概率保证，在“更新代码等待一段时间后”进行后端的重启服务。而这里的计时时间我们也变成一个配置，devConfig 里面的 Backend.RefreshTime，默认时长为 1s。</p>
+<p>对应在 framework/command/dev.go 的 monitorBackend 代码实现中，我们大致分为这么几步，先创建 watcher，监听目标目录，有变动的时候开启计时时间机制，循环监听：目标目录变更事件，有事件更新计时机制；计时机制到点事件，计时到点事件触发，代表有一个或多个目标目录变更已经存在，更新后端服务。这里在监听目标目录的时候，我们需要监听 AppFolder 目录下的所有子目录及孙目录，所以这里需要用到递归 filepath.Walk ，来递归一遍所有子目录及孙目录。如果是目录，就使用 watcher.Add 来将目录加入到监控列表中。具体的代码逻辑可以看 framework/command/dev.go 中的 monitorBackend：</p>
+<p>验证到这里 Proxy 相关的逻辑和调试对应的命令行工具都开发完成了，下面我们来做一下对应的验证，一共三次验证，单独的前端、后端修改，以及同时对前后端的修改。先修改一下 config/development/app.yaml，增加对应的调试模式配置：</p>
+<p>这里设置 refresh_time 为 3s，代表后续后端变更后 3s 后会触发重新编译。对我们的代码进行一次编译，不用 go build 了，可以使用自定义的 build 命令了。前端验证首先验证前端调试模式。调用命令 ./hade dev front，可以看到如下的控制台信息：</p>
+<p>先是出现几行信息：</p>
+<p>然后进入到了 Vue 的调试模式，从上述信息我们知道，代理服务启动在 8070 端口，使用浏览器打开 <a href="http://127.0.0.1:8070" target="_blank" rel="noopener">http://127.0.0.1:8070</a> 看到了熟悉的 Vue 界面。</p>
+<p>然后修改首页的前端组件，业务目录下 src/components/HelloWorld.vue，将其展示在首页的 msg 内容：</p>
+<p>修改为：</p>
+<p>现在你可以看到，前端自动更新：</p>
+<p>前端验证完成。下面验证后端调试模式。后端验证我们已经在业务代码 app/http/module/demo/api.go 中，定义了 /demo/demo 的路由，并且简单输出文字”this is demo”。</p>
+<p>使用命令 ./hade dev backend ，有如下输出，可以看到输出中已经把监控文件夹、后端服务端口、代理服务端口完整输出了：访问代理服务 <a href="http://127.0.0.1:8087/demo/demo：" target="_blank" rel="noopener">http://127.0.0.1:8087/demo/demo：</a></p>
+<p>输出了后端接口内容。同时在代码中修改下输出内容之后：</p>
+<p>在控制台中我们可以看到，等待了 3s 后（这里配置文件设置为 3s），在控制台看到如下输出：检测到文件更新，重启服务开启。这个时候我们再刷新浏览器的接口，输出已经变化了。</p>
+<p>后端调试模式通过！前后端验证最后同时验证前端和后端，其实和前面单独验证的方法一样，只是启动命令换成了 ./hade dev all这里我们同时打开两个窗口，(<a href="http://127.0.0.1:8070/demo/demo" target="_blank" rel="noopener">http://127.0.0.1:8070/demo/demo</a>) 、(<a href="http://127.0.0.1:8070/#/" target="_blank" rel="noopener">http://127.0.0.1:8070/#/</a>) ，能同时看到前端和后端信息：</p>
+<p>修改前端 msg 和修改后端内容后，变更生效：</p>
+<p>到这里，前后端同时调试模式验证成功！今天的主要内容是创建调试模式的三个二级命令。完整的代码示例在 GitHub 上的 geekbang/20 分支，欢迎比对查看。本节课我们只在命令文件中增加了一个 framework/command/dev.go 文件：</p>
+<p>小结今天我们具体实现了调试模式，其实了解了上节课对调试模式的设计之后，今天的内容主要是细节上的代码实现了，就是工作量。不过其中的实现细节，也是在工作中不断积累下来的，你可以多多体会。比如 refresh_time 这个计时器窗口设计，在最初版本是没有的，在实际工作中，使用这个调试模式，遇到了频繁重建的困扰，才做了这个设计。总之，整个调试模式支持是非常赞的，它能让我们的 Web 开发效率提高了一个档次，希望你也能感同身受。思考题在回答同学们问题的时候，我发现有不少是其他语言转来 Go 的，不知道你的经历是怎样的，可以来聊一聊你在使用其他语言时，调试一个程序都是怎么调试的呢？有没有比较好的调试模式？</p>
 
       
     </div>
@@ -914,7 +947,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2021</span>
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
   <span class="with-love" id="animate">
     <i class="fa fa-user"></i>
   </span>
@@ -928,7 +961,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">4m</span>
+    <span title="站点总字数">4.1m</span>
   
 
   
@@ -939,7 +972,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">59:54</span>
+    <span title="站点阅读时长">61:25</span>
   
 </div>
 
