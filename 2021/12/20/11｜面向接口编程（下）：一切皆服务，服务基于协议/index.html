@@ -115,7 +115,7 @@
 <meta property="og:image" content="http://yoursite.com/2021/12/20/11｜面向接口编程（下）：一切皆服务，服务基于协议/2.webp">
 <meta property="og:image" content="http://yoursite.com/2021/12/20/11｜面向接口编程（下）：一切皆服务，服务基于协议/3.webp">
 <meta property="og:image" content="http://yoursite.com/2021/12/20/11｜面向接口编程（下）：一切皆服务，服务基于协议/4.webp">
-<meta property="og:updated_time" content="2021-12-28T09:38:26.170Z">
+<meta property="og:updated_time" content="2022-01-21T02:31:15.213Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="11｜面向接口编程（下）：一切皆服务，服务基于协议">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -448,7 +448,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2021-12-28 17:38:26" itemprop="dateModified" datetime="2021-12-28T17:38:26+08:00">2021-12-28</time>
+                <time title="修改时间：2022-01-21 10:31:15" itemprop="dateModified" datetime="2022-01-21T10:31:15+08:00">2022-01-21</time>
               
             
           </span>
@@ -533,17 +533,17 @@
 <p>之前对比面向过程/面向对象，讲解了抽象程度更高的面向接口编程理念，先定义接口再梳理如何通过接口协议交互，最后实现具体模块。</p>
 <p>根据这一理念，我们框架的核心设计就是：框架主体作为一个服务容器，其他各个服务模块都作为服务提供者，在服务容器中注册自己的服务凭证和服务接口，通过服务凭证来获取具体的服务实例。这样，功能的具体实现交给了各个服务模块，我们只需要规范服务提供者也就是服务容器中的接口协议。</p>
 <p>在上节课也已经完成了服务提供方接口的实现。所以今天就接着实现框架的主体逻辑。</p>
-<h1 id="服务容器的实现"><a href="#服务容器的实现" class="headerlink" title="服务容器的实现"></a>服务容器的实现</h1><p>首先是服务容器，先看它需要具有什么能力。同样的，按照面向接口编程，我们不考虑具体实现，先思考服务容器的接口设计。</p>
+<h1 id="服务容器的实现"><a href="#服务容器的实现" class="headerlink" title="服务容器的实现"></a><span style="color:#339AFF;">服务容器的实现</span></h1><p>首先是服务容器，先看它需要具有什么能力。同样的，按照面向接口编程，我们不考虑具体实现，先思考服务容器的接口设计。</p>
 <p>将服务容器实现在framework/container.go文件中。</p>
 <p>正如之前讨论的，一个服务容器主要的功能是：为服务提供注册绑定、提供获取服务实例，所以服务容器至少有两个方法：注册方法Bind、获取实例方法Make。</p>
 <ul>
-<li><p>对于注册的方法，直接将一个服务提供者注册到容器中，参数是之前定义的服务提供者，返回值则是error是否注册成功。</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Bind 绑定一个服务提供者，如果关键字凭证已经存在，会进行替换操作，不返回 error</span></span><br><span class="line">Bind(provider ServiceProvider) error</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>获取实例的方法是Make，它会根据一个关键字凭证，来获取容器中已经实例化好的服务。所以参数是一个关键字凭证string，返回值是实例化好的服务interface和是否有错误的error信息。</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Make 根据关键字凭证获取一个服务，</span></span><br><span class="line">Make(key <span class="keyword">string</span>) (<span class="keyword">interface</span>&#123;&#125;, error)</span><br></pre></td></tr></table></figure>
-</li>
+<li>对于注册的方法，直接将一个服务提供者注册到容器中，参数是之前定义的服务提供者，返回值则是error是否注册成功。</li>
 </ul>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Bind 绑定一个服务提供者，如果关键字凭证已经存在，会进行替换操作，不返回 error</span></span><br><span class="line">Bind(provider ServiceProvider) error</span><br></pre></td></tr></table></figure>
+<ul>
+<li>获取实例的方法是Make，它会根据一个关键字凭证，来获取容器中已经实例化好的服务。所以参数是一个关键字凭证string，返回值是实例化好的服务interface和是否有错误的error信息。</li>
+</ul>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Make 根据关键字凭证获取一个服务，</span></span><br><span class="line">Make(key <span class="keyword">string</span>) (<span class="keyword">interface</span>&#123;&#125;, error)</span><br></pre></td></tr></table></figure>
 <p>有了这两个基础方法，再考虑在注册绑定及获取服务实例过程中，有什么方面可以扩展。</p>
 <p>首先，因为有绑定操作，那么需要有一个确认某个关键字凭证是否已经绑定的能力：IsBind，参数为关键字凭证，返回为bool表示是否已经绑定。</p>
 <p>其次，Make方法返回值中带error信息，其实这在易用性上并不友好，因为大部分情况下，我们能确定某个服务容器已经被注册了，并不需要处理这个error。所以可以增加一个MustMake方法，它的参数和Make方法一样，为关键字凭证，返回值为实例化服务，但是不返回error。</p>
@@ -551,24 +551,24 @@
 <p>上节课说服务提供者提供了，初始化服务实例方法的能力Register和获取初始化服务实例参数的能力Params。一旦服务实例被初始化了，它就保存在服务容器中了，下次获取的时候，只需要获取已经实例化好的服务。</p>
 <p>但是在某次获取的时候，也会有需求要根据不同参数获取新的实例。比如需要根据不同的配置，获取不同的缓存实例的时候，我们可能需要传递不同的参数。所以可以定义一个MakeNew的方法，根据参数获取不同实例。</p>
 <p>整理一下服务容器的五个接口能力，在framework/container.go中代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Container 是一个服务容器，提供绑定服务和获取服务的功能</span></span><br><span class="line"><span class="keyword">type</span> Container <span class="keyword">interface</span> &#123;</span><br><span class="line">    <span class="comment">// Bind 绑定一个服务提供者，如果关键字凭证已经存在，会进行替换操作，返回 error</span></span><br><span class="line">    Bind(provider ServiceProvider) error</span><br><span class="line">    <span class="comment">// IsBind 关键字凭证是否已经绑定服务提供者</span></span><br><span class="line">    IsBind(key <span class="keyword">string</span>) <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Make 根据关键字凭证获取一个服务，</span></span><br><span class="line">    Make(key <span class="keyword">string</span>) (<span class="keyword">interface</span>&#123;&#125;, error)</span><br><span class="line">    <span class="comment">// MustMake 根据关键字凭证获取一个服务，如果这个关键字凭证未绑定服务提供者，那么会 panic。</span></span><br><span class="line">    <span class="comment">// 所以在使用这个接口的时候请保证服务容器已经为这个关键字凭证绑定了服务提供者。</span></span><br><span class="line">    MustMake(key <span class="keyword">string</span>) <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">    <span class="comment">// MakeNew 根据关键字凭证获取一个服务，只是这个服务并不是单例模式的</span></span><br><span class="line">    <span class="comment">// 它是根据服务提供者注册的启动函数和传递的 params 参数实例化出来的</span></span><br><span class="line">    <span class="comment">// 这个函数在需要为不同参数启动不同实例的时候非常有用</span></span><br><span class="line">    MakeNew(key <span class="keyword">string</span>, params []<span class="keyword">interface</span>&#123;&#125;) (<span class="keyword">interface</span>&#123;&#125;, error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h1 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h1><p>现在接口设计好了，下面结合交互思考下如何实现这个服务容器。我们就定义一个HadeContainer数据结构来实现Container接口，因为功能是提供绑定服务和获取服务，需要根据关键字获取一个对象，所以Hash Map是符合需求的。</p>
+<h1 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a><span style="color:#339AFF;">具体实现</span></h1><p>现在接口设计好了，下面结合交互思考下如何实现这个服务容器。我们就定义一个HadeContainer数据结构来实现Container接口，因为功能是提供绑定服务和获取服务，需要根据关键字获取一个对象，所以Hash Map是符合需求的。</p>
 <p>在HadeContainer内部应该有一个<code>map[string]interface{}</code>结构instances，其中key为关键字，value为具体的服务实例，这样instances结构可以存储每个关键字凭证对应的服务实例，在Make系列的方法中，就可以根据这个结构获取对应的服务实例。</p>
 <p>同理服务提供方也需要设计一个map[string]ServiceProvider来存储它们，这样在Bind操作的时候，只需要将服务提供方绑定到某个关键字凭证上即可。</p>
 <p>另外还要关注一下数据结构的并发性。因为当Bind的时候会对实例或者服务提供方有一定的变动，需要使用一个机制来保证HadeContianer的并发性，是用读写锁还是互斥锁呢？</p>
 <p>这里我们就要关注功能了，这个HadeContainer是一个读多于写的数据结构，即Bind是一次性的，但是Make是频繁的。所以使用读写锁的性能会优于互斥锁。</p>
 <p>好整理一下，在framework/container.go中HadeContainer的字段定义如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HadeContainer 是服务容器的具体实现</span></span><br><span class="line"><span class="keyword">type</span> HadeContainer <span class="keyword">struct</span> &#123;</span><br><span class="line">    Container <span class="comment">// 强制要求 HadeContainer 实现 Container 接口</span></span><br><span class="line">    <span class="comment">// providers 存储注册的服务提供者，key 为字符串凭证</span></span><br><span class="line">    providers <span class="keyword">map</span>[<span class="keyword">string</span>]ServiceProvider</span><br><span class="line">    <span class="comment">// instance 存储具体的实例，key 为字符串凭证</span></span><br><span class="line">    instances <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">    <span class="comment">// lock 用于锁住对容器的变更操作</span></span><br><span class="line">    lock sync.RWMutex</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>然后对应HadeContainer，来实现Container定义的几个方法就比较容易了，本质上就是对providers和instances两个map结构的修改和读取。这里最核心的Bind方法，我会结合代码讲得比较细致，你可以认真体会。</p>
-<h1 id="Bind方法"><a href="#Bind方法" class="headerlink" title="Bind方法"></a>Bind方法</h1><p>首先因为Bind方法是一个写操作，会修改providers和instances，所以在函数一开头，先给加上一个写锁，然后我们修改providers这个字段，它的key为关键字，value为注册的ServiceProvider。</p>
+<h2 id="Bind方法"><a href="#Bind方法" class="headerlink" title="Bind方法"></a><span style="color:#00ACC1;">Bind方法</span></h2><p>首先因为Bind方法是一个写操作，会修改providers和instances，所以在函数一开头，先给加上一个写锁，然后我们修改providers这个字段，它的key为关键字，value为注册的ServiceProvider。</p>
 <p>接着这里需要先判断是否实例化，因为定义的ServiceProvider中的IsDefer方法，控制了实例化时机。</p>
 <p>如果IsDefer方法标记这个服务实例要延迟实例化，即等到第一次make的时候再实例化，那么在Bind操作的时候，就什么都不需要做；而如果IsDefer方法为false，即注册时就要实例化，那么我们就要在Bind函数中增加实例化的方法。</p>
 <p>所以接下来实现实例化，方法和参数就是ServiceProvider中的Register和Params方法，分别取出实例化方法和参数进行调用，就获取到了具体的服务实例。</p>
 <p>最后还有一点要注意下，之前为ServiceProvider定义过一个Boot方法，是为了服务实例化前做一些准备工作的。所以在实例化之前，要先调用这个Boot方法，同样在framework/container.go中进行修改。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Bind 将服务容器和关键字做了绑定</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hade *HadeContainer)</span> <span class="title">Bind</span><span class="params">(provider ServiceProvider)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    hade.lock.Lock()</span><br><span class="line">    <span class="keyword">defer</span> hade.lock.Unlock()</span><br><span class="line">    key := provider.Name()</span><br><span class="line"></span><br><span class="line">    hade.providers[key] = provider</span><br><span class="line"></span><br><span class="line">    <span class="comment">// if provider is not defer</span></span><br><span class="line">    <span class="keyword">if</span> provider.IsDefer() == <span class="literal">false</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> err := provider.Boot(hade); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 实例化方法</span></span><br><span class="line">        params := provider.Params(hade)</span><br><span class="line">        method := provider.Register(hade)</span><br><span class="line">        instance, err := method(params...)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> errors.New(err.Error())</span><br><span class="line">        &#125;</span><br><span class="line">        hade.instances[key] = instance</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h1 id="Make方法"><a href="#Make方法" class="headerlink" title="Make方法"></a>Make方法</h1><p>为服务提供注册绑定的Bind方法我们就完成了，再来看服务容器的另一个功能提供获取服务实例，也就是Make方法。</p>
+<h2 id="Make方法"><a href="#Make方法" class="headerlink" title="Make方法"></a><span style="color:#00ACC1;">Make方法</span></h2><p>为服务提供注册绑定的Bind方法我们就完成了，再来看服务容器的另一个功能提供获取服务实例，也就是Make方法。</p>
 <p>先判断某个关键字是否已经注册了服务提供者，如果没有注册则后续不能成功返回错误，如果已经注册了就进行实例化操作。</p>
 <p>同时注意下，在上面解释过，也会有扩展需求，按照不同参数再次初始化服务的需求。也就是MakeNew方法，它和Make方法在内部调用最大的不同是传递了一个强制初始化的标记forceNew，和初始化需要的参数params。</p>
 <p>所以，在两个函数共同的内部实现make方法中，我们要先判断是否需要强制初始化实例，如果需要强制初始化，初始化后直接返回。而不需要强制初始化，那么就需要判断之前是否已经实例化了，如果已经实例化了，则返回。</p>
 <p>方法的实现同样在framework/container.go中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Make 方式调用内部的 make 实现</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hade *HadeContainer)</span> <span class="title">Make</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> hade.<span class="built_in">make</span>(key, <span class="literal">nil</span>, <span class="literal">false</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// MakeNew 方式使用内部的 make 初始化</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hade *HadeContainer)</span> <span class="title">MakeNew</span><span class="params">(key <span class="keyword">string</span>, params []<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> hade.<span class="built_in">make</span>(key, params, <span class="literal">true</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 真正的实例化一个服务</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hade *HadeContainer)</span> <span class="title">make</span><span class="params">(key <span class="keyword">string</span>, params []<span class="keyword">interface</span>&#123;&#125;, forceNew <span class="keyword">bool</span>)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    hade.lock.RLock()</span><br><span class="line">    <span class="keyword">defer</span> hade.lock.RUnlock()</span><br><span class="line">    <span class="comment">// 查询是否已经注册了这个服务提供者，如果没有注册，则返回错误</span></span><br><span class="line">    sp := hade.findServiceProvider(key)</span><br><span class="line">    <span class="keyword">if</span> sp == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"contract "</span> + key + <span class="string">" have not register"</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> forceNew &#123;</span><br><span class="line">        <span class="keyword">return</span> hade.newInstance(sp, params)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 不需要强制重新实例化，如果容器中已经实例化了，那么就直接使用容器中的实例</span></span><br><span class="line">    <span class="keyword">if</span> ins, ok := hade.instances[key]; ok &#123;</span><br><span class="line">        <span class="keyword">return</span> ins, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 容器中还未实例化，则进行一次实例化</span></span><br><span class="line">    inst, err := hade.newInstance(sp, <span class="literal">nil</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    hade.instances[key] = inst</span><br><span class="line">    <span class="keyword">return</span> inst, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h1 id="容器和框架的结合"><a href="#容器和框架的结合" class="headerlink" title="容器和框架的结合"></a>容器和框架的结合</h1><p>完成了服务容器的接口和对应具体实现，下面就要思考如何将服务容器融合进入框架中。</p>
+<h1 id="容器和框架的结合"><a href="#容器和框架的结合" class="headerlink" title="容器和框架的结合"></a><span style="color:#339AFF;">容器和框架的结合</span></h1><p>完成了服务容器的接口和对应具体实现，下面就要思考如何将服务容器融合进入框架中。</p>
 <p>回顾下hade框架中最核心的两个数据结构Engine和Context。</p>
 <ul>
 <li>Engine就是在第一节课中实现的Core数据结构，这个数据结构是整个框架的入口，也承担了整个框架最核心的路由、中间件等部分。</li>
@@ -583,7 +583,7 @@
 <p>根据上面描述的，Engine中负责绑定，Context中负责获取，所以我们将container的五个能力拆分到Engine和Context数据结构中。Engine封装Bind和IsBind方法，Context封装Make、MakeNew、MustMake方法。</p>
 <p>将这些为Engine和Context增加的新的方法单独存放在一个新的文件framework/gin/hade_context.go中。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// engine 实现 container 的绑定封装</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">Bind</span><span class="params">(provider framework.ServiceProvider)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> engine.container.Bind(provider)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// IsBind 关键字凭证是否已经绑定服务提供者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">IsBind</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> engine.container.IsBind(key)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// context 实现 container 的几个封装</span></span><br><span class="line"><span class="comment">// 实现 make 的封装</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctx *Context)</span> <span class="title">Make</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ctx.container.Make(key)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 实现 mustMake 的封装</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctx *Context)</span> <span class="title">MustMake</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="title">interface</span></span>&#123;&#125; &#123;</span><br><span class="line">    <span class="keyword">return</span> ctx.container.MustMake(key)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 实现 makenew 的封装</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctx *Context)</span> <span class="title">MakeNew</span><span class="params">(key <span class="keyword">string</span>, params []<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ctx.container.MakeNew(key, params)</span><br></pre></td></tr></table></figure></p>
 <p>到这里，我们就将服务容器和框架结合了，还需要完成创建服务提供方并创建服务的逻辑。</p>
-<h1 id="如何创建一个服务提供方"><a href="#如何创建一个服务提供方" class="headerlink" title="如何创建一个服务提供方"></a>如何创建一个服务提供方</h1><p>下面我们来创建一个服务DemoService，为这个服务创建一个服务提供方DemoServiceProvider，并注入到服务容器中。在业务目录中创建一个目录provider/demo存放这个服务。</p>
+<h1 id="如何创建一个服务提供方"><a href="#如何创建一个服务提供方" class="headerlink" title="如何创建一个服务提供方"></a><span style="color:#339AFF;">如何创建一个服务提供方</span></h1><p>下面我们来创建一个服务DemoService，为这个服务创建一个服务提供方DemoServiceProvider，并注入到服务容器中。在业务目录中创建一个目录provider/demo存放这个服务。</p>
 <p>先搞清楚需要为这个服务设计几个文件。</p>
 <ul>
 <li>要有一个服务接口文件contract.go，存放服务的接口文件和服务凭证。</li>
@@ -608,7 +608,7 @@
 <p>第一对IDE友好，有的IDE比如VSCode，在“根据接口查找具体实现的数据结构”的时候，如果没有这么一个显式标记，是寻找不出来的。第二个更重要的原因是对编译友好，一旦接口Service变化了，那么这个实现接口的实例，必须要有对应变化，否则在编译期就会出现错误了。</p>
 <p>现在有了具体的接口实现结构DemoService，我们只需要最后实现一个初始化这个服务实例的方法NewDemoService。它的参数是一个数组接口，返回值是服务实例。还是把这个方法存放在provider/demo/service.go中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 初始化实例的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDemoService</span><span class="params">(params ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 这里需要将参数展开</span></span><br><span class="line">    c := params[<span class="number">0</span>].(framework.Container)</span><br><span class="line"></span><br><span class="line">    fmt.Println(<span class="string">"new demo service"</span>)</span><br><span class="line">    <span class="comment">// 返回实例</span></span><br><span class="line">    <span class="keyword">return</span> &amp;DemoService&#123;c: c&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>到这里，就创建了一个示例的服务提供方DemoService。下面再看看如何使用这个服务提供方。</p>
-<h1 id="如何通过服务提供方创建服务"><a href="#如何通过服务提供方创建服务" class="headerlink" title="如何通过服务提供方创建服务"></a>如何通过服务提供方创建服务</h1><p>这里实现非常简单，我们需要做两个操作，绑定服务提供方、获取服务。</p>
+<h1 id="如何通过服务提供方创建服务"><a href="#如何通过服务提供方创建服务" class="headerlink" title="如何通过服务提供方创建服务"></a><span style="color:#339AFF;">如何通过服务提供方创建服务</span></h1><p>这里实现非常简单，我们需要做两个操作，绑定服务提供方、获取服务。</p>
 <p>首先是在业务文件夹的main.go中绑定操作，在main函数中，完成engine的创建之后，用在engine中封装的Bind方法做一次绑定操作。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建 engine 结构</span></span><br><span class="line">    core := gin.New()</span><br><span class="line">    <span class="comment">// 绑定具体的服务</span></span><br><span class="line">    core.Bind(&amp;demo.DemoServiceProvider&#123;&#125;)</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>然后就是服务的获取了。在具体的业务逻辑控制器中，我们选择路由/subject/list/all对应的控制器SubjectListController，使用为context封装的MustMake方法来获取demo服务实例。</p>
 <p>MustMake的参数为demo的服务凭证demo.Key，返回的是一个interface结构，这个interface结构实际上是实现了demo.Service接口的一个服务实例。</p>
@@ -619,10 +619,10 @@
 <p>今天所有的代码都已经上传到GitHub的geekbang/11分支了。目录截图如下：</p>
 <img src="/2021/12/20/11｜面向接口编程（下）：一切皆服务，服务基于协议/3.webp">
 <img src="/2021/12/20/11｜面向接口编程（下）：一切皆服务，服务基于协议/4.webp">
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>我们在主体框架中实现了服务容器、服务提供者的逻辑，现在，hade框架就包含一个服务容器，所有的服务都会在服务容器中注册。当业务需要获取某个服务实例的时候，也就是从服务容器中获取服务。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>我们在主体框架中实现了服务容器、服务提供者的逻辑，现在，hade框架就包含一个服务容器，所有的服务都会在服务容器中注册。当业务需要获取某个服务实例的时候，也就是从服务容器中获取服务。</p>
 <p>在这节课中，你是不是能感知到服务容器的方便之处了。只需要往服务容器中注册服务提供者，之后不管任何时候，想要获取某个服务，都能很方便地从服务容器中，获取到符合服务接口的实例，而不需要考虑到服务的具体实现。这种设计的拓展性非常好，之后在实际业务中我们只要保证服务协议不变，而不用担心具体的某个服务实现进行了变化。</p>
 <p>后续开发的所有服务模块，比如日志、配置等我们都会以服务的形式进行开发，先定义好服务的接口，后定义服务的服务提供者，最后再定义服务的具体实例化方法。</p>
-<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h1><p>在实现服务容器时，不知道你会不会有一个疑问：我们将服务容器的Make系列的方法在Context中实现了，为什么不把Bind系列方法也在Context中实现呢？这个问题你会怎么思考呢？Context允许Bind方法有什么好处和什么不好的地方呢？</p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>在实现服务容器时，不知道你会不会有一个疑问：我们将服务容器的Make系列的方法在Context中实现了，为什么不把Bind系列方法也在Context中实现呢？这个问题你会怎么思考呢？Context允许Bind方法有什么好处和什么不好的地方呢？</p>
 
       
     </div>
@@ -742,7 +742,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">440</span>
+                    <span class="site-state-item-count">441</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -758,6 +758,8 @@
                     
                   
                     
+                    
+                      
                     
                       
                     
@@ -948,6 +950,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">45</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
@@ -979,6 +983,10 @@
                 
                 
                   <li>
+                    <a href="/2022/01/20/说服/" title="说服" target="_blank">说服</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/01/06/期货鳄鱼2021年度总结/" title="期货鳄鱼2021年度总结" target="_blank">期货鳄鱼2021年度总结</a>
                   </li>
                 
@@ -992,10 +1000,6 @@
                 
                   <li>
                     <a href="/2021/12/21/32｜通用模块（下）：用户模块开发/" title="32｜通用模块（下）：用户模块开发" target="_blank">32｜通用模块（下）：用户模块开发</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2021/12/21/31｜通用模块（上）：用户模块开发/" title="31｜通用模块（上）：用户模块开发" target="_blank">31｜通用模块（上）：用户模块开发</a>
                   </li>
                 
               </ul>
@@ -1021,7 +1025,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#服务容器的实现"><span class="nav-number">1.</span> <span class="nav-text">服务容器的实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#具体实现"><span class="nav-number">2.</span> <span class="nav-text">具体实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Bind方法"><span class="nav-number">3.</span> <span class="nav-text">Bind方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Make方法"><span class="nav-number">4.</span> <span class="nav-text">Make方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#容器和框架的结合"><span class="nav-number">5.</span> <span class="nav-text">容器和框架的结合</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#如何创建一个服务提供方"><span class="nav-number">6.</span> <span class="nav-text">如何创建一个服务提供方</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#如何通过服务提供方创建服务"><span class="nav-number">7.</span> <span class="nav-text">如何通过服务提供方创建服务</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">8.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#思考题"><span class="nav-number">9.</span> <span class="nav-text">思考题</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#服务容器的实现"><span class="nav-number">1.</span> <span class="nav-text">服务容器的实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#具体实现"><span class="nav-number">2.</span> <span class="nav-text">具体实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Bind方法"><span class="nav-number">2.1.</span> <span class="nav-text">Bind方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Make方法"><span class="nav-number">2.2.</span> <span class="nav-text">Make方法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#容器和框架的结合"><span class="nav-number">3.</span> <span class="nav-text">容器和框架的结合</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#如何创建一个服务提供方"><span class="nav-number">4.</span> <span class="nav-text">如何创建一个服务提供方</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#如何通过服务提供方创建服务"><span class="nav-number">5.</span> <span class="nav-text">如何通过服务提供方创建服务</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">6.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#思考题"><span class="nav-number">7.</span> <span class="nav-text">思考题</span></a></li></ol></div>
             
 
           </div>
@@ -1067,7 +1071,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">61:43</span>
+    <span title="站点阅读时长">62:11</span>
   
 </div>
 
