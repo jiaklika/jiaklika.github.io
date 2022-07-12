@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL的COUNT语句是怎么执行的">
+<meta property="og:url" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-07-06T02:51:20.031Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MySQL的COUNT语句是怎么执行的">
+<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>MySQL的COUNT语句是怎么执行的 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">MySQL的COUNT语句是怎么执行的
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-07-06 10:40:05 / 修改时间：10:51:20" itemprop="dateCreated datePublished" datetime="2022-07-06T10:40:05+08:00">2022-07-06</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">5.7k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">5 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>总结一下，这章作者最主要想表达什么观点？</li>
+</ul>
+<a id="more"></a>
+<p>众多开发小伙伴在写业务逻辑的时候都会有一个统计行数的需求，此时COUNT函数便成为了首选。但是大家发现，随着数据量的增长，COUNT执行的越来越慢，本文从源码的角度来帮助小伙伴们分析一下MySQL中的COUNT函数是如何执行的。</p>
+<p>需要声明一点，本文所使用的MySQL源码版本是5.7.22，并且只针对InnoDB存储引擎。在深入介绍之前需要大家具有一些前置知识，才可以顺利讨论。</p>
+<p>前置知识1——InnoDB的B+树索引<br>为了故事的顺利发展，我们引入一个表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> t (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">UNSIGNED</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    key1 <span class="built_in">INT</span>,</span><br><span class="line">    common_field <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key1 (key1)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
+<p>这个表就包含2个索引（也就是2棵B+树）：</p>
+<p>以id列为主键对应的聚簇索引。</p>
+<p>为key1列建立的二级索引idx_key1。</p>
+<p>我们向表中插入一些记录：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> t <span class="keyword">VALUES</span></span><br><span class="line">    (<span class="number">1</span>, <span class="number">30</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">2</span>, <span class="number">80</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">3</span>, <span class="number">23</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">4</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">5</span>, <span class="number">11</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">6</span>, <span class="number">53</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">7</span>, <span class="number">63</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">8</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">9</span>, <span class="number">99</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">10</span>, <span class="number">12</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">11</span>, <span class="number">66</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">12</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">13</span>, <span class="number">66</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">14</span>, <span class="number">30</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">15</span>, <span class="number">11</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">16</span>, <span class="number">90</span>, <span class="string">'b'</span>);</span><br><span class="line">```   </span><br><span class="line">所以现在t表的聚簇索引示意图就是这样：</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">t表的二级索引示意图就是这样：</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">小贴士：</span><br><span class="line"></span><br><span class="line">原谅我们画了一个极度简化版的B+树：我们省略了B+树中的页面节点，省略了每层页面节点之间的双向链表，省略了页面中记录的单向链表，省略了页面中的页目录结构，还有省略了好多东西。但是我们保留B+树最为核心的一个特点：记录是按照键值大小进行排序的。即对于聚簇索引来说，记录是按照id列进行排序的；对于二级索引idx_key1来说，记录是按照key1列进行排序的，在key1列相同时再按照id列进行排序。</span><br><span class="line"></span><br><span class="line">从上边聚簇索引和二级索引的结构中大家可以发现：每一条聚簇索引记录都可以在二级索引中找到唯一的一条二级索引记录与其相对应。</span><br><span class="line"></span><br><span class="line">前置知识2——server层和存储引擎的交互</span><br><span class="line">以下边这个查询为例：</span><br><span class="line">```sql</span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 &gt; <span class="number">70</span> <span class="keyword">AND</span> common_field != <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>假设优化器认为通过扫描二级索引idx_key1中key1值在(70, +∞)这个区间中的二级索引记录的成本更小，那么查询将以下述方式执行：</p>
+<p>server层先让InnoDB去查在key1值在(70, +无穷)区间中的第一条记录。</p>
+<p>InnoDB通过二级索引idx_key1对应的B+树，从B+树根页面一层一层向下定位，快速找到(70, +无穷)区间的第一条二级索引记录，然后根据该二级索引记录进行回表操作，找到完整的聚簇索引记录，然后返回给server层。</p>
+<p>server层判断InnoDB返回的记录符不符合搜索条件key1 &gt; 70 AND common_field != ‘a’，如果不符合的话就跳过该记录，否则将其发送到客户端。</p>
+<p>小贴士：</p>
+<p>此处将记录发送给客户端其实是发送到本地的网络缓冲区，缓冲区大小由net_buffer_length控制，默认是16KB大小。等缓冲区满了才真正发送网络包到客户端。</p>
+<p>然后server层向InnoDB要下一条记录。</p>
+<p>InnoDB根据上一次找到的二级索引记录的next_record属性，获取到下一条二级索引记录，回表后将完整的聚簇索引记录返回给server层。</p>
+<p>server继续判断，不符合搜索条件即跳过该记录，否则发送到客户端。</p>
+<p>… 一直循环上述过程，直到InnoDB找不到下一条记录，则向server层报告查询完毕。</p>
+<p>server层收到InnoDB报告的查询完毕请求，停止查询。</p>
+<p>可见，一般情况下server层和存储引擎层是以记录为单位进行交互的。</p>
+<p>我们看一下源码中读取一条记录的函数调用栈：</p>
+<p>其中的handler::ha_index_next便是server层向存储引擎要下一条记录的接口。</p>
+<p>其中的row_search_mvcc是读取一条记录最重要的函数，这个函数长的吓人，有一千多行：</p>
+<p>每读取一条记录，都要做非常多的工作，诸如进行多版本的可见性判断，要不要对记录进行加锁的判断，要是加锁的话加什么锁的选择，完成记录从InnoDB的存储格式到server层存储格式的转换等等等等十分繁杂的工作。</p>
+<p>小贴士：</p>
+<p>不知道你们公司有没有写这么长函数的同学，如果有的话你想不想打他。</p>
+<p>前置知识3——COUNT是个啥<br>COUNT是一个汇总函数（聚集函数），它接收1个表达式作为参数：</p>
+<p>COUNT(expr)<br>COUNT函数用于统计在符合搜索条件的记录中，指定的表达式expr不为NULL的行数有多少。这里需要特别注意的是，expr不仅仅可以是列名，其他任意表达式都是可以的。</p>
+<p>比方说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(key1) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
+<p>这个语句是用于统计在single_table表的所有记录中，key1列不为NULL的行数是多少。</p>
+<p>再看这个：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(<span class="string">'abc'</span>) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
+<p>这个语句是用于统计在single_table表的所有记录中，’abc’这个表达式不为NULL的行数是多少。很显然，’abc’这个表达式永远不是NULL，所以上述语句其实就是统计single_table表里有多少条记录。</p>
+<p>再看这个：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(*) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
+<p>这个语句就是直接统计single_table表有多少条记录。</p>
+<p>总结+注意：COUNT函数的参数可以是任意表达式，该函数用于统计在符合搜索条件的记录中，指定的表达式不为NULL的行数有多少。</p>
+<p>MySQL中COUNT是怎样执行的<br>做了那么多铺垫，终于到了MySQL中COUNT是怎样执行的了。</p>
+<p>以下边这个语句为例：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(*) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
+<p>这个语句是要去查询表t中共包含多少条记录。由于聚簇索引和二级索引中的记录是一一对应的，而二级索引记录中包含的列是少于聚簇索引记录的，所以同样数量的二级索引记录可以比聚簇索引记录占用更少的存储空间。如果我们使用二级索引执行上述查询，即数一下idx_key1中共有多少条二级索引记录，是比直接数聚簇索引中共有多少聚簇索引记录可以节省很多I/O成本。所以优化器会决定使用idx_key1执行上述查询：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT COUNT(*) FROM t;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">| id | select_type | table | partitions | <span class="built_in">type</span>  | possible_keys | key      | key_len | ref  | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">|  1 | SIMPLE      | t     | NULL       | index | NULL          | idx_key1 | 5       | NULL |   16 |   100.00 | Using index |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.02 sec)</span><br></pre></td></tr></table></figure></p>
+<p>在执行上述查询时，server层会维护一个名叫count的变量，然后：</p>
+<p>server层向InnoDB要第一条记录。</p>
+<p>InnoDB找到idx_key1的第一条二级索引记录，并返回给server层（注意：由于此时只是统计记录数量，所以并不需要回表）。</p>
+<p>由于COUNT函数的参数是<em>，MySQL会将</em>当作常数0处理。由于0并不是NULL，server层给count变量加1。</p>
+<p>server层向InnoDB要下一条记录。</p>
+<p>InnoDB通过二级索引记录的next_record属性找到下一条二级索引记录，并返回给server层。</p>
+<p>server层继续给count变量加1。</p>
+<p>… 重复上述过程，直到InnoDB向server层返回没记录可查的消息。</p>
+<p>server层将最终的count变量的值发送到客户端。</p>
+<p>我们看一下源码里给count变量加1的代码是怎么写的：</p>
+<p>其大意就是判断一下COUNT里的表达式是不是NULL，如果不是NULL的话就给count变量加1。</p>
+<p>我们再来看一下arg_is_null的实现：</p>
+<p>其中最重要的是我们标蓝的那一行，item[i]表示的就是COUNT函数中的参数，我们调试一下对于COUNT(<em>)来说，表达式</em>的值是什么：</p>
+<p>可以看到，*表达式的类型其实是Item_int，这表示MySQL其实会把*当作一个整数处理，它的值是0（见图中箭头）。也就是说我们在判断表达式*是不是为NULL，也就是在判断整数0是不是为NULL，很显然不为NULL。</p>
+<p>那COUNT(1)，COUNT(id)，COUNT(非主键列)呢？<br>那在执行COUNT(1)呢？比方说下边这个语句：</p>
+<p>SELECT COUNT(1) FROM t;<br>我们看一下：</p>
+<p>可以看到，常数1对应的类型其实是PTI_num_literal_num，它其实是Item_int的一个包装类型，本质上还是代表一个整数，它的值是1（见图中箭头）。也就是说我们其实是在判断表达式1是不是为NULL，很显然不为NULL。</p>
+<p>再看一下COUNT(id)：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(<span class="keyword">id</span>) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
+<p>我们看一下：</p>
+<p>可以看到，id对应的类型是Item_field，代表一个字段。</p>
+<p>对于COUNT(*)、COUNT(1)或者任意的COUNT(常数)来说，读取哪个索引的记录其实并不重要，因为server层只关心存储引擎是否读到了记录，而并不需要从记录中提取指定的字段来判断是否为NULL。所以优化器会使用占用存储空间最小的那个索引来执行查询。</p>
+<p>对于COUNT(id)来说，由于id是主键，不论是聚簇索引记录，还是任意一个二级索引记录中都会包含主键字段，所以其实读取任意一个索引中的记录都可以获取到id字段，此时优化器也会选择占用存储空间最小的那个索引来执行查询。</p>
+<p>而对于COUNT(非主键列)来说，我们指定的列可能并不会包含在每一个索引中。这样优化器只能选择包含我们指定的列的索引去执行查询，这就可能导致优化器选择的索引并不是最小的那个。</p>
+<p>总结一下<br>对于COUNT(<em>)、COUNT(常数)、COUNT(主键)形式的COUNT函数来说，优化器可以选择最小的索引执行查询，从而提升效率，它们的执行过程是一样的，只不过在判断表达式是否为NULL时选择不同的判断方式，这个判断为NULL的过程的代价可以忽略不计，所以我们可以认为COUNT(</em>)、COUNT(常数)、COUNT(主键)所需要的代价是相同的。</p>
+<p>而对于COUNT(非主键列)来说，server层必须要从InnoDB中读到包含非主键列的记录，所以优化器并不能随心所欲的选择最小的索引去执行。</p>
+<p>我想改进一下？<br>我们知道，InnoDB的记录都是存储在数据页中的（页面大小默认为16KB），而每个数据页的Page Header部分都有一个统计当前页面中记录数量的属性PAGE_N_RECS。那有的同学说了：在执行COUNT函数的时候直接去把各个页面的这个PAGE_N_RECS属性加起来不就好了么？</p>
+<p>答案是：行不通的！对于普通的SELECT语句来说，每次查询都要从记录的版本链上找到可见的版本才算是读到了记录；对于加了FOR UPDATE或LOCK IN SHARE MODE后缀的SELECT语句来说，每次查询都要给记录添加合适的锁。所以这个读取每一条记录的过程（就是上边给出的row_search_mvcc函数）在InnoDB的目前实现中是无法跳过的，InnoDB还是得老老实实的读一条记录，返给server层一条记录。</p>
+<p>那如果我的业务中有COUNT需求，但是由于数据量太大导致即使优化器即使通过扫描二级索引记录的方式也还是太慢怎么办？既然业务上有需求，当然还是业务第一喽，我们可以在另一个地方存储一份待统计数据的行数，每次增删改记录都维护一下。</p>
+<p>这样的解决方案显著增加了开发小伙伴的工作量，部分开发小伙伴肯定不太乐意，那就去怼你的产品经理吧：这么大数据量要TM什么精确值，你来告诉我这么大数据量要TM什么的TM的精确值？</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/MySQL是怎样运行的：从根儿上理解MySQL/" rel="tag"># MySQL是怎样运行的：从根儿上理解MySQL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/07/04/单表访问方法/" rel="next" title="单表访问方法">
+                <i class="fa fa-chevron-left"></i> 单表访问方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/07/07/事务简介/" rel="prev" title="事务简介">
+                事务简介 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">453</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">46</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2022/07/09/Explain详解（上）/" title="Explain详解（上）" target="_blank">Explain详解（上）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/07/09/Explain详解（下）/" title="Explain详解（下）" target="_blank">Explain详解（下）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/07/07/事务简介/" title="事务简介" target="_blank">事务简介</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/07/06/MySQL的COUNT语句是怎么执行的/" title="MySQL的COUNT语句是怎么执行的" target="_blank">MySQL的COUNT语句是怎么执行的</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/07/04/单表访问方法/" title="单表访问方法" target="_blank">单表访问方法</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">4.5m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">67:27</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
