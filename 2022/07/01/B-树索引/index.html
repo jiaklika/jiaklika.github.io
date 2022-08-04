@@ -103,13 +103,13 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：  有几个索引就有几个B+树，怎么理解？ 主键索引和非主键索引有什么区别？什么是回表？为什么要回表？">
 <meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
 <meta property="og:type" content="article">
 <meta property="og:title" content="B+树索引">
 <meta property="og:url" content="http://yoursite.com/2022/07/01/B-树索引/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：  有几个索引就有几个B+树，怎么理解？ 主键索引和非主键索引有什么区别？什么是回表？为什么要回表？">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/07/01/B-树索引/1.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/07/01/B-树索引/2.awebp">
@@ -129,10 +129,10 @@
 <meta property="og:image" content="http://yoursite.com/2022/07/01/B-树索引/16.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/07/01/B-树索引/17.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/07/01/B-树索引/18.awebp">
-<meta property="og:updated_time" content="2022-07-06T02:28:13.266Z">
+<meta property="og:updated_time" content="2022-08-02T01:46:46.795Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="B+树索引">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：  有几个索引就有几个B+树，怎么理解？ 主键索引和非主键索引有什么区别？什么是回表？为什么要回表？">
 <meta name="twitter:image" content="http://yoursite.com/2022/07/01/B-树索引/1.awebp">
 
 
@@ -426,6 +426,10 @@
         <div class="post-meta">
 
           
+            <i class="fa fa-thumb-tack"></i>
+            <font color="FF0000">置顶</font>
+            <span class="post-meta-divider">|</span>
+          
 
           <span class="post-time">
 
@@ -462,7 +466,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-07-06 10:28:13" itemprop="dateModified" datetime="2022-07-06T10:28:13+08:00">2022-07-06</time>
+                <time title="修改时间：2022-08-02 09:46:46" itemprop="dateModified" datetime="2022-08-02T09:46:46+08:00">2022-08-02</time>
               
             
           </span>
@@ -544,10 +548,11 @@
       
         <p>思考并回答以下问题：</p>
 <ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
+<li>有几个索引就有几个B+树，怎么理解？</li>
+<li>主键索引和非主键索引有什么区别？什么是回表？为什么要回表？</li>
 </ul>
 <a id="more"></a>
-<p>前边我们详细唠叨了InnoDB数据页的7个组成部分，知道了各个数据页可以组成一个<span style="color:red">双向链表</span>，而每个数据页中的记录会按照主键值从小到大的顺序组成一个<span style="color:red">单向链表</span>，每个数据页都会为存储在它里边儿的记录生成一个页目录，在通过主键查找某条记录的时候可以在页目录中使用二分法快速定位到对应的槽，然后再遍历该槽对应分组中的记录即可快速找到指定的记录（如果你对这段话有一丁点儿疑惑，那么接下来的部分不适合你，返回去看一下数据页结构吧）。页和记录的关系示意图如下：</p>
+<p>前边我们详细唠叨了InnoDB数据页的7个组成部分，知道了各个数据页可以组成一个<span style="color:red">双向链表</span>，而每个数据页中的记录会按照主键值从小到大的顺序组成一个<span style="color:red">单向链表</span>，每个数据页都会为存储在它里边儿的记录生成一个<span style="color:red">页目录</span>，在通过主键查找某条记录的时候可以在页目录中使用<span style="color:red">二分法</span>快速定位到对应的槽，然后再<span style="color:red">遍历</span>该槽对应分组中的记录即可快速找到指定的记录。页和记录的关系示意图如下：</p>
 <img src="/2022/07/01/B-树索引/1.awebp">
 <p>其中页a、页b、页c … 页n这些页可以不在物理结构上相连，只要通过双向链表相关联即可。</p>
 <h1 id="没有索引的查找"><a href="#没有索引的查找" class="headerlink" title="没有索引的查找"></a><span style="color:#339AFF;">没有索引的查找</span></h1><p>本集的主题是索引，在正式介绍索引之前，我们需要了解一下没有索引的时候是怎么查找记录的。为了方便大家理解，我们下边先只唠叨搜索条件为对某个列精确匹配的情况，所谓精确匹配，就是搜索条件中用等于=连接起的表达式，比如这样：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> [列名列表] <span class="keyword">FROM</span> 表名 <span class="keyword">WHERE</span> 列名 = xxx;</span><br></pre></td></tr></table></figure></p>
@@ -1294,7 +1299,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">67:50</span>
+    <span title="站点阅读时长">67:49</span>
   
 </div>
 
