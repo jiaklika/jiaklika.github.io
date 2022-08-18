@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="undo日志（下）">
+<meta property="og:url" content="http://yoursite.com/2022/08/10/undo日志（下）/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-08-10T07:51:22.154Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="undo日志（下）">
+<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/08/10/undo日志（下）/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>undo日志（下） | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/08/10/undo日志（下）/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">undo日志（下）
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-08-10 15:50:35 / 修改时间：15:51:22" itemprop="dateCreated datePublished" datetime="2022-08-10T15:50:35+08:00">2022-08-10</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">17k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">16 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>总结一下，这章作者最主要想表达什么观点？</li>
+</ul>
+<a id="more"></a>
+<p>上一章我们主要唠叨了为什么需要undo日志，以及INSERT、DELETE、UPDATE这些会对数据做改动的语句都会产生什么类型的undo日志，还有不同类型的undo日志的具体格式是什么。本章会继续唠叨这些undo日志会被具体写到什么地方，以及在写入过程中需要注意的一些问题。</p>
+<p>通用链表结构<br>在写入undo日志的过程中会使用到多个链表，很多链表都有同样的节点结构，如图所示：</p>
+<p>image_1d79gnaudfg2psk2l7mi1146r20.png-104.8kB<br>在某个表空间内，我们可以通过一个页的页号和在页内的偏移量来唯一定位一个节点的位置，这两个信息也就相当于指向这个节点的一个指针。所以：</p>
+<p>Pre Node Page Number和Pre Node Offset的组合就是指向前一个节点的指针</p>
+<p>Next Node Page Number和Next Node Offset的组合就是指向后一个节点的指针。</p>
+<p>整个List Node占用12个字节的存储空间。</p>
+<p>为了更好的管理链表，设计InnoDB的大叔还提出了一个基节点的结构，里边存储了这个链表的头节点、尾节点以及链表长度信息，基节点的结构示意图如下：</p>
+<p>image_1d79o8ra61jh6k0k6af13vpg329.png-103.9kB<br>其中：</p>
+<p>List Length表明该链表一共有多少节点。</p>
+<p>First Node Page Number和First Node Offset的组合就是指向链表头节点的指针。</p>
+<p>Last Node Page Number和Last Node Offset的组合就是指向链表尾节点的指针。</p>
+<p>整个List Base Node占用16个字节的存储空间。</p>
+<p>所以使用List Base Node和List Node这两个结构组成的链表的示意图就是这样：</p>
+<p>image_1d79nq0ge1gn7pmcaa7gma1uh62q.png-71kB<br>小贴士： 上述链表结构我们在前边的文章中频频提到，尤其是在表空间那一章重点描述过，不过我不敢奢求大家都记住了，所以在这里又强调一遍，希望大家不要嫌我烦，我只是怕大家忘了学习后续内容吃力而已～</p>
+<p>FIL_PAGE_UNDO_LOG页面<br>我们前边唠叨表空间的时候说过，表空间其实是由许许多多的页面构成的，页面默认大小为16KB。这些页面有不同的类型，比如类型为FIL_PAGE_INDEX的页面用于存储聚簇索引以及二级索引，类型为FIL_PAGE_TYPE_FSP_HDR的页面用于存储表空间头部信息的，还有其他各种类型的页面，其中有一种称之为FIL_PAGE_UNDO_LOG类型的页面是专门用来存储undo日志的，这种类型的页面的通用结构如下图所示（以默认的16KB大小为例）：</p>
+<p>image_1d79ec33apm47brq901sur3bi16.png-63.2kB<br>“类型为FIL_PAGE_UNDO_LOG的页”这种说法太绕口，以后我们就简称为Undo页面了哈。上图中的File Header和File Trailer是各种页面都有的通用结构，我们前边唠叨过很多遍了，这里就不赘述了（忘记了的可以到讲述数据页结构或者表空间的章节中查看）。Undo Page Header是Undo页面所特有的，我们来看一下它的结构：</p>
+<p>其中各个属性的意思如下：</p>
+<p>TRX_UNDO_PAGE_TYPE：本页面准备存储什么种类的undo日志。</p>
+<p>我们前边介绍了好几种类型的undo日志，它们可以被分为两个大类：</p>
+<p>TRX_UNDO_INSERT（使用十进制1表示）：类型为TRX_UNDO_INSERT_REC的undo日志属于此大类，一般由INSERT语句产生，或者在UPDATE语句中有更新主键的情况也会产生此类型的undo日志。</p>
+<p>TRX_UNDO_UPDATE（使用十进制2表示），除了类型为TRX_UNDO_INSERT_REC的undo日志，其他类型的undo日志都属于这个大类，比如我们前边说的TRX_UNDO_DEL_MARK_REC、TRX_UNDO_UPD_EXIST_REC啥的，一般由DELETE、UPDATE语句产生的undo日志属于这个大类。</p>
+<p>这个TRX_UNDO_PAGE_TYPE属性可选的值就是上边的两个，用来标记本页面用于存储哪个大类的undo日志，不同大类的undo日志不能混着存储，比如一个Undo页面的TRX_UNDO_PAGE_TYPE属性值为TRX_UNDO_INSERT，那么这个页面就只能存储类型为TRX_UNDO_INSERT_REC的undo日志，其他类型的undo日志就不能放到这个页面中了。</p>
+<p>小贴士： 之所以把undo日志分成两个大类，是因为类型为TRX_UNDO_INSERT_REC的undo日志在事务提交后可以直接删除掉，而其他类型的undo日志还需要为所谓的MVCC服务，不能直接删除掉，对它们的处理需要区别对待。当然，如果你看这段话迷迷糊糊的话，那就不需要再看一遍了，现在只需要知道undo日志分为2个大类就好了，更详细的东西我们后边会仔细唠叨的。</p>
+<p>TRX_UNDO_PAGE_START：表示在当前页面中是从什么位置开始存储undo日志的，或者说表示第一条undo日志在本页面中的起始偏移量。</p>
+<p>TRX_UNDO_PAGE_FREE：与上边的TRX_UNDO_PAGE_START对应，表示当前页面中存储的最后一条undo日志结束时的偏移量，或者说从这个位置开始，可以继续写入新的undo日志。</p>
+<p>假设现在向页面中写入了3条undo日志，那么TRX_UNDO_PAGE_START和TRX_UNDO_PAGE_FREE的示意图就是这样：</p>
+<p>image_1d79s1ib21rku5fkq3to1e14313.png-54kB<br>当然，在最初一条undo日志也没写入的情况下，TRX_UNDO_PAGE_START和TRX_UNDO_PAGE_FREE的值是相同的。</p>
+<p>TRX_UNDO_PAGE_NODE：代表一个List Node结构（链表的普通节点，我们上边刚说的）。</p>
+<p>下边马上用到这个属性，稍安勿躁。</p>
+<p>Undo页面链表<br>单个事务中的Undo页面链表<br>因为一个事务可能包含多个语句，而且一个语句可能对若干条记录进行改动，而对每条记录进行改动前，都需要记录1条或2条的undo日志，所以在一个事务执行过程中可能产生很多undo日志，这些日志可能一个页面放不下，需要放到多个页面中，这些页面就通过我们上边介绍的TRX_UNDO_PAGE_NODE属性连成了链表：</p>
+<p>image_1d79v7bib12041n9d1gpe1t8a10jc1g.png-60.8kB<br>大家往上再瞅一瞅上边的图，我们特意把链表中的第一个Undo页面给标了出来，称它为first undo page，其余的Undo页面称之为normal undo page，这是因为在first undo page中除了记录Undo Page Header之外，还会记录其他的一些管理信息，这个我们稍后再说哈。</p>
+<p>在一个事务执行过程中，可能混着执行INSERT、DELETE、UPDATE语句，也就意味着会产生不同类型的undo日志。但是我们前边又强调过，同一个Undo页面要么只存储TRX_UNDO_INSERT大类的undo日志，要么只存储TRX_UNDO_UPDATE大类的undo日志，反正不能混着存，所以在一个事务执行过程中就可能需要2个Undo页面的链表，一个称之为insert undo链表，另一个称之为update undo链表，画个示意图就是这样：</p>
+<p>image_1d7a6t4va1e0c1l9t1hq51vlt183l2d.png-54.6kB<br>另外，设计InnoDB的大叔规定对普通表和临时表的记录改动时产生的undo日志要分别记录（我们稍后阐释为啥这么做），所以在一个事务中最多有4个以Undo页面为节点组成的链表：</p>
+<p>image_1d7bg5o7c3t11nch988lj51hsl9.png-106.8kB<br>当然，并不是在事务一开始就会为这个事务分配这4个链表，具体分配策略如下：</p>
+<p>刚刚开启事务时，一个Undo页面链表也不分配。</p>
+<p>当事务执行过程中向普通表中插入记录或者执行更新记录主键的操作之后，就会为其分配一个普通表的insert undo链表。</p>
+<p>当事务执行过程中删除或者更新了普通表中的记录之后，就会为其分配一个普通表的update undo链表。</p>
+<p>当事务执行过程中向临时表中插入记录或者执行更新记录主键的操作之后，就会为其分配一个临时表的insert undo链表。</p>
+<p>当事务执行过程中删除或者更新了临时表中的记录之后，就会为其分配一个临时表的update undo链表。</p>
+<p>总结一句就是：按需分配，啥时候需要啥时候再分配，不需要就不分配。</p>
+<p>多个事务中的Undo页面链表<br>为了尽可能提高undo日志的写入效率，不同事务执行过程中产生的undo日志需要被写入到不同的Undo页面链表中。比方说现在有事务id分别为1、2的两个事务，我们分别称之为trx 1和trx 2，假设在这两个事务执行过程中：</p>
+<p>trx 1对普通表做了DELETE操作，对临时表做了INSERT和UPDATE操作。</p>
+<p>InnoDB会为trx 1分配3个链表，分别是：</p>
+<p>针对普通表的update undo链表</p>
+<p>针对临时表的insert undo链表</p>
+<p>针对临时表的update undo链表。</p>
+<p>trx 2对普通表做了INSERT、UPDATE和DELETE操作，没有对临时表做改动。</p>
+<p>InnoDB会为trx 2分配2个链表，分别是：</p>
+<p>针对普通表的insert undo链表</p>
+<p>针对普通表的update undo链表。</p>
+<p>综上所述，在trx 1和trx 2执行过程中，InnoDB共需为这两个事务分配5个Undo页面链表，画个图就是这样：</p>
+<p>image_1d7blo9dp1m4tj1f1ke9te11654m.png-96.8kB<br>如果有更多的事务，那就意味着可能会产生更多的Undo页面链表。</p>
+<p>undo日志具体写入过程<br>段（Segment）的概念<br>如果你有认真看过表空间那一章的话，对这个段的概念应该印象深刻，我们当时花了非常大的篇幅来唠叨这个概念。简单讲，这个段是一个逻辑上的概念，本质上是由若干个零散页面和若干个完整的区组成的。比如一个B+树索引被划分成两个段，一个叶子节点段，一个非叶子节点段，这样叶子节点就可以被尽可能的存到一起，非叶子节点被尽可能的存到一起。每一个段对应一个INODE Entry结构，这个INODE Entry结构描述了这个段的各种信息，比如段的ID，段内的各种链表基节点，零散页面的页号有哪些等信息（具体该结构中每个属性的意思大家可以到表空间那一章里再次重温一下）。我们前边也说过，为了定位一个INODE Entry，设计InnoDB的大叔设计了一个Segment Header的结构：</p>
+<p>image_1d7bp5ndt171bb6rkohot41e023.png-75.7kB<br>整个Segment Header占用10个字节大小，各个属性的意思如下：</p>
+<p>Space ID of the INODE Entry：INODE Entry结构所在的表空间ID。</p>
+<p>Page Number of the INODE Entry：INODE Entry结构所在的页面页号。</p>
+<p>Byte Offset of the INODE Ent：INODE Entry结构在该页面中的偏移量</p>
+<p>知道了表空间ID、页号、页内偏移量，不就可以唯一定位一个INODE Entry的地址了么～</p>
+<p>小贴士： 这部分关于段的各种概念我们在表空间那一章中都有详细解释，在这里重提一下只是为了唤醒大家沉睡的记忆，如果有任何不清楚的地方可以再次跳回表空间的那一章仔细读一下。</p>
+<p>Undo Log Segment Header<br>设计InnoDB的大叔规定，每一个Undo页面链表都对应着一个段，称之为Undo Log Segment。也就是说链表中的页面都是从这个段里边申请的，所以他们在Undo页面链表的第一个页面，也就是上边提到的first undo page中设计了一个称之为Undo Log Segment Header的部分，这个部分中包含了该链表对应的段的segment header信息以及其他的一些关于这个段的信息，所以Undo页面链表的第一个页面其实长这样：</p>
+<p>image_1d7brcccqah1rdn10573vh1onip.png-70.5kB<br>可以看到这个Undo链表的第一个页面比普通页面多了个Undo Log Segment Header，我们来看一下它的结构：</p>
+<p>image_1d7bsbk8o15ja2bk1s9p11c51vs2p.png-80.2kB<br>其中各个属性的意思如下：</p>
+<p>TRX_UNDO_STATE：本Undo页面链表处在什么状态。</p>
+<p>一个Undo Log Segment可能处在的状态包括：</p>
+<p>TRX_UNDO_ACTIVE：活跃状态，也就是一个活跃的事务正在往这个段里边写入undo日志。</p>
+<p>TRX_UNDO_CACHED：被缓存的状态。处在该状态的Undo页面链表等待着之后被其他事务重用。</p>
+<p>TRX_UNDO_TO_FREE：对于insert undo链表来说，如果在它对应的事务提交之后，该链表不能被重用，那么就会处于这种状态。</p>
+<p>TRX_UNDO_TO_PURGE：对于update undo链表来说，如果在它对应的事务提交之后，该链表不能被重用，那么就会处于这种状态。</p>
+<p>TRX_UNDO_PREPARED：包含处于PREPARE阶段的事务产生的undo日志。</p>
+<p>小贴士： Undo页面链表什么时候会被重用，怎么重用我们之后会详细说的。事务的PREPARE阶段是在所谓的分布式事务中才出现的，本书中不会介绍更多关于分布式事务的事情，所以大家目前忽略这个状态就好了。</p>
+<p>TRX_UNDO_LAST_LOG：本Undo页面链表中最后一个Undo Log Header的位置。</p>
+<p>小贴士： 关于什么是Undo Log Header，我们稍后马上介绍哈。</p>
+<p>TRX_UNDO_FSEG_HEADER：本Undo页面链表对应的段的Segment Header信息（就是我们上一节介绍的那个10字节结构，通过这个信息可以找到该段对应的INODE Entry）。</p>
+<p>TRX_UNDO_PAGE_LIST：Undo页面链表的基节点。</p>
+<p>我们上边说Undo页面的Undo Page Header部分有一个12字节大小的TRX_UNDO_PAGE_NODE属性，这个属性代表一个List Node结构。每一个Undo页面都包含Undo Page Header结构，这些页面就可以通过这个属性连成一个链表。这个TRX_UNDO_PAGE_LIST属性代表着这个链表的基节点，当然这个基节点只存在于Undo页面链表的第一个页面，也就是first undo page中。</p>
+<p>Undo Log Header<br>一个事务在向Undo页面中写入undo日志时的方式是十分简单暴力的，就是直接往里怼，写完一条紧接着写另一条，各条undo日志之间是亲密无间的。写完一个Undo页面后，再从段里申请一个新页面，然后把这个页面插入到Undo页面链表中，继续往这个新申请的页面中写。设计InnoDB的大叔认为同一个事务向一个Undo页面链表中写入的undo日志算是一个组，比方说我们上边介绍的trx 1由于会分配3个Undo页面链表，也就会写入3个组的undo日志；trx 2由于会分配2个Undo页面链表，也就会写入2个组的undo日志。在每写入一组undo日志时，都会在这组undo日志前先记录一下关于这个组的一些属性，设计InnoDB的大叔把存储这些属性的地方称之为Undo Log Header。所以Undo页面链表的第一个页面在真正写入undo日志前，其实都会被填充Undo Page Header、Undo Log Segment Header、Undo Log Header这3个部分，如图所示：</p>
+<p>image_1d7cbktqb16oqih12mqmghn2a1m.png-82kB<br>这个Undo Log Header具体的结构如下：</p>
+<p>image_1d7cfr3cjsec64714qgucc1s8s9.png-122.8kB<br>哇唔，映入眼帘的又是一大坨属性，我们先大致看一下它们都是啥意思：</p>
+<p>TRX_UNDO_TRX_ID：生成本组undo日志的事务id。</p>
+<p>TRX_UNDO_TRX_NO：事务提交后生成的一个需要序号，使用此序号来标记事务的提交顺序（先提交的此序号小，后提交的此序号大）。</p>
+<p>TRX_UNDO_DEL_MARKS：标记本组undo日志中是否包含由于Delete mark操作产生的undo日志。</p>
+<p>TRX_UNDO_LOG_START：表示本组undo日志中第一条undo日志的在页面中的偏移量。</p>
+<p>TRX_UNDO_XID_EXISTS：本组undo日志是否包含XID信息。</p>
+<p>小贴士： 本书不会讲述更多关于XID是个什么东东，有兴趣的同学可以到搜索引擎或者文档中搜一搜哈。</p>
+<p>TRX_UNDO_DICT_TRANS：标记本组undo日志是不是由DDL语句产生的。</p>
+<p>TRX_UNDO_TABLE_ID：如果TRX_UNDO_DICT_TRANS为真，那么本属性表示DDL语句操作的表的table id。</p>
+<p>TRX_UNDO_NEXT_LOG：下一组的undo日志在页面中开始的偏移量。</p>
+<p>TRX_UNDO_PREV_LOG：上一组的undo日志在页面中开始的偏移量。</p>
+<p>小贴士： 一般来说一个Undo页面链表只存储一个事务执行过程中产生的一组undo日志，但是在某些情况下，可能会在一个事务提交之后，之后开启的事务重复利用这个Undo页面链表，这样就会导致一个Undo页面中可能存放多组Undo日志，TRX_UNDO_NEXT_LOG和TRX_UNDO_PREV_LOG就是用来标记下一组和上一组undo日志在页面中的偏移量的。关于什么时候重用Undo页面链表，怎么重用这个链表我们稍后会详细说明的，现在先理解TRX_UNDO_NEXT_LOG和TRX_UNDO_PREV_LOG这两个属性的意思就好了。</p>
+<p>TRX_UNDO_HISTORY_NODE：一个12字节的List Node结构，代表一个称之为History链表的节点。</p>
+<p>小结<br>对于没有被重用的Undo页面链表来说，链表的第一个页面，也就是first undo page在真正写入undo日志前，会填充Undo Page Header、Undo Log Segment Header、Undo Log Header这3个部分，之后才开始正式写入undo日志。对于其他的页面来说，也就是normal undo page在真正写入undo日志前，只会填充Undo Page Header。链表的List Base Node存放到first undo page的Undo Log Segment Header部分，List Node信息存放到每一个Undo页面的undo Page Header部分，所以画一个Undo页面链表的示意图就是这样：</p>
+<p>image_1d7cocjrk1dvm1ehg16da1di4mfb16.png-87kB<br>重用Undo页面<br>我们前边说为了能提高并发执行的多个事务写入undo日志的性能，设计InnoDB的大叔决定为每个事务单独分配相应的Undo页面链表（最多可能单独分配4个链表）。但是这样也造成了一些问题，比如其实大部分事务执行过程中可能只修改了一条或几条记录，针对某个Undo页面链表只产生了非常少的undo日志，这些undo日志可能只占用一丢丢存储空间，每开启一个事务就新创建一个Undo页面链表（虽然这个链表中只有一个页面）来存储这么一丢丢undo日志岂不是太浪费了么？的确是挺浪费，于是设计InnoDB的大叔本着勤俭节约的优良传统，决定在事务提交后在某些情况下重用该事务的Undo页面链表。一个Undo页面链表是否可以被重用的条件很简单：</p>
+<p>该链表中只包含一个Undo页面。</p>
+<p>如果一个事务执行过程中产生了非常多的undo日志，那么它可能申请非常多的页面加入到Undo页面链表中。在该事物提交后，如果将整个链表中的页面都重用，那就意味着即使新的事务并没有向该Undo页面链表中写入很多undo日志，那该链表中也得维护非常多的页面，那些用不到的页面也不能被别的事务所使用，这样就造成了另一种浪费。所以设计InnoDB的大叔们规定，只有在Undo页面链表中只包含一个Undo页面时，该链表才可以被下一个事务所重用。</p>
+<p>该Undo页面已经使用的空间小于整个页面空间的3/4。</p>
+<p>我们前边说过，Undo页面链表按照存储的undo日志所属的大类可以被分为insert undo链表和update undo链表两种，这两种链表在被重用时的策略也是不同的，我们分别看一下：</p>
+<p>insert undo链表</p>
+<p>insert undo链表中只存储类型为TRX_UNDO_INSERT_REC的undo日志，这种类型的undo日志在事务提交之后就没用了，就可以被清除掉。所以在某个事务提交后，重用这个事务的insert undo链表（这个链表中只有一个页面）时，可以直接把之前事务写入的一组undo日志覆盖掉，从头开始写入新事务的一组undo日志，如下图所示：</p>
+<p>image_1d7el7sg0pje14rjc06rp51r8r1m.png-91.7kB<br>如图所示，假设有一个事务使用的insert undo链表，到事务提交时，只向insert undo链表中插入了3条undo日志，这个insert undo链表只申请了一个Undo页面。假设此刻该页面已使用的空间小于整个页面大小的3/4，那么下一个事务就可以重用这个insert undo链表（链表中只有一个页面）。假设此时有一个新事务重用了该insert undo链表，那么可以直接把旧的一组undo日志覆盖掉，写入一组新的undo日志。</p>
+<p>小贴士： 当然，在重用Undo页面链表写入新的一组undo日志时，不仅会写入新的Undo Log Header，还会适当调整Undo Page Header、Undo Log Segment Header、Undo Log Header中的一些属性，比如TRX_UNDO_PAGE_START、TRX_UNDO_PAGE_FREE等等等等，这些我们就不具体唠叨了。</p>
+<p>update undo链表</p>
+<p>在一个事务提交后，它的update undo链表中的undo日志也不能立即删除掉（这些日志用于MVCC，我们后边会说的）。所以如果之后的事务想重用update undo链表时，就不能覆盖之前事务写入的undo日志。这样就相当于在同一个Undo页面中写入了多组的undo日志，效果看起来就是这样：</p>
+<p>image_1d7elkmtjdbv1kth1c9jk17is123.png-126.3kB<br>回滚段<br>回滚段的概念<br>我们现在知道一个事务在执行过程中最多可以分配4个Undo页面链表，在同一时刻不同事务拥有的Undo页面链表是不一样的，所以在同一时刻系统里其实可以有许许多多个Undo页面链表存在。为了更好的管理这些链表，设计InnoDB的大叔又设计了一个称之为Rollback Segment Header的页面，在这个页面中存放了各个Undo页面链表的frist undo page的页号，他们把这些页号称之为undo slot。我们可以这样理解，每个Undo页面链表都相当于是一个班，这个链表的first undo page就相当于这个班的班长，找到了这个班的班长，就可以找到班里的其他同学（其他同学相当于normal undo page）。有时候学校需要向这些班级传达一下精神，就需要把班长都召集在会议室，这个Rollback Segment Header就相当于是一个会议室。</p>
+<p>我们看一下这个称之为Rollback Segment Header的页面长啥样（以默认的16KB为例）：</p>
+<p>image_1d7gs2k8u1i9i15r71dg97fj10jv9.png-88kB<br>设计InnoDB的大叔规定，每一个Rollback Segment Header页面都对应着一个段，这个段就称为Rollback Segment，翻译过来就是回滚段。与我们之前介绍的各种段不同的是，这个Rollback Segment里其实只有一个页面（这可能是设计InnoDB的大叔们的一种洁癖，他们可能觉得为了某个目的去分配页面的话都得先申请一个段，或者他们觉得虽然目前版本的MySQL里Rollback Segment里其实只有一个页面，但可能之后的版本里会增加页面也说不定）。</p>
+<p>了解了Rollback Segment的含义之后，我们再来看看这个称之为Rollback Segment Header的页面的各个部分的含义都是啥意思：</p>
+<p>TRX_RSEG_MAX_SIZE：本Rollback Segment中管理的所有Undo页面链表中的Undo页面数量之和的最大值。换句话说，本Rollback Segment中所有Undo页面链表中的Undo页面数量之和不能超过TRX_RSEG_MAX_SIZE代表的值。</p>
+<p>该属性的值默认为无限大，也就是我们想写多少Undo页面都可以。</p>
+<p>小贴士： 无限大其实也只是个夸张的说法，4个字节能表示最大的数也就是0xFFFFFFFF，但是我们之后会看到，0xFFFFFFFF这个数有特殊用途，所以实际上TRX_RSEG_MAX_SIZE的值为0xFFFFFFFE。</p>
+<p>TRX_RSEG_HISTORY_SIZE：History链表占用的页面数量。</p>
+<p>TRX_RSEG_HISTORY：History链表的基节点。</p>
+<p>TRX_RSEG_FSEG_HEADER：本Rollback Segment对应的10字节大小的Segment Header结构，通过它可以找到本段对应的INODE Entry。</p>
+<p>TRX_RSEG_UNDO_SLOTS：各个Undo页面链表的first undo page的页号集合，也就是undo slot集合。</p>
+<p>一个页号占用4个字节，对于16KB大小的页面来说，这个TRX_RSEG_UNDO_SLOTS部分共存储了1024个undo slot，所以共需1024 × 4 = 4096个字节。</p>
+<p>从回滚段中申请Undo页面链表<br>初始情况下，由于未向任何事务分配任何Undo页面链表，所以对于一个Rollback Segment Header页面来说，它的各个undo slot都被设置成了一个特殊的值：FIL_NULL（对应的十六进制就是0xFFFFFFFF），表示该undo slot不指向任何页面。</p>
+<p>随着时间的流逝，开始有事务需要分配Undo页面链表了，就从回滚段的第一个undo slot开始，看看该undo slot的值是不是FIL_NULL：</p>
+<p>如果是FIL_NULL，那么在表空间中新创建一个段（也就是Undo Log Segment），然后从段里申请一个页面作为Undo页面链表的first undo page，然后把该undo slot的值设置为刚刚申请的这个页面的页号，这样也就意味着这个undo slot被分配给了这个事务。</p>
+<p>如果不是FIL_NULL，说明该undo slot已经指向了一个undo链表，也就是说这个undo slot已经被别的事务占用了，那就跳到下一个undo slot，判断该undo slot的值是不是FIL_NULL，重复上边的步骤。</p>
+<p>一个Rollback Segment Header页面中包含1024个undo slot，如果这1024个undo slot的值都不为FIL_NULL，这就意味着这1024个undo slot都已经名花有主（被分配给了某个事务），此时由于新事务无法再获得新的Undo页面链表，就会回滚这个事务并且给用户报错：</p>
+<p>Too many active concurrent transactions<br>用户看到这个错误，可以选择重新执行这个事务（可能重新执行时有别的事务提交了，该事务就可以被分配Undo页面链表了）。</p>
+<p>当一个事务提交时，它所占用的undo slot有两种命运：</p>
+<p>如果该undo slot指向的Undo页面链表符合被重用的条件（就是我们上边说的Undo页面链表只占用一个页面并且已使用空间小于整个页面的3/4）。</p>
+<p>该undo slot就处于被缓存的状态，设计InnoDB的大叔规定这时该Undo页面链表的TRX_UNDO_STATE属性（该属性在first undo page的Undo Log Segment Header部分）会被设置为TRX_UNDO_CACHED。</p>
+<p>被缓存的undo slot都会被加入到一个链表，根据对应的Undo页面链表的类型不同，也会被加入到不同的链表：</p>
+<p>如果对应的Undo页面链表是insert undo链表，则该undo slot会被加入insert undo cached链表。</p>
+<p>如果对应的Undo页面链表是update undo链表，则该undo slot会被加入update undo cached链表。</p>
+<p>一个回滚段就对应着上述两个cached链表，如果有新事务要分配undo slot时，先从对应的cached链表中找。如果没有被缓存的undo slot，才会到回滚段的Rollback Segment Header页面中再去找。</p>
+<p>如果该undo slot指向的Undo页面链表不符合被重用的条件，那么针对该undo slot对应的Undo页面链表类型不同，也会有不同的处理：</p>
+<p>如果对应的Undo页面链表是insert undo链表，则该Undo页面链表的TRX_UNDO_STATE属性会被设置为TRX_UNDO_TO_FREE，之后该Undo页面链表对应的段会被释放掉（也就意味着段中的页面可以被挪作他用），然后把该undo slot的值设置为FIL_NULL。</p>
+<p>如果对应的Undo页面链表是update undo链表，则该Undo页面链表的TRX_UNDO_STATE属性会被设置为TRX_UNDO_TO_PRUGE，则会将该undo slot的值设置为FIL_NULL，然后将本次事务写入的一组undo日志放到所谓的History链表中（需要注意的是，这里并不会将Undo页面链表对应的段给释放掉，因为这些undo日志还有用呢～）。</p>
+<p>小贴士： 更多关于History链表的事我们稍后再说，稍安勿躁哈。</p>
+<p>多个回滚段<br>我们说一个事务执行过程中最多分配4个Undo页面链表，而一个回滚段里只有1024个undo slot，很显然undo slot的数量有点少啊。我们即使假设一个读写事务执行过程中只分配1个Undo页面链表，那1024个undo slot也只能支持1024个读写事务同时执行，再多了就崩溃了。这就相当于会议室只能容下1024个班长同时开会，如果有几千人同时到会议室开会的话，那后来的那些班长就没地方坐了，只能等待前边的人开完会自己再进去开。</p>
+<p>话说在InnoDB的早期发展阶段的确只有一个回滚段，但是设计InnoDB的大叔后来意识到了这个问题，咋解决这问题呢？会议室不够，多盖几个会议室不就得了。所以设计InnoDB的大叔一口气定义了128个回滚段，也就相当于有了128 × 1024 = 131072个undo slot。假设一个读写事务执行过程中只分配1个Undo页面链表，那么就可以同时支持131072个读写事务并发执行（这么多事务在一台机器上并发执行，还真没见过呢～）。</p>
+<p>小贴士： 只读事务并不需要分配Undo页面链表，MySQL 5.7中所有刚开启的事务默认都是只读事务，只有在事务执行过程中对记录做了某些改动时才会被升级为读写事务。</p>
+<p>每个回滚段都对应着一个Rollback Segment Header页面，有128个回滚段，自然就要有128个Rollback Segment Header页面，这些页面的地址总得找个地方存一下吧！于是设计InnoDB的大叔在系统表空间的第5号页面的某个区域包含了128个8字节大小的格子：</p>
+<p>image_1d7214jha1cua1dgu1r6718091gbfm.png-27.4kB<br>每个8字节的格子的构造就像这样：</p>
+<p>image_1d721oblche9a4pmng15p1dk313.png-9.9kB<br>如果所示，每个8字节的格子其实由两部分组成：</p>
+<p>4字节大小的Space ID，代表一个表空间的ID。</p>
+<p>4字节大小的Page number，代表一个页号。</p>
+<p>也就是说每个8字节大小的格子相当于一个指针，指向某个表空间中的某个页面，这些页面就是Rollback Segment Header。这里需要注意的一点事，要定位一个Rollback Segment Header还需要知道对应的表空间ID，这也就意味着不同的回滚段可能分布在不同的表空间中。</p>
+<p>所以通过上边的叙述我们可以大致清楚，在系统表空间的第5号页面中存储了128个Rollback Segment Header页面地址，每个Rollback Segment Header就相当于一个回滚段。在Rollback Segment Header页面中，又包含1024个undo slot，每个undo slot都对应一个Undo页面链表。我们画个示意图：</p>
+<p>image_1d7h72gvlin31far16h11elj16tu1m.png-97kB<br>把图一画出来就清爽多了。</p>
+<p>回滚段的分类<br>我们把这128个回滚段给编一下号，最开始的回滚段称之为第0号回滚段，之后依次递增，最后一个回滚段就称之为第127号回滚段。这128个回滚段可以被分成两大类：</p>
+<p>第0号、第33～127号回滚段属于一类。其中第0号回滚段必须在系统表空间中（就是说第0号回滚段对应的Rollback Segment Header页面必须在系统表空间中），第33～127号回滚段既可以在系统表空间中，也可以在自己配置的undo表空间中，关于怎么配置我们稍后再说。</p>
+<p>如果一个事务在执行过程中由于对普通表的记录做了改动需要分配Undo页面链表时，必须从这一类的段中分配相应的undo slot。</p>
+<p>第1～32号回滚段属于一类。这些回滚段必须在临时表空间（对应着数据目录中的ibtmp1文件）中。</p>
+<p>如果一个事务在执行过程中由于对临时表的记录做了改动需要分配Undo页面链表时，必须从这一类的段中分配相应的undo slot。</p>
+<p>也就是说如果一个事务在执行过程中既对普通表的记录做了改动，又对临时表的记录做了改动，那么需要为这个记录分配2个回滚段，再分别到这两个回滚段中分配对应的undo slot。</p>
+<p>不知道大家有没有疑惑，为啥要把针对普通表和临时表来划分不同种类的回滚段呢？这个还得从Undo页面本身说起，我们说Undo页面其实是类型为FIL_PAGE_UNDO_LOG的页面的简称，说到底它也是一个普通的页面。我们前边说过，在修改页面之前一定要先把对应的redo日志写上，这样在系统奔溃重启时才能恢复到奔溃前的状态。我们向Undo页面写入undo日志本身也是一个写页面的过程，设计InnoDB的大叔为此还设计了许多种redo日志的类型，比方说MLOG_UNDO_HDR_CREATE、MLOG_UNDO_INSERT、MLOG_UNDO_INIT等等等等，也就是说我们对Undo页面做的任何改动都会记录相应类型的redo日志。但是对于临时表来说，因为修改临时表而产生的undo日志只需要在系统运行过程中有效，如果系统奔溃了，那么在重启时也不需要恢复这些undo日志所在的页面，所以在写针对临时表的Undo页面时，并不需要记录相应的redo日志。总结一下针对普通表和临时表划分不同种类的回滚段的原因：在修改针对普通表的回滚段中的Undo页面时，需要记录对应的redo日志，而修改针对临时表的回滚段中的Undo页面时，不需要记录对应的redo日志。</p>
+<p>小贴士： 实际上在MySQL 5.7.21这个版本中，如果我们仅仅对普通表的记录做了改动，那么只会为该事务分配针对普通表的回滚段，不分配针对临时表的回滚段。但是如果我们仅仅对临时表的记录做了改动，那么既会为该事务分配针对普通表的回滚段，又会为其分配针对临时表的回滚段（不过分配了回滚段并不会立即分配undo slot，只有在真正需要Undo页面链表时才会去分配回滚段中的undo slot）。</p>
+<p>为事务分配Undo页面链表详细过程<br>上边说了一大堆的概念，大家应该有一点点的小晕，接下来我们以事务对普通表的记录做改动为例，给大家梳理一下事务执行过程中分配Undo页面链表时的完整过程，</p>
+<p>事务在执行过程中对普通表的记录首次做改动之前，首先会到系统表空间的第5号页面中分配一个回滚段（其实就是获取一个Rollback Segment Header页面的地址）。一旦某个回滚段被分配给了这个事务，那么之后该事务中再对普通表的记录做改动时，就不会重复分配了。</p>
+<p>使用传说中的round-robin（循环使用）方式来分配回滚段。比如当前事务分配了第0号回滚段，那么下一个事务就要分配第33号回滚段，下下个事务就要分配第34号回滚段，简单一点的说就是这些回滚段被轮着分配给不同的事务（就是这么简单粗暴，没啥好说的）。</p>
+<p>在分配到回滚段后，首先看一下这个回滚段的两个cached链表有没有已经缓存了的undo slot，比如如果事务做的是INSERT操作，就去回滚段对应的insert undo cached链表中看看有没有缓存的undo slot；如果事务做的是DELETE操作，就去回滚段对应的update undo cached链表中看看有没有缓存的undo slot。如果有缓存的undo slot，那么就把这个缓存的undo slot分配给该事务。</p>
+<p>如果没有缓存的undo slot可供分配，那么就要到Rollback Segment Header页面中找一个可用的undo slot分配给当前事务。</p>
+<p>从Rollback Segment Header页面中分配可用的undo slot的方式我们上边也说过了，就是从第0个undo slot开始，如果该undo slot的值为FIL_NULL，意味着这个undo slot是空闲的，就把这个undo slot分配给当前事务，否则查看第1个undo slot是否满足条件，依次类推，直到最后一个undo slot。如果这1024个undo slot都没有值为FIL_NULL的情况，就直接报错喽（一般不会出现这种情况）～</p>
+<p>找到可用的undo slot后，如果该undo slot是从cached链表中获取的，那么它对应的Undo Log Segment已经分配了，否则的话需要重新分配一个Undo Log Segment，然后从该Undo Log Segment中申请一个页面作为Undo页面链表的first undo page。</p>
+<p>然后事务就可以把undo日志写入到上边申请的Undo页面链表了！</p>
+<p>对临时表的记录做改动的步骤和上述的一样，就不赘述了。不过需要再次强调一次，如果一个事务在执行过程中既对普通表的记录做了改动，又对临时表的记录做了改动，那么需要为这个记录分配2个回滚段。并发执行的不同事务其实也可以被分配相同的回滚段，只要分配不同的undo slot就可以了。</p>
+<p>回滚段相关配置<br>配置回滚段数量<br>我们前边说系统中一共有128个回滚段，其实这只是默认值，我们可以通过启动参数innodb_rollback_segments来配置回滚段的数量，可配置的范围是1~128。但是这个参数并不会影响针对临时表的回滚段数量，针对临时表的回滚段数量一直是32，也就是说：</p>
+<p>如果我们把innodb_rollback_segments的值设置为1，那么只会有1个针对普通表的可用回滚段，但是仍然有32个针对临时表的可用回滚段。</p>
+<p>如果我们把innodb_rollback_segments的值设置为2～33之间的数，效果和将其设置为1是一样的。<br>如果我们把innodb_rollback_segments设置为大于33的数，那么针对普通表的可用回滚段数量就是该值减去32。</p>
+<p>配置undo表空间<br>默认情况下，针对普通表设立的回滚段（第0号以及第33~127号回滚段）都是被分配到系统表空间的。其中的第第0号回滚段是一直在系统表空间的，但是第33~127号回滚段可以通过配置放到自定义的undo表空间中。但是这种配置只能在系统初始化（创建数据目录时）的时候使用，一旦初始化完成，之后就不能再次更改了。我们看一下相关启动参数：</p>
+<p>通过innodb_undo_directory指定undo表空间所在的目录，如果没有指定该参数，则默认undo表空间所在的目录就是数据目录。</p>
+<p>通过innodb_undo_tablespaces定义undo表空间的数量。该参数的默认值为0，表明不创建任何undo表空间。</p>
+<p>第33~127号回滚段可以平均分布到不同的undo表空间中。</p>
+<p>小贴士： 如果我们在系统初始化的时候指定了创建了undo表空间，那么系统表空间中的第0号回滚段将处于不可用状态。</p>
+<p>比如我们在系统初始化时指定的innodb_rollback_segments为35，innodb_undo_tablespaces为2，这样就会将第33、34号回滚段分别分布到一个undo表空间中。</p>
+<p>设立undo表空间的一个好处就是在undo表空间中的文件大到一定程度时，可以自动的将该undo表空间截断（truncate）成一个小文件。而系统表空间的大小只能不断的增大，却不能截断。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/MySQL是怎样运行的：从根儿上理解MySQL/" rel="tag"># MySQL是怎样运行的：从根儿上理解MySQL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/08/10/undo日志（上）/" rel="next" title="undo日志（上）">
+                <i class="fa fa-chevron-left"></i> undo日志（上）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/08/11/MySQL的数据目录/" rel="prev" title="MySQL的数据目录">
+                MySQL的数据目录 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">462</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">48</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2022/08/11/MySQL的数据目录/" title="MySQL的数据目录" target="_blank">MySQL的数据目录</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/08/10/undo日志（下）/" title="undo日志（下）" target="_blank">undo日志（下）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/08/10/undo日志（上）/" title="undo日志（上）" target="_blank">undo日志（上）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/08/10/redo日志（下）/" title="redo日志（下）" target="_blank">redo日志（下）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/08/10/redo日志（上）/" title="redo日志（上）" target="_blank">redo日志（上）</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">4.6m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">69:22</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
