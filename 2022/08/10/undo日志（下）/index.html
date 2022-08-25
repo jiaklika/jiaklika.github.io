@@ -111,10 +111,16 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2022-08-10T07:51:22.154Z">
+<meta property="og:image" content="http://yoursite.com/2022/08/10/undo日志（下）/1.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/08/10/undo日志（下）/1.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/08/10/undo日志（下）/2.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/08/10/undo日志（下）/3.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/08/10/undo日志（下）/4.awebp">
+<meta property="og:updated_time" content="2022-08-23T03:47:23.384Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="undo日志（下）">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:image" content="http://yoursite.com/2022/08/10/undo日志（下）/1.awebp">
 
 
 
@@ -426,12 +432,24 @@
                 
               
 
-              <time title="创建时间：2022-08-10 15:50:35 / 修改时间：15:51:22" itemprop="dateCreated datePublished" datetime="2022-08-10T15:50:35+08:00">2022-08-10</time>
+              <time title="创建时间：2022-08-10 15:50:35" itemprop="dateCreated datePublished" datetime="2022-08-10T15:50:35+08:00">2022-08-10</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-08-23 11:47:23" itemprop="dateModified" datetime="2022-08-23T11:47:23+08:00">2022-08-23</time>
               
             
           </span>
@@ -517,21 +535,32 @@
 </ul>
 <a id="more"></a>
 <p>上一章我们主要唠叨了为什么需要undo日志，以及INSERT、DELETE、UPDATE这些会对数据做改动的语句都会产生什么类型的undo日志，还有不同类型的undo日志的具体格式是什么。本章会继续唠叨这些undo日志会被具体写到什么地方，以及在写入过程中需要注意的一些问题。</p>
-<p>通用链表结构<br>在写入undo日志的过程中会使用到多个链表，很多链表都有同样的节点结构，如图所示：</p>
-<p>image_1d79gnaudfg2psk2l7mi1146r20.png-104.8kB<br>在某个表空间内，我们可以通过一个页的页号和在页内的偏移量来唯一定位一个节点的位置，这两个信息也就相当于指向这个节点的一个指针。所以：</p>
-<p>Pre Node Page Number和Pre Node Offset的组合就是指向前一个节点的指针</p>
-<p>Next Node Page Number和Next Node Offset的组合就是指向后一个节点的指针。</p>
+<h1 id="通用链表结构"><a href="#通用链表结构" class="headerlink" title="通用链表结构"></a>通用链表结构</h1><p>在写入undo日志的过程中会使用到多个链表，很多链表都有同样的节点结构，如图所示：</p>
+<img src="/2022/08/10/undo日志（下）/1.awebp">
+<p>在某个表空间内，我们可以通过一个页的页号和在页内的偏移量来唯一定位一个节点的位置，这两个信息也就相当于指向这个节点的一个指针。所以：</p>
+<ul>
+<li>Pre Node Page Number和Pre Node Offset的组合就是指向前一个节点的指针</li>
+<li>Next Node Page Number和Next Node Offset的组合就是指向后一个节点的指针。</li>
+</ul>
 <p>整个List Node占用12个字节的存储空间。</p>
 <p>为了更好的管理链表，设计InnoDB的大叔还提出了一个基节点的结构，里边存储了这个链表的头节点、尾节点以及链表长度信息，基节点的结构示意图如下：</p>
-<p>image_1d79o8ra61jh6k0k6af13vpg329.png-103.9kB<br>其中：</p>
-<p>List Length表明该链表一共有多少节点。</p>
-<p>First Node Page Number和First Node Offset的组合就是指向链表头节点的指针。</p>
-<p>Last Node Page Number和Last Node Offset的组合就是指向链表尾节点的指针。</p>
+<img src="/2022/08/10/undo日志（下）/1.awebp">
+<p>其中：</p>
+<ul>
+<li>List Length表明该链表一共有多少节点。</li>
+<li>First Node Page Number和First Node Offset的组合就是指向链表头节点的指针。</li>
+<li>Last Node Page Number和Last Node Offset的组合就是指向链表尾节点的指针。</li>
+</ul>
 <p>整个List Base Node占用16个字节的存储空间。</p>
 <p>所以使用List Base Node和List Node这两个结构组成的链表的示意图就是这样：</p>
-<p>image_1d79nq0ge1gn7pmcaa7gma1uh62q.png-71kB<br>小贴士： 上述链表结构我们在前边的文章中频频提到，尤其是在表空间那一章重点描述过，不过我不敢奢求大家都记住了，所以在这里又强调一遍，希望大家不要嫌我烦，我只是怕大家忘了学习后续内容吃力而已～</p>
-<p>FIL_PAGE_UNDO_LOG页面<br>我们前边唠叨表空间的时候说过，表空间其实是由许许多多的页面构成的，页面默认大小为16KB。这些页面有不同的类型，比如类型为FIL_PAGE_INDEX的页面用于存储聚簇索引以及二级索引，类型为FIL_PAGE_TYPE_FSP_HDR的页面用于存储表空间头部信息的，还有其他各种类型的页面，其中有一种称之为FIL_PAGE_UNDO_LOG类型的页面是专门用来存储undo日志的，这种类型的页面的通用结构如下图所示（以默认的16KB大小为例）：</p>
-<p>image_1d79ec33apm47brq901sur3bi16.png-63.2kB<br>“类型为FIL_PAGE_UNDO_LOG的页”这种说法太绕口，以后我们就简称为Undo页面了哈。上图中的File Header和File Trailer是各种页面都有的通用结构，我们前边唠叨过很多遍了，这里就不赘述了（忘记了的可以到讲述数据页结构或者表空间的章节中查看）。Undo Page Header是Undo页面所特有的，我们来看一下它的结构：</p>
+<img src="/2022/08/10/undo日志（下）/2.awebp">
+<blockquote>
+<p>小贴士： 上述链表结构我们在前边的文章中频频提到，尤其是在表空间那一章重点描述过，不过我不敢奢求大家都记住了，所以在这里又强调一遍，希望大家不要嫌我烦，我只是怕大家忘了学习后续内容吃力而已～</p>
+</blockquote>
+<h1 id="FIL-PAGE-UNDO-LOG页面"><a href="#FIL-PAGE-UNDO-LOG页面" class="headerlink" title="FIL_PAGE_UNDO_LOG页面"></a>FIL_PAGE_UNDO_LOG页面</h1><p>我们前边唠叨表空间的时候说过，表空间其实是由许许多多的页面构成的，页面默认大小为16KB。这些页面有不同的类型，比如类型为FIL_PAGE_INDEX的页面用于存储聚簇索引以及二级索引，类型为FIL_PAGE_TYPE_FSP_HDR的页面用于存储表空间头部信息的，还有其他各种类型的页面，其中有一种称之为FIL_PAGE_UNDO_LOG类型的页面是专门用来存储undo日志的，这种类型的页面的通用结构如下图所示（以默认的16KB大小为例）：</p>
+<img src="/2022/08/10/undo日志（下）/3.awebp">
+<p>“类型为FIL_PAGE_UNDO_LOG的页”这种说法太绕口，以后我们就简称为Undo页面了哈。上图中的File Header和File Trailer是各种页面都有的通用结构，我们前边唠叨过很多遍了，这里就不赘述了（忘记了的可以到讲述数据页结构或者表空间的章节中查看）。Undo Page Header是Undo页面所特有的，我们来看一下它的结构：</p>
+<img src="/2022/08/10/undo日志（下）/4.awebp">
 <p>其中各个属性的意思如下：</p>
 <p>TRX_UNDO_PAGE_TYPE：本页面准备存储什么种类的undo日志。</p>
 <p>我们前边介绍了好几种类型的undo日志，它们可以被分为两个大类：</p>
@@ -606,7 +635,7 @@
 <p>TRX_UNDO_PREV_LOG：上一组的undo日志在页面中开始的偏移量。</p>
 <p>小贴士： 一般来说一个Undo页面链表只存储一个事务执行过程中产生的一组undo日志，但是在某些情况下，可能会在一个事务提交之后，之后开启的事务重复利用这个Undo页面链表，这样就会导致一个Undo页面中可能存放多组Undo日志，TRX_UNDO_NEXT_LOG和TRX_UNDO_PREV_LOG就是用来标记下一组和上一组undo日志在页面中的偏移量的。关于什么时候重用Undo页面链表，怎么重用这个链表我们稍后会详细说明的，现在先理解TRX_UNDO_NEXT_LOG和TRX_UNDO_PREV_LOG这两个属性的意思就好了。</p>
 <p>TRX_UNDO_HISTORY_NODE：一个12字节的List Node结构，代表一个称之为History链表的节点。</p>
-<p>小结<br>对于没有被重用的Undo页面链表来说，链表的第一个页面，也就是first undo page在真正写入undo日志前，会填充Undo Page Header、Undo Log Segment Header、Undo Log Header这3个部分，之后才开始正式写入undo日志。对于其他的页面来说，也就是normal undo page在真正写入undo日志前，只会填充Undo Page Header。链表的List Base Node存放到first undo page的Undo Log Segment Header部分，List Node信息存放到每一个Undo页面的undo Page Header部分，所以画一个Undo页面链表的示意图就是这样：</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>对于没有被重用的Undo页面链表来说，链表的第一个页面，也就是first undo page在真正写入undo日志前，会填充Undo Page Header、Undo Log Segment Header、Undo Log Header这3个部分，之后才开始正式写入undo日志。对于其他的页面来说，也就是normal undo page在真正写入undo日志前，只会填充Undo Page Header。链表的List Base Node存放到first undo page的Undo Log Segment Header部分，List Node信息存放到每一个Undo页面的undo Page Header部分，所以画一个Undo页面链表的示意图就是这样：</p>
 <p>image_1d7cocjrk1dvm1ehg16da1di4mfb16.png-87kB<br>重用Undo页面<br>我们前边说为了能提高并发执行的多个事务写入undo日志的性能，设计InnoDB的大叔决定为每个事务单独分配相应的Undo页面链表（最多可能单独分配4个链表）。但是这样也造成了一些问题，比如其实大部分事务执行过程中可能只修改了一条或几条记录，针对某个Undo页面链表只产生了非常少的undo日志，这些undo日志可能只占用一丢丢存储空间，每开启一个事务就新创建一个Undo页面链表（虽然这个链表中只有一个页面）来存储这么一丢丢undo日志岂不是太浪费了么？的确是挺浪费，于是设计InnoDB的大叔本着勤俭节约的优良传统，决定在事务提交后在某些情况下重用该事务的Undo页面链表。一个Undo页面链表是否可以被重用的条件很简单：</p>
 <p>该链表中只包含一个Undo页面。</p>
 <p>如果一个事务执行过程中产生了非常多的undo日志，那么它可能申请非常多的页面加入到Undo页面链表中。在该事物提交后，如果将整个链表中的页面都重用，那就意味着即使新的事务并没有向该Undo页面链表中写入很多undo日志，那该链表中也得维护非常多的页面，那些用不到的页面也不能被别的事务所使用，这样就造成了另一种浪费。所以设计InnoDB的大叔们规定，只有在Undo页面链表中只包含一个Undo页面时，该链表才可以被下一个事务所重用。</p>
@@ -681,7 +710,7 @@
 <p>配置undo表空间<br>默认情况下，针对普通表设立的回滚段（第0号以及第33~127号回滚段）都是被分配到系统表空间的。其中的第第0号回滚段是一直在系统表空间的，但是第33~127号回滚段可以通过配置放到自定义的undo表空间中。但是这种配置只能在系统初始化（创建数据目录时）的时候使用，一旦初始化完成，之后就不能再次更改了。我们看一下相关启动参数：</p>
 <p>通过innodb_undo_directory指定undo表空间所在的目录，如果没有指定该参数，则默认undo表空间所在的目录就是数据目录。</p>
 <p>通过innodb_undo_tablespaces定义undo表空间的数量。该参数的默认值为0，表明不创建任何undo表空间。</p>
-<p>第33~127号回滚段可以平均分布到不同的undo表空间中。</p>
+<p>第33<br>~127号回滚段可以平均分布到不同的undo表空间中。</p>
 <p>小贴士： 如果我们在系统初始化的时候指定了创建了undo表空间，那么系统表空间中的第0号回滚段将处于不可用状态。</p>
 <p>比如我们在系统初始化时指定的innodb_rollback_segments为35，innodb_undo_tablespaces为2，这样就会将第33、34号回滚段分别分布到一个undo表空间中。</p>
 <p>设立undo表空间的一个好处就是在undo表空间中的文件大到一定程度时，可以自动的将该undo表空间截断（truncate）成一个小文件。而系统表空间的大小只能不断的增大，却不能截断。</p>
@@ -777,8 +806,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -795,7 +833,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">462</span>
+                    <span class="site-state-item-count">474</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1061,7 +1099,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">48</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">50</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1092,23 +1134,23 @@
                 
                 
                   <li>
-                    <a href="/2022/08/11/MySQL的数据目录/" title="MySQL的数据目录" target="_blank">MySQL的数据目录</a>
+                    <a href="/2022/08/24/10-MySQL为什么有时候会选错索引？/" title="10 | MySQL为什么有时候会选错索引？" target="_blank">10 | MySQL为什么有时候会选错索引？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/10/undo日志（下）/" title="undo日志（下）" target="_blank">undo日志（下）</a>
+                    <a href="/2022/08/24/09-普通索引和唯一索引，应该怎么选择？/" title="09 | 普通索引和唯一索引，应该怎么选择？" target="_blank">09 | 普通索引和唯一索引，应该怎么选择？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/10/undo日志（上）/" title="undo日志（上）" target="_blank">undo日志（上）</a>
+                    <a href="/2022/08/24/25-红黑树（上）：为什么工程中都用红黑树这种二叉树？/" title="25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？" target="_blank">25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/10/redo日志（下）/" title="redo日志（下）" target="_blank">redo日志（下）</a>
+                    <a href="/2022/08/24/48-B-树：MySQL数据库索引是如何实现的？/" title="48 | B+树：MySQL数据库索引是如何实现的？" target="_blank">48 | B+树：MySQL数据库索引是如何实现的？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/10/redo日志（上）/" title="redo日志（上）" target="_blank">redo日志（上）</a>
+                    <a href="/2022/08/24/26-红黑树（下）：掌握这些技巧，你也可以实现一个红黑树/" title="26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树" target="_blank">26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树</a>
                   </li>
                 
               </ul>
@@ -1123,6 +1165,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#通用链表结构"><span class="nav-number">1.</span> <span class="nav-text">通用链表结构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#FIL-PAGE-UNDO-LOG页面"><span class="nav-number">2.</span> <span class="nav-text">FIL_PAGE_UNDO_LOG页面</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">3.</span> <span class="nav-text">小结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1163,7 +1222,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">69:22</span>
+    <span title="站点阅读时长">70:17</span>
   
 </div>
 

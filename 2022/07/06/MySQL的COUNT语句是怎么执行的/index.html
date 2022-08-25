@@ -103,21 +103,29 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：  COUNT函数的参数可以是任意表达式，该函数用于统计在符合搜索条件的记录中，指定的表达式不为NULL的行数有多少。怎么理解？ 每一条聚簇索引记录都可以在二级索引中找到唯一的一条二级索引记录与其相对应。怎么理解？">
 <meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
 <meta property="og:type" content="article">
 <meta property="og:title" content="MySQL的COUNT语句是怎么执行的">
 <meta property="og:url" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：  COUNT函数的参数可以是任意表达式，该函数用于统计在符合搜索条件的记录中，指定的表达式不为NULL的行数有多少。怎么理解？ 每一条聚簇索引记录都可以在二级索引中找到唯一的一条二级索引记录与其相对应。怎么理解？">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/0.png">
+<meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/1.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/2.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/3.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/4.awebp">
-<meta property="og:updated_time" content="2022-08-04T03:49:52.737Z">
+<meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/5.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/6.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/7.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/8.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/9.awebp">
+<meta property="og:updated_time" content="2022-08-23T06:34:53.071Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MySQL的COUNT语句是怎么执行的">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
-<meta name="twitter:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/3.awebp">
+<meta name="twitter:description" content="思考并回答以下问题：  COUNT函数的参数可以是任意表达式，该函数用于统计在符合搜索条件的记录中，指定的表达式不为NULL的行数有多少。怎么理解？ 每一条聚簇索引记录都可以在二级索引中找到唯一的一条二级索引记录与其相对应。怎么理解？">
+<meta name="twitter:image" content="http://yoursite.com/2022/07/06/MySQL的COUNT语句是怎么执行的/0.png">
 
 
 
@@ -446,7 +454,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-04 11:49:52" itemprop="dateModified" datetime="2022-08-04T11:49:52+08:00">2022-08-04</time>
+                <time title="修改时间：2022-08-23 14:34:53" itemprop="dateModified" datetime="2022-08-23T14:34:53+08:00">2022-08-23</time>
               
             
           </span>
@@ -528,23 +536,34 @@
       
         <p>思考并回答以下问题：</p>
 <ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
+<li>COUNT函数的参数可以是任意表达式，该函数用于统计在符合搜索条件的记录中，指定的表达式不为NULL的行数有多少。怎么理解？</li>
+<li>每一条聚簇索引记录都可以在二级索引中找到唯一的一条二级索引记录与其相对应。怎么理解？</li>
 </ul>
 <a id="more"></a>
 <p>众多开发小伙伴在写业务逻辑的时候都会有一个统计行数的需求，此时COUNT函数便成为了首选。但是大家发现，随着数据量的增长，COUNT执行的越来越慢，本文从源码的角度来帮助小伙伴们分析一下MySQL中的COUNT函数是如何执行的。</p>
 <p>需要声明一点，本文所使用的MySQL源码版本是5.7.22，并且只针对InnoDB存储引擎。在深入介绍之前需要大家具有一些前置知识，才可以顺利讨论。</p>
-<h1 id="前置知识1——InnoDB的B-树索引"><a href="#前置知识1——InnoDB的B-树索引" class="headerlink" title="前置知识1——InnoDB的B+树索引"></a>前置知识1——InnoDB的B+树索引</h1><p>为了故事的顺利发展，我们引入一个表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> t (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">UNSIGNED</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    key1 <span class="built_in">INT</span>,</span><br><span class="line">    common_field <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key1 (key1)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
+<h1 id="前置知识1——InnoDB的B-树索引"><a href="#前置知识1——InnoDB的B-树索引" class="headerlink" title="前置知识1——InnoDB的B+树索引"></a><span style="color:#339AFF;">前置知识1——InnoDB的B+树索引</span></h1><p>为了故事的顺利发展，我们引入一个表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> t (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">UNSIGNED</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    key1 <span class="built_in">INT</span>,</span><br><span class="line">    common_field <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key1 (key1)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
 <p>这个表就包含2个索引（也就是2棵B+树）：</p>
+<img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/0.png">
 <ul>
 <li>以id列为主键对应的聚簇索引。</li>
 <li>为key1列建立的二级索引idx_key1。</li>
 </ul>
-<p>我们向表中插入一些记录：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> t <span class="keyword">VALUES</span></span><br><span class="line">    (<span class="number">1</span>, <span class="number">30</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">2</span>, <span class="number">80</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">3</span>, <span class="number">23</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">4</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">5</span>, <span class="number">11</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">6</span>, <span class="number">53</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">7</span>, <span class="number">63</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">8</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">9</span>, <span class="number">99</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">10</span>, <span class="number">12</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">11</span>, <span class="number">66</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">12</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">13</span>, <span class="number">66</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">14</span>, <span class="number">30</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">15</span>, <span class="number">11</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">16</span>, <span class="number">90</span>, <span class="string">'b'</span>);</span><br><span class="line">```   </span><br><span class="line">所以现在t表的聚簇索引示意图就是这样：</span><br><span class="line"></span><br><span class="line">&#123;% asset_img 1.awebp %&#125;</span><br><span class="line"></span><br><span class="line">t表的二级索引示意图就是这样：</span><br><span class="line"></span><br><span class="line">&#123;% asset_img 2.awebp %&#125;</span><br><span class="line"></span><br><span class="line">&gt; 小贴士：原谅我们画了一个极度简化版的B+树：我们省略了B+树中的页面节点，省略了每层页面节点之间的双向链表，省略了页面中记录的单向链表，省略了页面中的页目录结构，还有省略了好多东西。但是我们保留B+树最为核心的一个特点：记录是按照键值大小进行排序的。即对于聚簇索引来说，记录是按照id列进行排序的；对于二级索引idx_key1来说，记录是按照key1列进行排序的，在key1列相同时再按照id列进行排序。</span><br><span class="line"></span><br><span class="line">从上边聚簇索引和二级索引的结构中大家可以发现：每一条聚簇索引记录都可以在二级索引中找到唯一的一条二级索引记录与其相对应。</span><br><span class="line"></span><br><span class="line"><span class="comment">## 前置知识2——server层和存储引擎的交互</span></span><br><span class="line"></span><br><span class="line">以下边这个查询为例：</span><br><span class="line">```sql</span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 &gt; <span class="number">70</span> <span class="keyword">AND</span> common_field != <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure></p>
-<p>假设优化器认为通过扫描二级索引idx_key1中key1值在(70, +∞)这个区间中的二级索引记录的成本更小，那么查询将以下述方式执行：</p>
+<p>我们向表中插入一些记录：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> t <span class="keyword">VALUES</span></span><br><span class="line">    (<span class="number">1</span>, <span class="number">30</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">2</span>, <span class="number">80</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">3</span>, <span class="number">23</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">4</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">5</span>, <span class="number">11</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">6</span>, <span class="number">53</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">7</span>, <span class="number">63</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">8</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">9</span>, <span class="number">99</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">10</span>, <span class="number">12</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">11</span>, <span class="number">66</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">12</span>, <span class="literal">NULL</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">13</span>, <span class="number">66</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">14</span>, <span class="number">30</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">15</span>, <span class="number">11</span>, <span class="string">'b'</span>),</span><br><span class="line">    (<span class="number">16</span>, <span class="number">90</span>, <span class="string">'b'</span>);</span><br></pre></td></tr></table></figure></p>
+<p>所以现在t表的聚簇索引示意图就是这样：</p>
+<img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/1.awebp">
+<p>t表的二级索引示意图就是这样：</p>
+<img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/2.awebp">
+<blockquote>
+<p>小贴士：原谅我们画了一个极度简化版的B+树：我们省略了B+树中的页面节点，省略了每层页面节点之间的双向链表，省略了页面中记录的单向链表，省略了页面中的页目录结构，还有省略了好多东西。但是我们保留B+树最为核心的一个特点：记录是按照键值大小进行排序的。即对于聚簇索引来说，记录是按照id列进行排序的；对于二级索引idx_key1来说，记录是按照key1列进行排序的，在key1列相同时再按照id列进行排序。</p>
+</blockquote>
+<p>从上边聚簇索引和二级索引的结构中大家可以发现：<strong>每一条聚簇索引记录都可以在二级索引中找到唯一的一条二级索引记录与其相对应。</strong></p>
+<h1 id="前置知识2——server层和存储引擎的交互"><a href="#前置知识2——server层和存储引擎的交互" class="headerlink" title="前置知识2——server层和存储引擎的交互"></a><span style="color:#339AFF;">前置知识2——server层和存储引擎的交互</span></h1><p>以下边这个查询为例：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 &gt; <span class="number">70</span> <span class="keyword">AND</span> common_field != <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>假设优化器认为通过扫描二级索引idx_key1中key1值在<code>(70, +∞)</code>这个区间中的二级索引记录的成本更小，那么查询将以下述方式执行：</p>
 <ul>
-<li>server层先让InnoDB去查在key1值在(70, +无穷)区间中的第一条记录。</li>
-<li>InnoDB通过二级索引idx_key1对应的B+树，从B+树根页面一层一层向下定位，快速找到(70, +无穷)区间的第一条二级索引记录，然后根据该二级索引记录进行回表操作，找到完整的聚簇索引记录，然后返回给server层。</li>
-<li>server层判断InnoDB返回的记录符不符合搜索条件key1 &gt; 70 AND common_field != ‘a’，如果不符合的话就跳过该记录，否则将其发送到客户端。</li>
+<li>server层先让InnoDB去查在key1值在<code>(70, +无穷)</code>区间中的第一条记录。</li>
+<li>InnoDB通过二级索引idx_key1对应的B+树，从B+树根页面一层一层向下定位，快速找到<code>(70, +无穷)</code>区间的第一条二级索引记录，然后根据该二级索引记录进行回表操作，找到完整的聚簇索引记录，然后返回给server层。</li>
+<li>server层判断InnoDB返回的记录符不符合搜索条件<code>key1 &gt; 70 AND common_field != &#39;a&#39;</code>，如果不符合的话就跳过该记录，否则将其发送到客户端。</li>
 </ul>
 <blockquote>
 <p>小贴士：此处将记录发送给客户端其实是发送到本地的网络缓冲区，缓冲区大小由net_buffer_length控制，默认是16KB大小。等缓冲区满了才真正发送网络包到客户端。</p>
@@ -559,52 +578,59 @@
 <p>可见，一般情况下server层和存储引擎层是以记录为单位进行交互的。</p>
 <p>我们看一下源码中读取一条记录的函数调用栈：</p>
 <img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/3.awebp">
-<p>其中的handler::ha_index_next便是server层向存储引擎要下一条记录的接口。</p>
+<p>其中的<code>handler::ha_index_next</code>便是server层向存储引擎要下一条记录的接口。</p>
 <p>其中的row_search_mvcc是读取一条记录最重要的函数，这个函数长的吓人，有一千多行：</p>
 <img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/4.awebp">
-<p>每读取一条记录，都要做非常多的工作，诸如进行多版本的可见性判断，要不要对记录进行加锁的判断，要是加锁的话加什么锁的选择，完成记录从InnoDB的存储格式到server层存储格式的转换等等等等十分繁杂的工作。</p>
+<p>每读取一条记录，都要做非常多的工作，<strong>诸如进行多版本的可见性判断，要不要对记录进行加锁的判断，要是加锁的话加什么锁的选择，完成记录从InnoDB的存储格式到server层存储格式的转换</strong>等等等等十分繁杂的工作。</p>
 <blockquote>
 <p>小贴士：不知道你们公司有没有写这么长函数的同学，如果有的话你想不想打他。</p>
 </blockquote>
-<h2 id="前置知识3——COUNT是个啥"><a href="#前置知识3——COUNT是个啥" class="headerlink" title="前置知识3——COUNT是个啥"></a>前置知识3——COUNT是个啥</h2><p>COUNT是一个汇总函数（聚集函数），它接收1个表达式作为参数：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">COUNT(expr)</span><br></pre></td></tr></table></figure></p>
+<h1 id="前置知识3——COUNT是个啥"><a href="#前置知识3——COUNT是个啥" class="headerlink" title="前置知识3——COUNT是个啥"></a><span style="color:#339AFF;">前置知识3——COUNT是个啥</span></h1><p>COUNT是一个汇总函数（聚集函数），它接收1个表达式作为参数：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">COUNT(expr)</span><br></pre></td></tr></table></figure></p>
 <p>COUNT函数用于统计在符合搜索条件的记录中，指定的表达式expr不为NULL的行数有多少。这里需要特别注意的是，expr不仅仅可以是列名，其他任意表达式都是可以的。</p>
 <p>比方说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(key1) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
 <p>这个语句是用于统计在single_table表的所有记录中，key1列不为NULL的行数是多少。</p>
 <p>再看这个：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(<span class="string">'abc'</span>) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
-<p>这个语句是用于统计在single_table表的所有记录中，’abc’这个表达式不为NULL的行数是多少。很显然，’abc’这个表达式永远不是NULL，所以上述语句其实就是统计single_table表里有多少条记录。</p>
+<p>这个语句是用于统计在single_table表的所有记录中，<code>&#39;abc&#39;</code>这个表达式不为NULL的行数是多少。很显然，<code>&#39;abc&#39;</code>这个表达式永远不是NULL，所以上述语句其实就是统计single_table表里有多少条记录。</p>
 <p>再看这个：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(*) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
 <p>这个语句就是直接统计single_table表有多少条记录。</p>
-<p>总结+注意：COUNT函数的参数可以是任意表达式，该函数用于统计在符合搜索条件的记录中，指定的表达式不为NULL的行数有多少。</p>
-<p>MySQL中COUNT是怎样执行的<br>做了那么多铺垫，终于到了MySQL中COUNT是怎样执行的了。</p>
+<p>总结+注意：<strong>COUNT函数的参数可以是任意表达式，该函数用于统计在符合搜索条件的记录中，指定的表达式不为NULL的行数有多少。</strong></p>
+<h1 id="MySQL中COUNT是怎样执行的"><a href="#MySQL中COUNT是怎样执行的" class="headerlink" title="MySQL中COUNT是怎样执行的"></a><span style="color:#339AFF;">MySQL中COUNT是怎样执行的</span></h1><p>做了那么多铺垫，终于到了MySQL中COUNT是怎样执行的了。</p>
 <p>以下边这个语句为例：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(*) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
 <p>这个语句是要去查询表t中共包含多少条记录。由于聚簇索引和二级索引中的记录是一一对应的，而二级索引记录中包含的列是少于聚簇索引记录的，所以同样数量的二级索引记录可以比聚簇索引记录占用更少的存储空间。如果我们使用二级索引执行上述查询，即数一下idx_key1中共有多少条二级索引记录，是比直接数聚簇索引中共有多少聚簇索引记录可以节省很多I/O成本。所以优化器会决定使用idx_key1执行上述查询：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT COUNT(*) FROM t;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">| id | select_type | table | partitions | <span class="built_in">type</span>  | possible_keys | key      | key_len | ref  | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">|  1 | SIMPLE      | t     | NULL       | index | NULL          | idx_key1 | 5       | NULL |   16 |   100.00 | Using index |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+------+------+----------+-------------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.02 sec)</span><br></pre></td></tr></table></figure></p>
 <p>在执行上述查询时，server层会维护一个名叫count的变量，然后：</p>
-<p>server层向InnoDB要第一条记录。</p>
-<p>InnoDB找到idx_key1的第一条二级索引记录，并返回给server层（注意：由于此时只是统计记录数量，所以并不需要回表）。</p>
-<p>由于COUNT函数的参数是<em>，MySQL会将</em>当作常数0处理。由于0并不是NULL，server层给count变量加1。</p>
-<p>server层向InnoDB要下一条记录。</p>
-<p>InnoDB通过二级索引记录的next_record属性找到下一条二级索引记录，并返回给server层。</p>
-<p>server层继续给count变量加1。</p>
-<p>… 重复上述过程，直到InnoDB向server层返回没记录可查的消息。</p>
-<p>server层将最终的count变量的值发送到客户端。</p>
+<ul>
+<li>server层向InnoDB要第一条记录。</li>
+<li>InnoDB找到idx_key1的第一条二级索引记录，并返回给server层（注意：<strong>由于此时只是统计记录数量，所以并不需要回表</strong>）。</li>
+<li>由于COUNT函数的参数是*，MySQL会将*当作常数0处理。由于0并不是NULL，server层给count变量加1。</li>
+<li>server层向InnoDB要下一条记录。</li>
+<li>InnoDB通过二级索引记录的next_record属性找到下一条二级索引记录，并返回给server层。</li>
+<li>server层继续给count变量加1。</li>
+<li>… 重复上述过程，直到InnoDB向server层返回没记录可查的消息。</li>
+<li>server层将最终的count变量的值发送到客户端。</li>
+</ul>
 <p>我们看一下源码里给count变量加1的代码是怎么写的：</p>
+<img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/5.awebp">
 <p>其大意就是判断一下COUNT里的表达式是不是NULL，如果不是NULL的话就给count变量加1。</p>
 <p>我们再来看一下arg_is_null的实现：</p>
-<p>其中最重要的是我们标蓝的那一行，item[i]表示的就是COUNT函数中的参数，我们调试一下对于COUNT(<em>)来说，表达式</em>的值是什么：</p>
+<img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/6.awebp">
+<p>其中最重要的是我们标蓝的那一行，<code>item[i]</code>表示的就是COUNT函数中的参数，我们调试一下对于<code>COUNT(*)</code>来说，表达式*的值是什么：</p>
+<img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/7.awebp">
 <p>可以看到，*表达式的类型其实是Item_int，这表示MySQL其实会把*当作一个整数处理，它的值是0（见图中箭头）。也就是说我们在判断表达式*是不是为NULL，也就是在判断整数0是不是为NULL，很显然不为NULL。</p>
-<p>那COUNT(1)，COUNT(id)，COUNT(非主键列)呢？<br>那在执行COUNT(1)呢？比方说下边这个语句：</p>
-<p>SELECT COUNT(1) FROM t;<br>我们看一下：</p>
+<h2 id="那COUNT-1-，COUNT-id-，COUNT-非主键列-呢？"><a href="#那COUNT-1-，COUNT-id-，COUNT-非主键列-呢？" class="headerlink" title="那COUNT(1)，COUNT(id)，COUNT(非主键列)呢？"></a><span style="color:#00ACC1;">那COUNT(1)，COUNT(id)，COUNT(非主键列)呢？</span></h2><p>那在执行COUNT(1)呢？比方说下边这个语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(<span class="number">1</span>) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
+<p>我们看一下：</p>
+<img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/8.awebp">
 <p>可以看到，常数1对应的类型其实是PTI_num_literal_num，它其实是Item_int的一个包装类型，本质上还是代表一个整数，它的值是1（见图中箭头）。也就是说我们其实是在判断表达式1是不是为NULL，很显然不为NULL。</p>
 <p>再看一下COUNT(id)：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(<span class="keyword">id</span>) <span class="keyword">FROM</span> t;</span><br></pre></td></tr></table></figure></p>
 <p>我们看一下：</p>
+<img src="/2022/07/06/MySQL的COUNT语句是怎么执行的/9.awebp">
 <p>可以看到，id对应的类型是Item_field，代表一个字段。</p>
-<p>对于COUNT(*)、COUNT(1)或者任意的COUNT(常数)来说，读取哪个索引的记录其实并不重要，因为server层只关心存储引擎是否读到了记录，而并不需要从记录中提取指定的字段来判断是否为NULL。所以优化器会使用占用存储空间最小的那个索引来执行查询。</p>
-<p>对于COUNT(id)来说，由于id是主键，不论是聚簇索引记录，还是任意一个二级索引记录中都会包含主键字段，所以其实读取任意一个索引中的记录都可以获取到id字段，此时优化器也会选择占用存储空间最小的那个索引来执行查询。</p>
-<p>而对于COUNT(非主键列)来说，我们指定的列可能并不会包含在每一个索引中。这样优化器只能选择包含我们指定的列的索引去执行查询，这就可能导致优化器选择的索引并不是最小的那个。</p>
-<p>总结一下<br>对于COUNT(<em>)、COUNT(常数)、COUNT(主键)形式的COUNT函数来说，优化器可以选择最小的索引执行查询，从而提升效率，它们的执行过程是一样的，只不过在判断表达式是否为NULL时选择不同的判断方式，这个判断为NULL的过程的代价可以忽略不计，所以我们可以认为COUNT(</em>)、COUNT(常数)、COUNT(主键)所需要的代价是相同的。</p>
-<p>而对于COUNT(非主键列)来说，server层必须要从InnoDB中读到包含非主键列的记录，所以优化器并不能随心所欲的选择最小的索引去执行。</p>
-<p>我想改进一下？<br>我们知道，InnoDB的记录都是存储在数据页中的（页面大小默认为16KB），而每个数据页的Page Header部分都有一个统计当前页面中记录数量的属性PAGE_N_RECS。那有的同学说了：在执行COUNT函数的时候直接去把各个页面的这个PAGE_N_RECS属性加起来不就好了么？</p>
-<p>答案是：行不通的！对于普通的SELECT语句来说，每次查询都要从记录的版本链上找到可见的版本才算是读到了记录；对于加了FOR UPDATE或LOCK IN SHARE MODE后缀的SELECT语句来说，每次查询都要给记录添加合适的锁。所以这个读取每一条记录的过程（就是上边给出的row_search_mvcc函数）在InnoDB的目前实现中是无法跳过的，InnoDB还是得老老实实的读一条记录，返给server层一条记录。</p>
+<p>对于<code>COUNT(*)</code>、<code>COUNT(1)</code>或者任意的<code>COUNT(常数)</code>来说，读取哪个索引的记录其实并不重要，因为server层只关心存储引擎是否读到了记录，而并不需要从记录中提取指定的字段来判断是否为NULL。所以优化器会使用占用存储空间最小的那个索引来执行查询。</p>
+<p>对于<code>COUNT(id)</code>来说，由于id是主键，不论是聚簇索引记录，还是任意一个二级索引记录中都会包含主键字段，所以其实读取任意一个索引中的记录都可以获取到id字段，此时优化器也会选择占用存储空间最小的那个索引来执行查询。</p>
+<p>而对于<code>COUNT(非主键列)</code>来说，我们指定的列可能并不会包含在每一个索引中。这样优化器只能选择包含我们指定的列的索引去执行查询，这就可能导致优化器选择的索引并不是最小的那个。</p>
+<h1 id="总结一下"><a href="#总结一下" class="headerlink" title="总结一下"></a><span style="color:#339AFF;">总结一下</span></h1><p>对于<code>COUNT(*)</code>、<code>COUNT(常数)</code>、<code>COUNT(主键)</code>形式的COUNT函数来说，优化器可以选择最小的索引执行查询，从而提升效率，它们的执行过程是一样的，只不过在判断表达式是否为NULL时选择不同的判断方式，这个判断为NULL的过程的代价可以忽略不计，所以我们可以认为<code>COUNT(*)</code>、<code>COUNT(常数)</code>、<code>COUNT(主键)</code>所需要的代价是相同的。</p>
+<p>而对于<code>COUNT(非主键列)</code>来说，server层必须要从InnoDB中读到包含非主键列的记录，所以优化器并不能随心所欲的选择最小的索引去执行。</p>
+<h1 id="我想改进一下？"><a href="#我想改进一下？" class="headerlink" title="我想改进一下？"></a><span style="color:#339AFF;">我想改进一下？</span></h1><p>我们知道，InnoDB的记录都是存储在数据页中的（页面大小默认为16KB），而每个数据页的Page Header部分都有一个统计当前页面中记录数量的属性PAGE_N_RECS。那有的同学说了：在执行COUNT函数的时候直接去把各个页面的这个PAGE_N_RECS属性加起来不就好了么？</p>
+<p>答案是：行不通的！<strong>对于普通的SELECT语句来说，每次查询都要从记录的版本链上找到可见的版本才算是读到了记录；对于加了<code>FOR UPDATE</code>或<code>LOCK IN SHARE MODE</code>后缀的SELECT语句来说，每次查询都要给记录添加合适的锁。</strong>所以这个读取每一条记录的过程（就是上边给出的row_search_mvcc函数）在InnoDB的目前实现中是无法跳过的，InnoDB还是得老老实实的读一条记录，返给server层一条记录。</p>
 <p>那如果我的业务中有COUNT需求，但是由于数据量太大导致即使优化器即使通过扫描二级索引记录的方式也还是太慢怎么办？既然业务上有需求，当然还是业务第一喽，我们可以在另一个地方存储一份待统计数据的行数，每次增删改记录都维护一下。</p>
 <p>这样的解决方案显著增加了开发小伙伴的工作量，部分开发小伙伴肯定不太乐意，那就去怼你的产品经理吧：这么大数据量要TM什么精确值，你来告诉我这么大数据量要TM什么的TM的精确值？</p>
 
@@ -726,7 +752,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">462</span>
+                    <span class="site-state-item-count">474</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -992,7 +1018,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">48</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">50</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1023,23 +1053,23 @@
                 
                 
                   <li>
-                    <a href="/2022/08/11/MySQL的数据目录/" title="MySQL的数据目录" target="_blank">MySQL的数据目录</a>
+                    <a href="/2022/08/24/10-MySQL为什么有时候会选错索引？/" title="10 | MySQL为什么有时候会选错索引？" target="_blank">10 | MySQL为什么有时候会选错索引？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/10/undo日志（下）/" title="undo日志（下）" target="_blank">undo日志（下）</a>
+                    <a href="/2022/08/24/09-普通索引和唯一索引，应该怎么选择？/" title="09 | 普通索引和唯一索引，应该怎么选择？" target="_blank">09 | 普通索引和唯一索引，应该怎么选择？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/10/undo日志（上）/" title="undo日志（上）" target="_blank">undo日志（上）</a>
+                    <a href="/2022/08/24/25-红黑树（上）：为什么工程中都用红黑树这种二叉树？/" title="25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？" target="_blank">25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/10/redo日志（下）/" title="redo日志（下）" target="_blank">redo日志（下）</a>
+                    <a href="/2022/08/24/48-B-树：MySQL数据库索引是如何实现的？/" title="48 | B+树：MySQL数据库索引是如何实现的？" target="_blank">48 | B+树：MySQL数据库索引是如何实现的？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/10/redo日志（上）/" title="redo日志（上）" target="_blank">redo日志（上）</a>
+                    <a href="/2022/08/24/26-红黑树（下）：掌握这些技巧，你也可以实现一个红黑树/" title="26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树" target="_blank">26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树</a>
                   </li>
                 
               </ul>
@@ -1065,7 +1095,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前置知识1——InnoDB的B-树索引"><span class="nav-number">1.</span> <span class="nav-text">前置知识1——InnoDB的B+树索引</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#前置知识3——COUNT是个啥"><span class="nav-number">1.1.</span> <span class="nav-text">前置知识3——COUNT是个啥</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前置知识1——InnoDB的B-树索引"><span class="nav-number">1.</span> <span class="nav-text">前置知识1——InnoDB的B+树索引</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#前置知识2——server层和存储引擎的交互"><span class="nav-number">2.</span> <span class="nav-text">前置知识2——server层和存储引擎的交互</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#前置知识3——COUNT是个啥"><span class="nav-number">3.</span> <span class="nav-text">前置知识3——COUNT是个啥</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MySQL中COUNT是怎样执行的"><span class="nav-number">4.</span> <span class="nav-text">MySQL中COUNT是怎样执行的</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#那COUNT-1-，COUNT-id-，COUNT-非主键列-呢？"><span class="nav-number">4.1.</span> <span class="nav-text">那COUNT(1)，COUNT(id)，COUNT(非主键列)呢？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结一下"><span class="nav-number">5.</span> <span class="nav-text">总结一下</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#我想改进一下？"><span class="nav-number">6.</span> <span class="nav-text">我想改进一下？</span></a></li></ol></div>
             
 
           </div>
@@ -1111,7 +1141,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">69:22</span>
+    <span title="站点阅读时长">70:17</span>
   
 </div>
 
