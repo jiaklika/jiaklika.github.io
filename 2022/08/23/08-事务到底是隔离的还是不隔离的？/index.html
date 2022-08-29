@@ -112,7 +112,7 @@
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/08/23/08-事务到底是隔离的还是不隔离的？/1.webp">
-<meta property="og:updated_time" content="2022-08-25T03:54:36.375Z">
+<meta property="og:updated_time" content="2022-08-25T07:46:10.631Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="08|事务到底是隔离的还是不隔离的？">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -445,7 +445,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-25 11:54:36" itemprop="dateModified" datetime="2022-08-25T11:54:36+08:00">2022-08-25</time>
+                <time title="修改时间：2022-08-25 15:46:10" itemprop="dateModified" datetime="2022-08-25T15:46:10+08:00">2022-08-25</time>
               
             
           </span>
@@ -491,7 +491,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">6.7k</span>
+                <span title="本文字数">6.9k</span>
               
 
               
@@ -617,13 +617,67 @@
 <li>(1,1)是在视图数组创建之前提交的，可见。</li>
 </ul>
 <p>你看，去掉数字对比后，只用时间先后顺序来判断，分析起来是不是轻松多了。所以，后面我们就都用这个规则来分析。</p>
-<h1 id="更新逻辑"><a href="#更新逻辑" class="headerlink" title="更新逻辑"></a>更新逻辑</h1><p>细心的同学可能有疑问了：事务B的update语句，如果按照一致性读，好像结果不对哦？你看图5中，事务B的视图数组是先生成的，之后事务C才提交，不是应该看不见(1,2)吗，怎么能算出(1,3)来？</p>
-<p>图5事务B更新逻辑图是的，如果事务B在更新之前查询一次数据，这个查询返回的k的值确实是1。但是，当它要去更新数据的时候，就不能再在历史版本上更新了，否则事务C的更新就丢失了。因此，事务B此时的setk=k+1是在（1,2）的基础上进行的操作。所以，这里就用到了这样一条规则：更新数据都是先读后写的，而这个读，只能读当前的值，称为“当前读”（currentread）。因此，在更新的时候，当前读拿到的数据是(1,2)，更新后生成了新版本的数据(1,3)，这个新版本的rowtrx_id是101。所以，在执行事务B查询语句的时候，一看自己的版本号是101，最新数据的版本号也是101，是自己的更新，可以直接使用，所以查询得到的k的值是3。</p>
-<p>这里我们提到了一个概念，叫作当前读。其实，除了update语句外，select语句如果加锁，也是当前读。所以，如果把事务A的查询语句select*fromtwhereid=1修改一下，加上lockinsharemode或forupdate，也都可以读到版本号是101的数据，返回的k的值是3。下面这两个select语句，就是分别加了读锁（S锁，共享锁）和写锁（X锁，排他锁）。mysql&gt;selectkfromtwhereid=1lockinsharemode;mysql&gt;selectkfromtwhereid=1forupdate;再往前一步，假设事务C不是马上提交的，而是变成了下面的事务C’，会怎么样呢？图6事务A、B、C’的执行流程事务C’的不同是，更新后并没有马上提交，在它提交前，事务B的更新语句先发起了。前面说过了，虽然事务C’还没提交，但是(1,2)这个版本也已经生成了，并且是当前的最新版本。那么，事务B的更新语句会怎么处理呢？</p>
-<p>这时候，我们在上一篇文章中提到的“两阶段锁协议”就要上场了。事务C’没提交，也就是说(1,2)这个版本上的写锁还没释放。而事务B是当前读，必须要读最新版本，而且必须加锁，因此就被锁住了，必须等到事务C’释放这个锁，才能继续它的当前读。图7事务B更新逻辑图（配合事务C’）到这里，我们把一致性读、当前读和行锁就串起来了。现在，我们再回到文章开头的问题：事务的可重复读的能力是怎么实现的？可重复读的核心就是一致性读（consistentread）；而事务更新数据的时候，只能用当前读。如果当前的记录的行锁被其他事务占用的话，就需要进入锁等待。而读提交的逻辑和可重复读的逻辑类似，它们最主要的区别是：在可重复读隔离级别下，只需要在事务开始的时候创建一致性视图，之后事务里的其他查询都共用这个一致性视图；在读提交隔离级别下，每一个语句执行前都会重新算出一个新的视图。那么，我们再看一下，在读提交隔离级别下，事务A和事务B的查询语句查到的k，分别应该是多少呢？</p>
-<p>这里需要说明一下，“starttransactionwithconsistentsnapshot;”的意思是从这个语句开始，创建一个持续整个事务的一致性快照。所以，在读提交隔离级别下，这个用法就没意义了，等效于普通的starttransaction。下面是读提交时的状态图，可以看到这两个查询语句的创建视图数组的时机发生了变化，就是图中的readview框。（注意：这里，我们用的还是事务C的逻辑直接提交，而不是事务C’）图8读提交隔离级别下的事务状态图这时，事务A的查询语句的视图数组是在执行这个语句的时候创建的，时序上(1,2)、(1,3)的生成时间都在创建这个视图数组的时刻之前。但是，在这个时刻：(1,3)还没提交，属于情况1，不可见；(1,2)提交了，属于情况3，可见。所以，这时候事务A查询语句返回的是k=2。显然地，事务B查询结果k=3。小结InnoDB的行数据有多个版本，每个数据版本有自己的rowtrx_id，每个事务或者语句有自己的一致性视图。普通查询语句是一致性读，一致性读会根据rowtrx_id和一致性视图确定数据版本的可见性。</p>
-<p>对于可重复读，查询只承认在事务启动前就已经提交完成的数据；对于读提交，查询只承认在语句启动前就已经提交完成的数据；而当前读，总是读取已经提交完成的最新版本。你也可以想一下，为什么表结构不支持“可重复读”？这是因为表结构没有对应的行数据，也没有rowtrx_id，因此只能遵循当前读的逻辑。当然，MySQL8.0已经可以把表结构放在InnoDB字典里了，也许以后会支持表结构的可重复读。又到思考题时间了。我用下面的表结构和初始化语句作为试验环境，事务隔离级别是可重复读。现在，我要把所有“字段c和id值相等的行”的c值清零，但是却发现了一个“诡异”的、改不掉的情况。请你构造出这种情况，并说明其原理。mysql&gt;CREATETABLE<code>t</code>(<code>id</code>int(11)NOTNULL,<code>c</code>int(11)DEFAULTNULL,PRIMARYKEY(<code>id</code>))ENGINE=InnoDB;insertintot(id,c)values(1,1),(2,2),(3,3),(4,4);</p>
-<p>复现出来以后，请你再思考一下，在实际的业务开发中有没有可能碰到这种情况？你的应用代码会不会掉进这个“坑”里，你又是怎么解决的呢？你可以把你的思考和观点写在留言区里，我会在下一篇文章的末尾和你讨论这个问题。感谢你的收听，也欢迎你把这篇文章分享给更多的朋友一起阅读。上期问题时间我在上一篇文章最后，留给你的问题是：怎么删除表的前10000行。比较多的留言都选择了第二种方式，即：在一个连接中循环执行20次deletefromTlimit500。确实是这样的，第二种方式是相对较好的。第一种方式（即：直接执行deletefromTlimit10000）里面，单个语句占用时间长，锁的时间也比较长；而且大事务还会导致主从延迟。第三种方式（即：在20个连接中同时执行deletefromTlimit500），会人为造成锁冲突。</p>
+<h1 id="更新逻辑"><a href="#更新逻辑" class="headerlink" title="更新逻辑"></a>更新逻辑</h1><p>细心的同学可能有疑问了：事务B的update语句，如果按照一致性读，好像结果不对哦？</p>
+<p>你看图5中，事务B的视图数组是先生成的，之后事务C才提交，不是应该看不见(1,2)吗，怎么能算出(1,3)来？</p>
+<blockquote>
+<p>图5 事务B更新逻辑图</p>
+</blockquote>
+
+<p>是的，如果事务B在更新之前查询一次数据，这个查询返回的k的值确实是1。</p>
+<p>但是，当它要去更新数据的时候，就不能再在历史版本上更新了，否则事务C的更新就丢失了。因此，事务B此时的setk=k+1是在（1,2）的基础上进行的操作。</p>
+<p>所以，这里就用到了这样一条规则：更新数据都是先读后写的，而这个读，只能读当前的值，称为“当前读”（currentread）。</p>
+<p>因此，在更新的时候，当前读拿到的数据是(1,2)，更新后生成了新版本的数据(1,3)，这个新版本的rowtrx_id是101。</p>
+<p>所以，在执行事务B查询语句的时候，一看自己的版本号是101，最新数据的版本号也是101，是自己的更新，可以直接使用，所以查询得到的k的值是3。</p>
+<p>这里我们提到了一个概念，叫作当前读。其实，除了update语句外，select语句如果加锁，也是当前读。</p>
+<p>所以，如果把事务A的查询语句<code>select*fromtwhereid=1</code>修改一下，加上lockinsharemode或forupdate，也都可以读到版本号是101的数据，返回的k的值是3。下面这两个select语句，就是分别加了读锁（S锁，共享锁）和写锁（X锁，排他锁）。<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select k from t where id=1 lock in share mode;</span><br><span class="line">mysql&gt; select k from t where id=1 for update;</span><br></pre></td></tr></table></figure></p>
+<p>再往前一步，假设事务C不是马上提交的，而是变成了下面的事务C’，会怎么样呢？</p>
+<blockquote>
+<p>图6 事务A、B、C’的执行流程事务</p>
+</blockquote>
+
+<p>C’的不同是，更新后并没有马上提交，在它提交前，事务B的更新语句先发起了。前面说过了，虽然事务C’还没提交，但是(1,2)这个版本也已经生成了，并且是当前的最新版本。那么，事务B的更新语句会怎么处理呢？</p>
+<p>这时候，我们在上一篇文章中提到的“两阶段锁协议”就要上场了。事务C’没提交，也就是说(1,2)这个版本上的写锁还没释放。而事务B是当前读，必须要读最新版本，而且必须加锁，因此就被锁住了，必须等到事务C’释放这个锁，才能继续它的当前读。</p>
+<blockquote>
+<p>图7 事务B更新逻辑图（配合事务C’）</p>
+</blockquote>
+
+<p>到这里，我们把一致性读、当前读和行锁就串起来了。</p>
+<p>现在，我们再回到文章开头的问题：事务的可重复读的能力是怎么实现的？</p>
+<p>可重复读的核心就是一致性读（consistentread）；而事务更新数据的时候，只能用当前读。如果当前的记录的行锁被其他事务占用的话，就需要进入锁等待。</p>
+<p>而读提交的逻辑和可重复读的逻辑类似，它们最主要的区别是：</p>
+<ul>
+<li>在可重复读隔离级别下，只需要在事务开始的时候创建一致性视图，之后事务里的其他查询都共用这个一致性视图；</li>
+<li>在读提交隔离级别下，每一个语句执行前都会重新算出一个新的视图。那么，我们再看一下，在读提交隔离级别下，事务A和事务B的查询语句查到的k，分别应该是多少呢？</li>
+</ul>
+<p>这里需要说明一下，“starttransactionwithconsistentsnapshot;”的意思是从这个语句开始，创建一个持续整个事务的一致性快照。所以，在读提交隔离级别下，这个用法就没意义了，等效于普通的starttransaction。</p>
+<p>下面是读提交时的状态图，可以看到这两个查询语句的创建视图数组的时机发生了变化，就是图中的readview框。（注意：这里，我们用的还是事务C的逻辑直接提交，而不是事务C’）</p>
+<blockquote>
+<p>图8 读提交隔离级别下的事务状态图</p>
+</blockquote>
+
+<p>这时，事务A的查询语句的视图数组是在执行这个语句的时候创建的，时序上(1,2)、(1,3)的生成时间都在创建这个视图数组的时刻之前。但是，在这个时刻：</p>
+<ul>
+<li>(1,3)还没提交，属于情况1，不可见；</li>
+<li>(1,2)提交了，属于情况3，可见。</li>
+</ul>
+<p>所以，这时候事务A查询语句返回的是k=2。</p>
+<p>显然地，事务B查询结果k=3。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>InnoDB的行数据有多个版本，每个数据版本有自己的rowtrx_id，每个事务或者语句有自己的一致性视图。普通查询语句是一致性读，一致性读会根据rowtrx_id和一致性视图确定数据版本的可见性。</p>
+<ul>
+<li>对于可重复读，查询只承认在事务启动前就已经提交完成的数据；</li>
+<li>对于读提交，查询只承认在语句启动前就已经提交完成的数据；</li>
+</ul>
+<p>而当前读，总是读取已经提交完成的最新版本。</p>
+<p>你也可以想一下，为什么表结构不支持“可重复读”？这是因为表结构没有对应的行数据，也没有rowtrx_id，因此只能遵循当前读的逻辑。</p>
+<p>当然，MySQL8.0已经可以把表结构放在InnoDB字典里了，也许以后会支持表结构的可重复读。</p>
+<p>又到思考题时间了。我用下面的表结构和初始化语句作为试验环境，事务隔离级别是可重复读。现在，我要把所有“字段c和id值相等的行”的c值清零，但是却发现了一个“诡异”的、改不掉的情况。请你构造出这种情况，并说明其原理。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; CREATE TABLE `t` (</span><br><span class="line">  `id` int(11) NOT NULL,</span><br><span class="line">  `c` int(11) DEFAULT NULL,</span><br><span class="line">  PRIMARY KEY (`id`)</span><br><span class="line">) ENGINE=InnoDB;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> t(<span class="keyword">id</span>, c) <span class="keyword">values</span>(<span class="number">1</span>,<span class="number">1</span>),(<span class="number">2</span>,<span class="number">2</span>),(<span class="number">3</span>,<span class="number">3</span>),(<span class="number">4</span>,<span class="number">4</span>);</span><br></pre></td></tr></table></figure></p>
+
+<p>复现出来以后，请你再思考一下，在实际的业务开发中有没有可能碰到这种情况？你的应用代码会不会掉进这个“坑”里，你又是怎么解决的呢？</p>
+<p>你可以把你的思考和观点写在留言区里，我会在下一篇文章的末尾和你讨论这个问题。感谢你的收听，也欢迎你把这篇文章分享给更多的朋友一起阅读。</p>
+<h1 id="上期问题时间"><a href="#上期问题时间" class="headerlink" title="上期问题时间"></a>上期问题时间</h1><p>我在上一篇文章最后，留给你的问题是：怎么删除表的前10000行。比较多的留言都选择了第二种方式，即：在一个连接中循环执行20次deletefromTlimit500。</p>
+<p>确实是这样的，第二种方式是相对较好的。</p>
+<p>第一种方式（即：直接执行deletefromTlimit10000）里面，单个语句占用时间长，锁的时间也比较长；而且大事务还会导致主从延迟。</p>
+<p>第三种方式（即：在20个连接中同时执行deletefromTlimit500），会人为造成锁冲突。</p>
 
       
     </div>
@@ -743,7 +797,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">474</span>
+                    <span class="site-state-item-count">479</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1013,7 +1067,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">50</span>
+                      
+                    
+                    <span class="site-state-item-count">51</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1044,23 +1100,23 @@
                 
                 
                   <li>
-                    <a href="/2022/08/24/10-MySQL为什么有时候会选错索引？/" title="10 | MySQL为什么有时候会选错索引？" target="_blank">10 | MySQL为什么有时候会选错索引？</a>
+                    <a href="/2022/08/26/两条一样的INSERT语句竟然引发了死锁？/" title="两条一样的INSERT语句竟然引发了死锁？" target="_blank">两条一样的INSERT语句竟然引发了死锁？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/09-普通索引和唯一索引，应该怎么选择？/" title="09 | 普通索引和唯一索引，应该怎么选择？" target="_blank">09 | 普通索引和唯一索引，应该怎么选择？</a>
+                    <a href="/2022/08/26/MySQL如何查看事务加锁情况/" title="MySQL如何查看事务加锁情况" target="_blank">MySQL如何查看事务加锁情况</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/25-红黑树（上）：为什么工程中都用红黑树这种二叉树？/" title="25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？" target="_blank">25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？</a>
+                    <a href="/2022/08/25/03-库源码文件/" title="03 | 库源码文件" target="_blank">03 | 库源码文件</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/48-B-树：MySQL数据库索引是如何实现的？/" title="48 | B+树：MySQL数据库索引是如何实现的？" target="_blank">48 | B+树：MySQL数据库索引是如何实现的？</a>
+                    <a href="/2022/08/25/02-命令源码文件/" title="02 | 命令源码文件" target="_blank">02 | 命令源码文件</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/26-红黑树（下）：掌握这些技巧，你也可以实现一个红黑树/" title="26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树" target="_blank">26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树</a>
+                    <a href="/2022/08/25/01-工作区和GOPATH/" title="01 | 工作区和GOPATH" target="_blank">01 | 工作区和GOPATH</a>
                   </li>
                 
               </ul>
@@ -1086,7 +1142,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#“快照”在MVCC里是怎么工作的？"><span class="nav-number">1.</span> <span class="nav-text">“快照”在MVCC里是怎么工作的？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#更新逻辑"><span class="nav-number">2.</span> <span class="nav-text">更新逻辑</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#“快照”在MVCC里是怎么工作的？"><span class="nav-number">1.</span> <span class="nav-text">“快照”在MVCC里是怎么工作的？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#更新逻辑"><span class="nav-number">2.</span> <span class="nav-text">更新逻辑</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">3.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#上期问题时间"><span class="nav-number">4.</span> <span class="nav-text">上期问题时间</span></a></li></ol></div>
             
 
           </div>
@@ -1132,7 +1188,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">70:17</span>
+    <span title="站点阅读时长">70:27</span>
   
 </div>
 

@@ -120,7 +120,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/2.webp">
 <meta property="og:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/3.webp">
 <meta property="og:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/4.webp">
-<meta property="og:updated_time" content="2022-08-25T03:33:15.041Z">
+<meta property="og:updated_time" content="2022-08-29T01:14:24.624Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="05 | 深入浅出索引（下）">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -453,7 +453,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-25 11:33:15" itemprop="dateModified" datetime="2022-08-25T11:33:15+08:00">2022-08-25</time>
+                <time title="修改时间：2022-08-29 09:14:24" itemprop="dateModified" datetime="2022-08-29T09:14:24+08:00">2022-08-29</time>
               
             
           </span>
@@ -536,7 +536,8 @@
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
 <p>在上一篇文章中，我和你介绍了InnoDB索引的数据结构模型，今天我们再继续聊聊跟MySQL索引有关的概念。</p>
-<p>在开始这篇文章之前，我们先来看一下这个问题：在下面这个表T中，如果我执行<code>select * from T where k between 3 and 5</code>，需要执行几次树的搜索操作，会扫描多少行？下面是这个表的初始化语句。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; create table T (</span><br><span class="line">ID int primary key,</span><br><span class="line">k int NOT NULL DEFAULT 0, </span><br><span class="line">s varchar(16) NOT NULL DEFAULT <span class="string">''</span>,</span><br><span class="line">index k(k))</span><br><span class="line">engine=InnoDB;</span><br><span class="line"></span><br><span class="line">insert into T values(100,1, <span class="string">'aa'</span>),(200,2,<span class="string">'bb'</span>),(300,3,<span class="string">'cc'</span>),(500,5,<span class="string">'ee'</span>),(600,6,<span class="string">'ff'</span>),(700,7,<span class="string">'gg'</span>);</span><br></pre></td></tr></table></figure></p>
+<p>在开始这篇文章之前，我们先来看一下这个问题：</p>
+<p>在下面这个表T中，如果我执行<code>select * from T where k between 3 and 5</code>，需要执行几次树的搜索操作，会扫描多少行？下面是这个表的初始化语句。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; create table T (</span><br><span class="line">ID int primary key,</span><br><span class="line">k int NOT NULL DEFAULT 0, </span><br><span class="line">s varchar(16) NOT NULL DEFAULT <span class="string">''</span>,</span><br><span class="line">index k(k))</span><br><span class="line">engine=InnoDB;</span><br><span class="line"></span><br><span class="line">insert into T values(100,1, <span class="string">'aa'</span>),(200,2,<span class="string">'bb'</span>),(300,3,<span class="string">'cc'</span>),(500,5,<span class="string">'ee'</span>),(600,6,<span class="string">'ff'</span>),(700,7,<span class="string">'gg'</span>);</span><br></pre></td></tr></table></figure></p>
 <img src="/2022/08/23/05-深入浅出索引（下）/0.png">
 <img src="/2022/08/23/05-深入浅出索引（下）/1.png">
 <img src="/2022/08/23/05-深入浅出索引（下）/3.png">
@@ -578,11 +579,11 @@
 <p>可以看到，不只是索引的全部定义，只要满足最左前缀，就可以利用索引来加速检索。这个最左前缀可以是联合索引的最左N个字段，也可以是字符串索引的最左M个字符。</p>
 <p>基于上面对最左前缀索引的说明，我们来讨论一个问题：<strong>在建立联合索引的时候，如何安排索引内的字段顺序。</strong></p>
 <p>这里我们的评估标准是，索引的复用能力。因为可以支持最左前缀，所以当已经有了<code>(a,b)</code>这个联合索引后，一般就不需要单独在a上建立索引了。因此，<strong>第一原则是，如果通过调整顺序，可以少维护一个索引，那么这个顺序往往就是需要优先考虑采用的。</strong></p>
-<p>所以现在你知道了，这段开头的问题里，我们要为高频请求创建(身份证号，姓名）这个联合索引，并用这个索引支持“根据身份证号查询地址”的需求。</p>
-<p>那么，如果既有联合查询，又有基于a、b各自的查询呢？查询条件里面只有b的语句，是无法使用(a,b)这个联合索引的，这时候你不得不维护另外一个索引，也就是说你需要同时维护(a,b)、(b)这两个索引。</p>
-<p>这时候，我们要<strong>考虑的原则就是空间</strong>了。比如上面这个市民表的情况，name字段是比age字段大的，那我就建议你创建一个（name,age)的联合索引和一个(age)的单字段索引。</p>
+<p>所以现在你知道了，这段开头的问题里，我们要为高频请求创建<code>(身份证号，姓名)</code>这个联合索引，并用这个索引支持“根据身份证号查询地址”的需求。</p>
+<p>那么，如果既有联合查询，又有基于a、b各自的查询呢？查询条件里面只有b的语句，是无法使用<code>(a,b)</code>这个联合索引的，这时候你不得不维护另外一个索引，也就是说你需要同时维护<code>(a,b)</code>、<code>(b)</code>这两个索引。</p>
+<p>这时候，我们要<strong>考虑的原则就是空间</strong>了。比如上面这个市民表的情况，name字段是比age字段大的，那我就建议你创建一个<code>(name,age)</code>的联合索引和一个<code>(age)</code>的单字段索引。</p>
 <h1 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a><span style="color:#339AFF;">索引下推</span></h1><p>上一段我们说到满足最左前缀原则的时候，最左前缀可以用于在索引中定位记录。这时，你可能要问，那些不符合最左前缀的部分，会怎么样呢？</p>
-<p>我们还是以市民表的联合索引（name,age）为例。如果现在有一个需求：检索出表中“名字第一个字是张，而且年龄是10岁的所有男孩”。那么，SQL语句是这么写的：<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select * from tuser where name like '张%' and age=10 and ismale=1;</span><br></pre></td></tr></table></figure></p>
+<p>我们还是以市民表的联合索引<code>(name,age)</code>为例。如果现在有一个需求：检索出表中“名字第一个字是张，而且年龄是10岁的所有男孩”。那么，SQL语句是这么写的：<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select * from tuser where name like '张%' and age=10 and ismale=1;</span><br></pre></td></tr></table></figure></p>
 <p>你已经知道了前缀索引规则，所以这个语句在搜索索引树的时候，只能用“张”，找到第一个满足条件的记录ID3。当然，这还不错，总比全表扫描要好。</p>
 <p>然后呢？</p>
 <p>当然是判断其他条件是否满足。</p>
@@ -598,8 +599,8 @@
 </blockquote>
 <img src="/2022/08/23/05-深入浅出索引（下）/4.webp">
 <p>在图3和4这两个图里面，每一个虚线箭头表示回表一次。</p>
-<p>图3中，在(name,age)索引里面我特意去掉了age的值，这个过程InnoDB并不会去看age的值，只是按顺序把“name第一个字是’张’”的记录一条条取出来回表。因此，需要回表4次。</p>
-<p>图4跟图3的区别是，InnoDB在(name,age)索引内部就判断了age是否等于10，对于不等于10的记录，直接判断并跳过。在我们的这个例子中，只需要对ID4、ID5这两条记录回表取数据判断，就只需要回表2次。</p>
+<p>图3中，在<code>(name,age)</code>索引里面我特意去掉了age的值，这个过程InnoDB并不会去看age的值，只是按顺序把“name第一个字是’张’”的记录一条条取出来回表。因此，需要回表4次。</p>
+<p>图4跟图3的区别是，InnoDB在<code>(name,age)</code>索引内部就判断了age是否等于10，对于不等于10的记录，直接判断并跳过。在我们的这个例子中，只需要对ID4、ID5这两条记录回表取数据判断，就只需要回表2次。</p>
 <h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>今天这篇文章，我和你继续讨论了数据库索引的概念，包括了覆盖索引、前缀索引、索引下推。你可以看到，在满足语句需求的情况下，尽量少地访问资源是数据库设计的重要原则之一。我们在使用数据库的时候，尤其是在设计表结构时，也要以减少资源消耗作为目标。</p>
 <p>接下来我给你留下一个问题吧。</p>
 <p>实际上主键索引也是可以使用多个字段的。DBA小吕在入职新公司的时候，就发现自己接手维护的库里面，有这么一个表，表结构定义类似这样的：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`geek`</span> (</span><br><span class="line">  <span class="string">`a`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`b`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`c`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`d`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`a`</span>,<span class="string">`b`</span>),</span><br><span class="line">  <span class="keyword">KEY</span> <span class="string">`c`</span> (<span class="string">`c`</span>),</span><br><span class="line">  <span class="keyword">KEY</span> <span class="string">`ca`</span> (<span class="string">`c`</span>,<span class="string">`a`</span>),</span><br><span class="line">  <span class="keyword">KEY</span> <span class="string">`cb`</span> (<span class="string">`c`</span>,<span class="string">`b`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span>;</span><br></pre></td></tr></table></figure></p>
@@ -730,7 +731,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">474</span>
+                    <span class="site-state-item-count">479</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1000,7 +1001,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">50</span>
+                      
+                    
+                    <span class="site-state-item-count">51</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1031,23 +1034,23 @@
                 
                 
                   <li>
-                    <a href="/2022/08/24/10-MySQL为什么有时候会选错索引？/" title="10 | MySQL为什么有时候会选错索引？" target="_blank">10 | MySQL为什么有时候会选错索引？</a>
+                    <a href="/2022/08/26/两条一样的INSERT语句竟然引发了死锁？/" title="两条一样的INSERT语句竟然引发了死锁？" target="_blank">两条一样的INSERT语句竟然引发了死锁？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/09-普通索引和唯一索引，应该怎么选择？/" title="09 | 普通索引和唯一索引，应该怎么选择？" target="_blank">09 | 普通索引和唯一索引，应该怎么选择？</a>
+                    <a href="/2022/08/26/MySQL如何查看事务加锁情况/" title="MySQL如何查看事务加锁情况" target="_blank">MySQL如何查看事务加锁情况</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/25-红黑树（上）：为什么工程中都用红黑树这种二叉树？/" title="25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？" target="_blank">25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？</a>
+                    <a href="/2022/08/25/03-库源码文件/" title="03 | 库源码文件" target="_blank">03 | 库源码文件</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/48-B-树：MySQL数据库索引是如何实现的？/" title="48 | B+树：MySQL数据库索引是如何实现的？" target="_blank">48 | B+树：MySQL数据库索引是如何实现的？</a>
+                    <a href="/2022/08/25/02-命令源码文件/" title="02 | 命令源码文件" target="_blank">02 | 命令源码文件</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/26-红黑树（下）：掌握这些技巧，你也可以实现一个红黑树/" title="26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树" target="_blank">26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树</a>
+                    <a href="/2022/08/25/01-工作区和GOPATH/" title="01 | 工作区和GOPATH" target="_blank">01 | 工作区和GOPATH</a>
                   </li>
                 
               </ul>
@@ -1119,7 +1122,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">70:17</span>
+    <span title="站点阅读时长">70:27</span>
   
 </div>
 

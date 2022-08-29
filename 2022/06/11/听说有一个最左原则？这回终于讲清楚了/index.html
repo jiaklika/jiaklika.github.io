@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  聚簇索引记录是按照主键值由小到大的顺序排序的。为什么？">
+<meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="听说有一个最左原则？这回终于讲清楚了">
+<meta property="og:url" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  聚簇索引记录是按照主键值由小到大的顺序排序的。为什么？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/-1.png">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/0.png">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/1.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/2.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/3.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/4.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/5.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/6.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/7.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/8.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/9.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/10.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/11.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/12.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/13.awebp">
+<meta property="og:updated_time" content="2022-08-26T08:41:11.226Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="听说有一个最左原则？这回终于讲清楚了">
+<meta name="twitter:description" content="思考并回答以下问题：  聚簇索引记录是按照主键值由小到大的顺序排序的。为什么？">
+<meta name="twitter:image" content="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/-1.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>听说有一个最左原则？这回终于讲清楚了 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/06/11/听说有一个最左原则？这回终于讲清楚了/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">听说有一个最左原则？这回终于讲清楚了
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-06-11 09:59:46" itemprop="dateCreated datePublished" datetime="2022-06-11T09:59:46+08:00">2022-06-11</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-08-26 16:41:11" itemprop="dateModified" datetime="2022-08-26T16:41:11+08:00">2022-08-26</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">9.7k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">9 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>聚簇索引记录是按照主键值由小到大的顺序排序的。为什么？</li>
+</ul>
+<a id="more"></a>
+<h1 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a><span style="color:#339AFF;">准备工作</span></h1><p>为了故事的顺利发展，我们需要先建立一个表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> single_table (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    key1 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    key2 <span class="built_in">INT</span>,</span><br><span class="line">    key3 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    key_part1 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    key_part2 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    key_part3 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    common_field <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key1 (key1),</span><br><span class="line">    <span class="keyword">UNIQUE</span> <span class="keyword">KEY</span> uk_key2 (key2),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key3 (key3),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key_part(key_part1, key_part2, key_part3)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/-1.png">
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/0.png">
+<p>我们为这个single_table表建立了1个聚簇索引和4个二级索引，分别是：</p>
+<ul>
+<li>为id列建立的聚簇索引。</li>
+<li>为key1列建立的idx_key1二级索引。</li>
+<li>为key2列建立的uk_key2二级索引，而且该索引是唯一二级索引。</li>
+<li>为key3列建立的idx_key3二级索引。</li>
+<li>为key_part1、key_part2、key_part3列建立的idx_key_part二级索引，这也是一个联合索引。</li>
+</ul>
+<p>然后我们需要为这个表插入10000行记录，除id列外其余的列都插入随机值就好了，具体的插入语句我就不写了，自己写个程序插入吧（id列是自增主键列，不需要我们手动插入）。</p>
+<p>我们画一下single_table表的聚簇索引的示意图：</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/1.awebp">
+<p>如图所示，我们把聚簇索引对应的复杂的B+树结构搞了一个极度精简版。可以看到，我们忽略掉了页的结构，直接把所有的叶子节点中的记录都放在一起展示，为了方便，我们之后就把聚簇索引叶子节点中的记录称为聚簇索引记录。虽然这个图很简陋，但是我们还是突出了聚簇索引一个非常重要的特点：聚簇索引记录是按照主键值由小到大的顺序排序的。当然，追求视觉上极致简洁的我们觉得图中的“其他列”也可以被略去，只需要保留id列即可，再次简化的B+树示意图就如下所示：</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/2.awebp">
+<p>好了，再不能简化了，再简化就要把id列也删去了，就剩一个三角形了，那就真尴尬了。</p>
+<p>通过聚簇索引对应的B+树，我们可以很容易的定位到主键值等于某个值的聚簇索引记录，比方说我们想通过这个B+树定位到id值为1438的记录，那么示意图就如下所示：</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/3.awebp">
+<p>下边以二级索引idx_key1为例，画一下二级索引简化后的B+树示意图：</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/4.awebp">
+<p>如图所示，我们在二级索引idx_key1对应的B+树中保留了叶子节点的记录，这些记录包括key1列以及id列，这些记录是按照key1列的值由小到大的顺序排序的，如果key1列的值相同，则按照id列的值进行排序。为了方便，我们之后就把二级索引叶子节点中的记录称为二级索引记录。</p>
+<p>如果我们想查找key1值等于某个值的二级索引记录，那么可以通过idx_key1对应的B+树，很容易的定位到第一条key1列的值等于某个值的二级索引记录，然后沿着记录所在单向链表向后扫描即可。比方说我们想通过这个B+树定位到第一条key1值为<code>&#39;abc&#39;</code>的记录，那么示意图就如下所示：</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/5.awebp">
+<h1 id="扫描区间和边界条件"><a href="#扫描区间和边界条件" class="headerlink" title="扫描区间和边界条件"></a><span style="color:#339AFF;">扫描区间和边界条件</span></h1><p>对于某个查询来说，最粗暴的执行方案就是扫描表中的所有记录，针对每一条记录都判断一下该记录是否符合搜索条件，如果符合的话就将其发送到客户端，否则就跳过该记录。这种执行方案也被称为全表扫描。对于使用InnoDB存储引擎的表来说，全表扫描意味着从聚簇索引第一个叶子节点的第一条记录开始，沿着记录所在的单向链表向后扫描，直到最后一个叶子节点的最后一条记录为止。虽然全表扫描是一种很笨的执行方案，但却是一种万能的执行方案，所有的查询都可以使用这种方案来执行。</p>
+<p>我们之前介绍了利用B+树查找索引列值等于某个值的记录，这样可以明显减少需要扫描的记录数量。其实由于B+树的叶子节点中的记录是按照索引列值由小到大的顺序排序的，所以我们只扫描在某个区间或者某些区间中的记录也可以明显减少需要扫描的记录数量。比方说对于下边这个查询语句来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> <span class="keyword">id</span> &gt;= <span class="number">2</span> <span class="keyword">AND</span> <span class="keyword">id</span> &lt;= <span class="number">100</span>;</span><br></pre></td></tr></table></figure></p>
+<p>这个语句其实是想查找所有id值在<code>[2, 100]</code>这个区间中的聚簇索引记录，那么我们就可以通过聚簇索引对应的B+树快速地定位到id值为2的那条聚簇索引记录，然后沿着记录所在的单向链表向后扫描，直到某条聚簇索引记录的id值不在<code>[2, 100]</code>这个区间中为止（其实也就是直到id值不符合id&lt;=100这个条件为止）。与扫描全部的聚簇索引记录相比，扫描id值在<code>[2, 100]</code>这个区间中的记录已经很大程度的减少了需要扫描的记录数量，所以提升了查询效率。为简便起见，我们把这个例子中需要扫描的记录的id值所在的区间称为扫描区间，把形成这个扫描区间的查询条件，也就是<code>id &gt;= 2 AND id &lt;= 100</code>称为形成这个扫描区间的边界条件。</p>
+<blockquote>
+<p>小贴士：其实对于全表扫描来说，相当于我们需要扫描id值在<code>(-∞, +∞)</code>这个区间中的记录，也就是说全表扫描对应的扫描区间就是<code>(-∞, +∞)</code>。</p>
+</blockquote>
+<p>对于下边这个查询：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key2 <span class="keyword">IN</span> (<span class="number">1438</span>, <span class="number">6328</span>) <span class="keyword">OR</span> (key2 &gt;= <span class="number">38</span> <span class="keyword">AND</span> key2 &lt;= <span class="number">79</span>);</span><br></pre></td></tr></table></figure></p>
+<p>我们当然可以直接使用全表扫描的方式执行该查询，但是观察到该查询的搜索条件涉及到了key2列，而我们又正好为key2列建立了uk_key2索引，如果我们使用uk_key2索引执行这个查询的话，那么相当于从下边的三个扫描区间中获取二级索引记录：</p>
+<ul>
+<li><code>[1438, 1438]</code>，对应的边界条件就是<code>key2 IN (1438)</code></li>
+<li><code>[6328, 6328]</code>，对应的边界条件就是<code>key2 IN (6328)</code></li>
+<li><code>[38, 79]</code>，对应的边界条件就是<code>key2 &gt;= 38 AND key2 &lt;= 79</code></li>
+</ul>
+<p>这些扫描区间对应到数轴上的示意图就如下图所示：</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/6.awebp">
+<p>为方便起见，我们把像<code>[1438, 1438]</code>、[<code>6328, 6328]</code>这样只包含一个值的扫描区间称为单点扫描区间，把<code>[38, 79]</code>这样包含多个值的扫描区间称为范围扫描区间。另外，由于我们的查询列表是<code>*</code>，也就是需要读取完整的用户记录，所以从上述的扫描区间中每获取一条二级索引记录时，就需要根据该二级索引记录的id列的值执行回表操作，也就是到聚簇索引中找到相应的聚簇索引记录。</p>
+<blockquote>
+<p>小贴士：其实我们不仅仅可以使用uk_key2执行上述查询，使用idx_key1、idx_key3、idx_keypart都可以执行上述查询。以idx_key1为例，很显然我们无法通过搜索条件形成合适的扫描区间来减少需要扫描的idx_key二级索引记录数量，只能扫描idx_key1的全部二级索引记录。针对获取到的每一条二级索引记录，都需要执行回表操作来获取完整的用户记录。我们也可以说此时使用idx_key1执行查询时对应的扫描区间就是<code>(-∞, +∞)</code>。</p>
+</blockquote>
+<p>这样子虽然行得通，但我们图啥呢？最粗暴的全表扫描方式已经要扫描全部的聚簇索引记录了，你这里除了要访问全部的聚簇索引记录，还要扫描全部的idx_key1二级索引记录，这不是费力不讨好么。在这个过程中没有减少需要扫描的记录数量，反而效率比全表扫描更差，所以如果我们想使用某个索引来执行查询，但是又无法通过搜索条件形成合适的扫描区间来减少需要扫描的记录数量时，那么我们是不考虑使用这个索引执行查询的。</p>
+<p>并不是所有的搜索条件都可以成为边界条件，比方说下边这个查询：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key1 &lt; <span class="string">'a'</span> <span class="keyword">AND</span> key3 &gt; <span class="string">'z'</span> <span class="keyword">AND</span> common_field = <span class="string">'abc'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>那么：</p>
+<ul>
+<li>如果我们使用idx_key1执行查询的话，那么相应的扫描区间就是<code>(-∞, &#39;a&#39;)</code>，形成该扫描区间的边界条件就是<code>key1 &lt; &#39;a&#39;</code>，而<code>key3 &gt; &#39;z&#39; AND common_field = &#39;abc&#39;</code>就是普通的搜索条件，这些普通的搜索条件需要在获取到idx_key1的二级索引记录后，再执行回表操作，获取到完整的用户记录后才能去判断它们是否成立。</li>
+<li>如果我们使用idx_key3执行查询的话，那么相应的扫描区间就是<code>(&#39;z&#39;, +∞)</code>，形成该扫描区间的边界条件就是<code>key3 &gt; &#39;z&#39;</code>，而<code>key1 &lt; &#39;a&#39; AND common_field = &#39;abc&#39;</code>就是普通的搜索条件，这些普通的搜索条件需要在获取到idx_key3的二级索引记录后，再执行回表操作，获取到完整的用户记录后才能去判断它们是否成立。</li>
+</ul>
+<h1 id="使用联合索引执行查询时对应的扫描区间"><a href="#使用联合索引执行查询时对应的扫描区间" class="headerlink" title="使用联合索引执行查询时对应的扫描区间"></a><span style="color:#339AFF;">使用联合索引执行查询时对应的扫描区间</span></h1><p>联合索引的索引列包含多个列，B+树每一层页面以及每个页面中的记录采用的排序规则较为复杂，以single_table表的idx_key_part联合索引为例，它采用的排序规则如下所示：</p>
+<ul>
+<li>先按照key_part1列的值进行排序。</li>
+<li>在key_part1列的值相同的情况下，再按照key_part2列的值进行排序。</li>
+<li>在key_part1和key_part2列的值都相同的情况下，再按照key_part3列的值进行排序。</li>
+</ul>
+<p>我们画一下idx_key_part索引的示意图：</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/7.awebp">
+<p>对于下边这个查询Q1来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q1：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part1 = <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>由于二级索引记录是先按照key_part1列的值进行排序的，所以所有符合<code>key_part1 = &#39;a&#39;</code>条件的记录肯定是相邻的，我们可以定位到第一条符合<code>key_part1 = &#39;a&#39;</code>条件的记录，然后沿着记录所在的单向链表向后扫描，直到某条记录不符合<code>key_part1 = &#39;a&#39;</code>条件为止（当然，对于获取到的每一条二级索引记录都要执行回表操作，我们这里就不展示回表操作了），如下图所示。</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/8.awebp">
+<p>也就是说，如果我们使用idx_key_part索引执行查询Q1时，对应的扫描区间就是<code>[&#39;a&#39;, &#39;a&#39;]</code>，形成这个扫描区间的条件就是<code>key_part1 = &#39;a&#39;</code>。</p>
+<p>对于下边这个查询Q2来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q2：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part1 = <span class="string">'a'</span> <span class="keyword">AND</span> key_part2 = <span class="string">'b'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>由于二级索引记录是先按照key_part1列的值进行排序的；在key_part1列的值相等的情况下，再按照key_part2列进行排序。所以符合<code>key_part1 = &#39;a&#39; AND key_part2 = &#39;b&#39;</code>条件的二级索引记录肯定是相邻的，我们可以定位到第一条符合<code>key_part1=&#39;a&#39; AND key_part2=&#39;b&#39;</code>条件的记录，然后沿着记录所在的单向链表向后扫描，直到某条记录不符合<code>key_part1=&#39;a&#39;</code>条件或者<code>key_part2=&#39;b&#39;</code>条件为止（当然，对于获取到的每一条二级索引记录都要执行回表操作，我们这里就不展示回表操作了），如下图所示。</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/9.awebp">
+<p>也就是说，如果我们使用idx_key_part索引执行查询Q2时，可以形成扫描区间<code>[(&#39;a&#39;, &#39;b&#39;), (&#39;a&#39;, &#39;b&#39;)]</code>，形成这个扫描区间的条件就是<code>key_part1 = &#39;a&#39; AND key_part2 = &#39;b&#39;</code>。</p>
+<p>对于下边这个查询Q3来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q3：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part1 = <span class="string">'a'</span> <span class="keyword">AND</span> key_part2 = <span class="string">'b'</span> <span class="keyword">AND</span> key_part3 = <span class="string">'c'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>由于二级索引记录是先按照key_part1列的值进行排序的；在keypart1列的值相等的情况下，再按照key_part2列进行排序；在key_part1和key_part2列的值都相等的情况下，再按照key_part3列进行排序。所以符合<code>key_part1 = &#39;a&#39; AND key_part2 = &#39;b&#39; AND key_part3 = &#39;c&#39;</code>条件的二级索引记录肯定是相邻的，我们可以定位到第一条符合<code>key_part1=&#39;a&#39; AND key_part2=&#39;b&#39; AND key_part3=&#39;c&#39;</code>条件的记录，然后沿着记录所在的单向链表向后扫描，直到某条记录不符合<code>key_part1=&#39;a&#39;</code>条件或者<code>key_part2=&#39;b&#39;</code>条件或者<code>key_part3=&#39;c&#39;</code>条件为止（当然，对于获取到的每一条二级索引记录都要执行回表操作），我们就不画示意图了。如果我们使用idx_key_part索引执行查询Q3时，可以形成扫描区间<code>[(&#39;a&#39;, &#39;b&#39;, &#39;c&#39;), (&#39;a&#39;, &#39;b&#39;, &#39;c&#39;)]</code>，形成这个扫描区间的条件就是<code>key_part1 = &#39;a&#39; AND key_part2 = &#39;b&#39; AND key_part3 = &#39;c&#39;</code>。</p>
+<p>对于下边这个查询Q4来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q4：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part1 &lt; <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>由于二级索引记录是先按照key_part1列的值进行排序的，所以所有符合<code>key_part1 &lt; &#39;a&#39;</code>条件的记录肯定是相邻的，我们可以定位到第一条符合<code>key_part1 &lt; &#39;a&#39;</code>条件的记录（其实就是idx_key_part索引第一个叶子节点的第一条记录），然后沿着记录所在的单向链表向后扫描，直到某条记录不符合<code>key_part1 &lt; &#39;a&#39;</code>为止（当然，对于获取到的每一条二级索引记录都要执行回表操作，我们这里就不展示回表操作了），如下图所示。</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/10.awebp">
+<p>也就是说，如果我们使用idx_key_part索引执行查询Q4时，可以形成扫描区间<code>(-∞, &#39;a&#39;)</code>，形成这个扫描区间的条件就是<code>key_part1 &lt; &#39;a&#39;</code>。</p>
+<p>对于下边这个查询Q5来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q5：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part1 = <span class="string">'a'</span> <span class="keyword">AND</span> key_part2 &gt; <span class="string">'a'</span> <span class="keyword">AND</span> key_part2 &lt; <span class="string">'d'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>由于二级索引记录是先按照key_part1列的值进行排序的；在key_part1列的值相等的情况下，再按照key_part2列进行排序。也就是说在符合<code>key_part1 = &#39;a&#39;</code>条件的二级索引记录中，是按照key_part2列的值进行排序的，那么此时符合<code>key_part1 = &#39;a&#39; AND key_part2 &gt; &#39;a&#39; AND key_part2 &lt; &#39;d&#39;</code>条件的二级索引记录肯定是相邻的。我们可以定位到第一条符合<code>key_part1=&#39;a&#39; AND key_part2 &gt; &#39;a&#39; AND key_part2 &lt; &#39;c&#39;</code>条件的记录，然后沿着记录所在的单向链表向后扫描，直到某条记录不符合<code>key_part1=&#39;a&#39;</code>条件或者<code>key_part2 &gt; &#39;a&#39;</code>条件或者<code>key_part2 &lt; &#39;d&#39;</code>条件为止（当然，对于获取到的每一条二级索引记录都要执行回表操作，我们这里就不展示回表操作了），如下图所示。</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/11.awebp">
+<p>也就是说，如果我们使用idx_key_part索引执行查询Q5时，可以形成扫描区间<code>((&#39;a&#39;, &#39;a&#39;), (&#39;a&#39;, &#39;d&#39;))</code>，形成这个扫描区间的条件就是<code>key_part1 = &#39;a&#39; AND key_part2 &gt; &#39;a&#39; AND key_part2 &lt; &#39;d&#39;</code>。</p>
+<p>对于下边这个查询Q6来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q6：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part2 = <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>由于二级索引记录不是直接按照key_part2列的值排序的，所以符合<code>key_part2 = &#39;a&#39;</code>的二级索引记录可能并不相邻，也就意味着我们不能通过这个<code>key_part2 = &#39;a&#39;</code>搜索条件来减少需要扫描的记录数量。在这种情况下，我们是不会使用idx_key_part索引执行查询的。</p>
+<p>对于下边这个查询Q7来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q7：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part1 = <span class="string">'a'</span> <span class="keyword">AND</span> key_part3 = <span class="string">'c'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>由于二级索引记录是先按照key_part1列的值进行排序的，所以符合<code>key_part1 = &#39;a&#39;</code>条件的二级索引记录肯定是相邻的，但是对于符合<code>key_part1 = &#39;a&#39;</code>条件的二级索引记录来说，并不是直接按照key_part3列进行排序的，也就是说我们不能根据搜索条件<code>key_part3 = &#39;c&#39;</code>来进一步减少需要扫描的记录数量。那么如果我们使用idx_key_part索引执行查询的话，可以定位到第一条符合<code>key_part1=&#39;a&#39;</code>条件的记录，然后沿着记录所在的单向链表向后扫描，直到某条记录不符合<code>key_part1 = &#39;a&#39;</code>条件为止。所以在使用idx_key_part索引执行查询Q7的过程中，对应的扫描区间其实是<code>[&#39;a&#39;, &#39;a&#39;]</code>，形成该扫描区间的搜索条件是<code>key_part1 = &#39;a&#39;</code>，与<code>key_part3 = &#39;c&#39;</code>无关。</p>
+<blockquote>
+<p>小贴士：针对获取到的每一条二级索引记录，如果没有开启索引条件下推特性的话，则必须先进行回表操作，获取到完整的用户记录后再判断<code>key_part3 = &#39;c&#39;</code>这个条件是否成立；如果开启了索引条件下推特性的话，可以立即判断该二级索引记录是否符合<code>key_part3 = &#39;c&#39;</code>这个条件，如果符合则再进行回表操作，如果不符合则不进行回表操作，直接跳到下一条二级索引记录。索引条件下推特性是在MySQL 5.6中引入的，默认是开启的。</p>
+</blockquote>
+<p>对于下边这个查询Q8来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q8：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part1 &lt; <span class="string">'b'</span> <span class="keyword">AND</span> key_part2 = <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>由于二级索引记录是先按照key_part1列的值进行排序的，所以符合<code>key_part1 &lt; &#39;b&#39;</code>条件的二级索引记录肯定是相邻的，但是对于符合<code>key_part1 &lt; &#39;b&#39;</code>条件的二级索引记录来说，并不是直接按照key_part2列进行排序的，也就是说我们不能根据搜索条件<code>key_part2 = &#39;a&#39;</code>来进一步减少需要扫描的记录数量。那么如果我们使用idx_key_part索引执行查询的话，可以定位到第一条符合<code>key_part1&lt;&#39;b&#39;</code>条件的记录（其实就是idx_key_part索引第一个叶子节点的第一条记录），然后沿着记录所在的单向链表向后扫描，直到某条记录不符合<code>key_part1 &lt; &#39;b&#39;</code>条件为止，如下图所示。</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/12.awebp">
+<p>所以在使用idx_key_part索引执行查询Q8的过程中，对应的扫描区间其实是<code>[-∞, &#39;b&#39;)</code>，形成该扫描区间的搜索条件是<code>key_part1 &lt; &#39;b&#39;</code>，与<code>key_part2 = &#39;a&#39;</code>无关。</p>
+<p>对于下边这个查询Q9来说：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q9：<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> key_part1 &lt;= <span class="string">'b'</span> <span class="keyword">AND</span> key_part2 = <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>很显然Q8和Q9长得非常像，只不过在涉及key_part1的条件中，Q8中的条件是<code>key_part1 &lt; &#39;b&#39;</code>，Q9中的条件是<code>key_part1 &lt;= &#39;b&#39;</code>。很显然符合<code>key_part1 &lt;= &#39;b&#39;</code>条件的二级索引记录是相邻的，但是对于符合<code>key_part1 &lt;= &#39;b&#39;</code>条件的二级索引记录来说，并不是直接按照key_part2列进行排序的。但是，我这里说但是哈，对于符合<code>key_part1 = &#39;b&#39;</code>的二级索引记录来说，是按照key_part2列的值进行排序的。那么我们在确定需要扫描的二级索引记录的范围时，当二级索引记录的key_part1列值为<code>&#39;b&#39;</code>时，我们也可以通过<code>key_part2 = &#39;a&#39;</code>这个条件来减少需要扫描的二级索引记录范围，也就是说当我们扫描到第一条不符合<code>key_part1 = &#39;b&#39; AND key_part2 = &#39;a&#39;</code>条件的记录时，就可以结束扫描，而不需要将所有key_part1列值为’b’的记录扫描完，示意图如下：</p>
+<img src="/2022/06/11/听说有一个最左原则？这回终于讲清楚了/13.awebp">
+<p>也就是说，如果我们使用idx_key_part索引执行查询Q9时，可以形成扫描区间<code>((-∞, -∞), (&#39;b&#39;, &#39;a&#39;))</code>，形成这个扫描区间的条件就是<code>key_part1 &lt;= &#39;b&#39; AND key_part2 = &#39;a&#39;</code>。对比查询Q8，我们必须将所有符合<code>key_part1 &lt; &#39;b&#39;</code>的记录都扫描完，<code>key_part2 = &#39;a&#39;</code>这个条件在查询Q8中并不能起到减少需要扫描的二级索引记录范围的作用。</p>
+<p>可能将查询Q9转换为下边的这个形式后更容易理解使用idx_key_part索引执行它时对应的扫描区间以及形成扫描区间的条件：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> single_table <span class="keyword">WHERE</span> (key_part1 &lt; <span class="string">'b'</span> <span class="keyword">AND</span> key_part2 = <span class="string">'a'</span>) <span class="keyword">OR</span> (key_part1 = <span class="string">'b'</span> <span class="keyword">AND</span> key_part2 = <span class="string">'a'</span>);</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/MySQL是怎样运行的：从根儿上理解MySQL/" rel="tag"># MySQL是怎样运行的：从根儿上理解MySQL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/06/10/MySQL查询成本和扫描区间-MySQL中IS-NULL、IS-NOT-NULL、-不能用索引？胡扯！/" rel="next" title="MySQL查询成本和扫描区间(MySQL中IS NULL、IS NOT NULL、!=不能用索引？胡扯！)">
+                <i class="fa fa-chevron-left"></i> MySQL查询成本和扫描区间(MySQL中IS NULL、IS NOT NULL、!=不能用索引？胡扯！)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/06/11/设计MySQL的大叔为何偏爱ref/" rel="prev" title="设计MySQL的大叔为何偏爱ref">
+                设计MySQL的大叔为何偏爱ref <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">479</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">51</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2022/08/26/两条一样的INSERT语句竟然引发了死锁？/" title="两条一样的INSERT语句竟然引发了死锁？" target="_blank">两条一样的INSERT语句竟然引发了死锁？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/08/26/MySQL如何查看事务加锁情况/" title="MySQL如何查看事务加锁情况" target="_blank">MySQL如何查看事务加锁情况</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/08/25/03-库源码文件/" title="03 | 库源码文件" target="_blank">03 | 库源码文件</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/08/25/02-命令源码文件/" title="02 | 命令源码文件" target="_blank">02 | 命令源码文件</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/08/25/01-工作区和GOPATH/" title="01 | 工作区和GOPATH" target="_blank">01 | 工作区和GOPATH</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#准备工作"><span class="nav-number">1.</span> <span class="nav-text">准备工作</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#扫描区间和边界条件"><span class="nav-number">2.</span> <span class="nav-text">扫描区间和边界条件</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#使用联合索引执行查询时对应的扫描区间"><span class="nav-number">3.</span> <span class="nav-text">使用联合索引执行查询时对应的扫描区间</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">4.6m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">70:27</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

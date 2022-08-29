@@ -113,7 +113,7 @@
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/08/21/03-事务隔离：为什么你改了我还看不见/1.webp">
 <meta property="og:image" content="http://yoursite.com/2022/08/21/03-事务隔离：为什么你改了我还看不见/2.webp">
-<meta property="og:updated_time" content="2022-08-25T03:41:18.324Z">
+<meta property="og:updated_time" content="2022-08-25T07:51:11.240Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="03|事务隔离：为什么你改了我还看不见">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -446,7 +446,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-25 11:41:18" itemprop="dateModified" datetime="2022-08-25T11:41:18+08:00">2022-08-25</time>
+                <time title="修改时间：2022-08-25 15:51:11" itemprop="dateModified" datetime="2022-08-25T15:51:11+08:00">2022-08-25</time>
               
             
           </span>
@@ -533,8 +533,8 @@
 <p>简单来说，事务就是要保证一组数据库操作，要么全部成功，要么全部失败。在MySQL中，事务支持是在引擎层实现的。你现在知道，MySQL是一个支持多引擎的系统，但并不是所有的引擎都支持事务。比如MySQL原生的MyISAM引擎就不支持事务，这也是MyISAM被InnoDB取代的重要原因之一。</p>
 <p>今天的文章里，我将会以InnoDB为例，剖析MySQL在事务支持方面的特定实现，并基于原理给出相应的实践建议，希望这些案例能加深你对MySQL事务原理的理解。</p>
 <h1 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a>隔离性与隔离级别</h1><p>提到事务，你肯定会想到ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性），今天我们就来说说其中I，也就是“隔离性”。</p>
-<p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirtyread）、不可重复读（non-repeatableread）、幻读（phantomread）的问题，为了解决这些问题，就有了“隔离级别”的概念。</p>
-<p>在谈隔离级别之前，你首先要知道，你隔离得越严实，效率就会越低。因此很多时候，我们都要在二者之间寻找一个平衡点。SQL标准的事务隔离级别包括：读未提交（readuncommitted）、读提交（readcommitted）、可重复读（repeatableread）和串行化（serializable）。下面我逐一为你解释：</p>
+<p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirty read）、不可重复读（non-repeatable read）、幻读（phantom read）的问题，为了解决这些问题，就有了“隔离级别”的概念。</p>
+<p>在谈隔离级别之前，你首先要知道，你隔离得越严实，效率就会越低。因此很多时候，我们都要在二者之间寻找一个平衡点。SQL标准的事务隔离级别包括：读未提交（read uncommitted）、读提交（read committed）、可重复读（repeatable read）和串行化（serializable）。下面我逐一为你解释：</p>
 <ul>
 <li>读未提交是指，一个事务还没提交时，它做的变更就能被别的事务看到。</li>
 <li>读提交是指，一个事务提交之后，它做的变更才会被其他事务看到。</li>
@@ -552,7 +552,7 @@
 </ul>
 <p>在实现上，数据库里面会创建一个视图，访问的时候以视图的逻辑结果为准。在“可重复读”隔离级别下，这个视图是在事务启动时创建的，整个事务存在期间都用这个视图。在“读提交”隔离级别下，这个视图是在每个SQL语句开始执行的时候创建的。这里需要注意的是，“读未提交”隔离级别下直接返回记录上的最新值，没有视图概念；而“串行化”隔离级别下直接用加锁的方式来避免并行访问。</p>
 <p>我们可以看到在不同的隔离级别下，数据库行为是有所不同的。Oracle数据库的默认隔离级别其实就是“读提交”，因此对于一些从Oracle迁移到MySQL的应用，为保证数据库隔离级别的一致，你一定要记得将MySQL的隔离级别设置为“读提交”。</p>
-<p>配置的方式是，将启动参数transaction-isolation的值设置成READ-COMMITTED。你可以用showvariables来查看当前的值。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show variables like 'transaction_isolation';</span><br><span class="line"></span><br><span class="line">+<span class="comment">-----------------------+----------------+</span></span><br><span class="line"></span><br><span class="line">| Variable_name | Value |</span><br><span class="line"></span><br><span class="line">+<span class="comment">-----------------------+----------------+</span></span><br><span class="line"></span><br><span class="line">| transaction_isolation | READ-COMMITTED |</span><br><span class="line"></span><br><span class="line">+<span class="comment">-----------------------+----------------+</span></span><br></pre></td></tr></table></figure></p>
+<p>配置的方式是，将启动参数transaction-isolation的值设置成READ-COMMITTED。你可以用<code>show variables</code>来查看当前的值。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show variables like 'transaction_isolation';</span><br><span class="line"></span><br><span class="line">+<span class="comment">-----------------------+----------------+</span></span><br><span class="line"></span><br><span class="line">| Variable_name | Value |</span><br><span class="line"></span><br><span class="line">+<span class="comment">-----------------------+----------------+</span></span><br><span class="line"></span><br><span class="line">| transaction_isolation | READ-COMMITTED |</span><br><span class="line"></span><br><span class="line">+<span class="comment">-----------------------+----------------+</span></span><br></pre></td></tr></table></figure></p>
 <p>总结来说，存在即合理，每种隔离级别都有自己的使用场景，你要根据自己的业务情况来定。我想你可能会问那什么时候需要“可重复读”的场景呢？我们来看一个数据校对逻辑的案例。</p>
 <p>假设你在管理一个个人银行账户表。一个表存了账户余额，一个表存了账单明细。到了月底你要做数据校对，也就是判断上个月的余额和当前余额的差额，是否与本月的账单明细一致。你一定希望在校对过程中，即使有用户发生了一笔新的交易，也不影响你的校对结果。</p>
 <p>这时候使用“可重复读”隔离级别就很方便。事务启动时的视图可以认为是静态的，不受其他事务更新的影响。</p>
@@ -620,8 +620,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2022/08/11/MySQL的数据目录/" rel="next" title="MySQL的数据目录">
-                <i class="fa fa-chevron-left"></i> MySQL的数据目录
+              <a href="/2022/08/09/高性能IO模型：为什么单线程Redis能那么快？/" rel="next" title="高性能IO模型：为什么单线程Redis能那么快？">
+                <i class="fa fa-chevron-left"></i> 高性能IO模型：为什么单线程Redis能那么快？
               </a>
             
           </div>
@@ -630,8 +630,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2022/08/22/听说有一个最左原则？这回终于讲清楚了/" rel="prev" title="听说有一个最左原则？这回终于讲清楚了">
-                听说有一个最左原则？这回终于讲清楚了 <i class="fa fa-chevron-right"></i>
+              <a href="/2022/08/23/04-深入浅出索引（上）/" rel="prev" title="04 | 深入浅出索引（上）">
+                04 | 深入浅出索引（上） <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -703,7 +703,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">474</span>
+                    <span class="site-state-item-count">479</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -973,7 +973,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">50</span>
+                      
+                    
+                    <span class="site-state-item-count">51</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1004,23 +1006,23 @@
                 
                 
                   <li>
-                    <a href="/2022/08/24/10-MySQL为什么有时候会选错索引？/" title="10 | MySQL为什么有时候会选错索引？" target="_blank">10 | MySQL为什么有时候会选错索引？</a>
+                    <a href="/2022/08/26/两条一样的INSERT语句竟然引发了死锁？/" title="两条一样的INSERT语句竟然引发了死锁？" target="_blank">两条一样的INSERT语句竟然引发了死锁？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/09-普通索引和唯一索引，应该怎么选择？/" title="09 | 普通索引和唯一索引，应该怎么选择？" target="_blank">09 | 普通索引和唯一索引，应该怎么选择？</a>
+                    <a href="/2022/08/26/MySQL如何查看事务加锁情况/" title="MySQL如何查看事务加锁情况" target="_blank">MySQL如何查看事务加锁情况</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/25-红黑树（上）：为什么工程中都用红黑树这种二叉树？/" title="25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？" target="_blank">25 | 红黑树（上）：为什么工程中都用红黑树这种二叉树？</a>
+                    <a href="/2022/08/25/03-库源码文件/" title="03 | 库源码文件" target="_blank">03 | 库源码文件</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/48-B-树：MySQL数据库索引是如何实现的？/" title="48 | B+树：MySQL数据库索引是如何实现的？" target="_blank">48 | B+树：MySQL数据库索引是如何实现的？</a>
+                    <a href="/2022/08/25/02-命令源码文件/" title="02 | 命令源码文件" target="_blank">02 | 命令源码文件</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/24/26-红黑树（下）：掌握这些技巧，你也可以实现一个红黑树/" title="26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树" target="_blank">26 | 红黑树（下）：掌握这些技巧，你也可以实现一个红黑树</a>
+                    <a href="/2022/08/25/01-工作区和GOPATH/" title="01 | 工作区和GOPATH" target="_blank">01 | 工作区和GOPATH</a>
                   </li>
                 
               </ul>
@@ -1092,7 +1094,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">70:17</span>
+    <span title="站点阅读时长">70:27</span>
   
 </div>
 
