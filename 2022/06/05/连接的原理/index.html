@@ -117,7 +117,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/06/05/连接的原理/4.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/05/连接的原理/5.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/05/连接的原理/6.awebp">
-<meta property="og:updated_time" content="2022-08-26T08:42:20.828Z">
+<meta property="og:updated_time" content="2022-09-07T05:48:53.310Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="连接的原理">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
@@ -391,7 +391,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。">
+      <meta itemprop="description" content="强迫自己去看，去做。">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -450,7 +450,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-26 16:42:20" itemprop="dateModified" datetime="2022-08-26T16:42:20+08:00">2022-08-26</time>
+                <time title="修改时间：2022-09-07 13:48:53" itemprop="dateModified" datetime="2022-09-07T13:48:53+08:00">2022-09-07</time>
               
             
           </span>
@@ -538,7 +538,7 @@
 <p>搞数据库一个避不开的概念就是Join，翻译成中文就是连接。相信很多小伙伴在初学连接的时候有些一脸懵逼，理解了连接的语义之后又可能不明白各个表中的记录到底是怎么连起来的，以至于在使用的时候常常陷入下边两种误区：</p>
 <ul>
 <li>误区一：业务至上，管他三七二十一，再复杂的查询也用在一个连接语句中搞定。</li>
-<li>误区二：敬而远之，上次 DBA 那给报过来的慢查询就是因为使用了连接导致的，以后再也不敢用了。</li>
+<li>误区二：敬而远之，上次DBA报过来的慢查询就是因为使用了连接导致的，以后再也不敢用了。</li>
 </ul>
 <p>所以本章就来扒一扒连接的原理。我们先来介绍一下MySQL中支持的一些连接语法。</p>
 <h1 id="连接简介"><a href="#连接简介" class="headerlink" title="连接简介"></a><span style="color:#339AFF;">连接简介</span></h1><h2 id="连接的本质"><a href="#连接的本质" class="headerlink" title="连接的本质"></a><span style="color:#00ACC1;">连接的本质</span></h2><p>为了故事的顺利发展，我们先建立两个简单的表并给它们填充一点数据：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; CREATE TABLE t1 (m1 int, n1 char(1));</span><br><span class="line">Query OK, 0 rows affected (0.02 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; CREATE TABLE t2 (m2 int, n2 char(1));</span><br><span class="line">Query OK, 0 rows affected (0.02 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; INSERT INTO t1 VALUES(1, <span class="string">'a'</span>), (2, <span class="string">'b'</span>), (3, <span class="string">'c'</span>);</span><br><span class="line">Query OK, 3 rows affected (0.00 sec)</span><br><span class="line">Records: 3  Duplicates: 0  Warnings: 0</span><br><span class="line"></span><br><span class="line">mysql&gt; INSERT INTO t2 VALUES(2, <span class="string">'b'</span>), (3, <span class="string">'c'</span>), (4, <span class="string">'d'</span>);</span><br><span class="line">Query OK, 3 rows affected (0.00 sec)</span><br><span class="line">Records: 3  Duplicates: 0  Warnings: 0</span><br></pre></td></tr></table></figure></p>
@@ -566,25 +566,25 @@
 <p>1，首先确定第一个需要查询的表，这个表称之为驱动表。怎样在单表中执行查询语句我们在前一章都唠叨过了，只需要选取代价最小的那种访问方法去执行单表查询语句就好了（就是说从const、ref、ref_or_null、range、index、all这些执行方法中选取代价最小的去执行查询）。此处假设使用t1作为驱动表，那么就需要到t1表中找满足<code>t1.m1 &gt; 1</code>的记录，因为表中的数据太少，我们也没在表上建立二级索引，所以此处查询t1表的访问方法就设定为all吧，也就是采用全表扫描的方式执行单表查询。关于如何提升连接查询的性能我们之后再说，现在先把基本概念捋清楚哈。所以查询过程就如下图所示：</p>
 <img src="/2022/06/05/连接的原理/2.awebp">
 <p>我们可以看到，t1表中符合<code>t1.m1 &gt; 1</code>的记录有两条。</p>
-<p>2，针对上一步骤中从驱动表产生的结果集中的每一条记录，分别需要到t2表中查找匹配的记录，所谓匹配的记录，指的是符合过滤条件的记录。因为是根据t1表中的记录去找t2表中的记录，所以t2表也可以被称之为被驱动表。上一步骤从驱动表中得到了2条记录，所以需要查询2次t2表。此时涉及两个表的列的过滤条件t1.m1 = t2.m2就派上用场了：</p>
+<p>2，针对上一步骤中从驱动表产生的结果集中的每一条记录，分别需要到t2表中查找匹配的记录，所谓匹配的记录，指的是符合过滤条件的记录。因为是根据t1表中的记录去找t2表中的记录，所以t2表也可以被称之为被驱动表。上一步骤从驱动表中得到了2条记录，所以需要查询2次t2表。此时涉及两个表的列的过滤条件<code>t1.m1 = t2.m2</code>就派上用场了：</p>
 <ul>
-<li>当t1.m1 = 2时，过滤条件t1.m1 = t2.m2就相当于t2.m2 = 2，所以此时t2表相当于有了t2.m2 = 2、t2.n2 &lt; ‘d’这两个过滤条件，然后到t2表中执行单表查询。</li>
-<li>当t1.m1 = 3时，过滤条件t1.m1 = t2.m2就相当于t2.m2 = 3，所以此时t2表相当于有了t2.m2 = 3、t2.n2 &lt; ‘d’这两个过滤条件，然后到t2表中执行单表查询。</li>
+<li>当<code>t1.m1 = 2</code>时，过滤条件<code>t1.m1 = t2.m2</code>就相当于<code>t2.m2 = 2</code>，所以此时t2表相当于有了<code>t2.m2 = 2</code>、<code>t2.n2 &lt; &#39;d&#39;</code>这两个过滤条件，然后到t2表中执行单表查询。</li>
+<li>当<code>t1.m1 = 3</code>时，过滤条件<code>t1.m1 = t2.m2</code>就相当于<code>t2.m2 = 3</code>，所以此时t2表相当于有了<code>t2.m2 = 3</code>、<code>t2.n2 &lt; &#39;d&#39;</code>这两个过滤条件，然后到t2表中执行单表查询。</li>
 </ul>
 <p>所以整个连接查询的执行过程就如下图所示：</p>
 <img src="/2022/06/05/连接的原理/3.awebp">
 <p>也就是说整个连接查询最后的结果只有两条符合过滤条件的记录：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">+------+------+------+------+</span><br><span class="line">| m1   | n1   | m2   | n2   |</span><br><span class="line">+------+------+------+------+</span><br><span class="line">|    2 | b    |    2 | b    |</span><br><span class="line">|    3 | c    |    3 | c    |</span><br><span class="line">+------+------+------+------+</span><br></pre></td></tr></table></figure></p>
-<p>从上边两个步骤可以看出来，我们上边唠叨的这个两表连接查询共需要查询1次t1表，2次t2表。当然这是在特定的过滤条件下的结果，如果我们把t1.m1 &gt; 1这个条件去掉，那么从t1表中查出的记录就有3条，就需要查询3次t2表了。也就是说在两表连接查询中，驱动表只需要访问一次，被驱动表可能被访问多次。</p>
+<p>从上边两个步骤可以看出来，我们上边唠叨的这个两表连接查询共需要查询1次t1表，2次t2表。当然这是在特定的过滤条件下的结果，如果我们把<code>t1.m1 &gt; 1</code>这个条件去掉，那么从t1表中查出的记录就有3条，就需要查询3次t2表了。也就是说在两表连接查询中，驱动表只需要访问一次，被驱动表可能被访问多次。</p>
 <h2 id="内连接和外连接"><a href="#内连接和外连接" class="headerlink" title="内连接和外连接"></a><span style="color:#00ACC1;">内连接和外连接</span></h2><p>为了大家更好理解后边内容，我们先创建两个有现实意义的表，<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> student (</span><br><span class="line">    <span class="built_in">number</span> <span class="built_in">INT</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT <span class="keyword">COMMENT</span> <span class="string">'学号'</span>,</span><br><span class="line">    <span class="keyword">name</span> <span class="built_in">VARCHAR</span>(<span class="number">5</span>) <span class="keyword">COMMENT</span> <span class="string">'姓名'</span>,</span><br><span class="line">    major <span class="built_in">VARCHAR</span>(<span class="number">30</span>) <span class="keyword">COMMENT</span> <span class="string">'专业'</span>,</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="built_in">number</span>)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8 <span class="keyword">COMMENT</span> <span class="string">'学生信息表'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> score (</span><br><span class="line">    <span class="built_in">number</span> <span class="built_in">INT</span> <span class="keyword">COMMENT</span> <span class="string">'学号'</span>,</span><br><span class="line">    subject <span class="built_in">VARCHAR</span>(<span class="number">30</span>) <span class="keyword">COMMENT</span> <span class="string">'科目'</span>,</span><br><span class="line">    score <span class="built_in">TINYINT</span> <span class="keyword">COMMENT</span> <span class="string">'成绩'</span>,</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="built_in">number</span>, subject)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8 <span class="keyword">COMMENT</span> <span class="string">'学生成绩表'</span>;</span><br></pre></td></tr></table></figure></p>
 <p>我们新建了一个学生信息表，一个学生成绩表，然后我们向上述两个表中插入一些数据，为节省篇幅，具体插入过程就不唠叨了，插入后两表中的数据如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM student;</span><br><span class="line">+----------+-----------+--------------------------+</span><br><span class="line">| number   | name      | major                    |</span><br><span class="line">+----------+-----------+--------------------------+</span><br><span class="line">| 20180101 | 杜子腾    | 软件学院                 |</span><br><span class="line">| 20180102 | 范统      | 计算机科学与工程         |</span><br><span class="line">| 20180103 | 史珍香    | 计算机科学与工程         |</span><br><span class="line">+----------+-----------+--------------------------+</span><br><span class="line">3 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; SELECT * FROM score;</span><br><span class="line">+----------+-----------------------------+-------+</span><br><span class="line">| number   | subject                     | score |</span><br><span class="line">+----------+-----------------------------+-------+</span><br><span class="line">| 20180101 | 母猪的产后护理              |    78 |</span><br><span class="line">| 20180101 | 论萨达姆的战争准备          |    88 |</span><br><span class="line">| 20180102 | 论萨达姆的战争准备          |    98 |</span><br><span class="line">| 20180102 | 母猪的产后护理              |   100 |</span><br><span class="line">+----------+-----------------------------+-------+</span><br><span class="line">4 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure></p>
-<p>现在我们想把每个学生的考试成绩都查询出来就需要进行两表连接了（因为score中没有姓名信息，所以不能单纯只查询score表）。连接过程就是从student表中取出记录，在score表中查找number相同的成绩记录，所以过滤条件就是student.number = socre.number，整个查询语句就是这样：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM student, score WHERE student.number = score.number;</span><br><span class="line">+----------+-----------+--------------------------+----------+-----------------------------+-------+</span><br><span class="line">| number   | name      | major                    | number   | subject                     | score |</span><br><span class="line">+----------+-----------+--------------------------+----------+-----------------------------+-------+</span><br><span class="line">| 20180101 | 杜子腾    | 软件学院                 | 20180101 | 母猪的产后护理              |    78 |</span><br><span class="line">| 20180101 | 杜子腾    | 软件学院                 | 20180101 | 论萨达姆的战争准备          |    88 |</span><br><span class="line">| 20180102 | 范统      | 计算机科学与工程         | 20180102 | 论萨达姆的战争准备          |    98 |</span><br><span class="line">| 20180102 | 范统      | 计算机科学与工程         | 20180102 | 母猪的产后护理              |   100 |</span><br><span class="line">+----------+-----------+--------------------------+----------+-----------------------------+-------+</span><br><span class="line">4 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure></p>
+<p>现在我们想把每个学生的考试成绩都查询出来就需要进行两表连接了（因为score中没有姓名信息，所以不能单纯只查询score表）。连接过程就是从student表中取出记录，在score表中查找number相同的成绩记录，所以过滤条件就是<code>student.number = socre.number</code>，整个查询语句就是这样：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM student, score WHERE student.number = score.number;</span><br><span class="line">+----------+-----------+--------------------------+----------+-----------------------------+-------+</span><br><span class="line">| number   | name      | major                    | number   | subject                     | score |</span><br><span class="line">+----------+-----------+--------------------------+----------+-----------------------------+-------+</span><br><span class="line">| 20180101 | 杜子腾    | 软件学院                 | 20180101 | 母猪的产后护理              |    78 |</span><br><span class="line">| 20180101 | 杜子腾    | 软件学院                 | 20180101 | 论萨达姆的战争准备          |    88 |</span><br><span class="line">| 20180102 | 范统      | 计算机科学与工程         | 20180102 | 论萨达姆的战争准备          |    98 |</span><br><span class="line">| 20180102 | 范统      | 计算机科学与工程         | 20180102 | 母猪的产后护理              |   100 |</span><br><span class="line">+----------+-----------+--------------------------+----------+-----------------------------+-------+</span><br><span class="line">4 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure></p>
 <p>字段有点多哦，我们少查询几个字段：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT s1.number, s1.name, s2.subject, s2.score FROM student AS s1, score AS s2 WHERE s1.number = s2.number;</span><br><span class="line">+----------+-----------+-----------------------------+-------+</span><br><span class="line">| number   | name      | subject                     | score |</span><br><span class="line">+----------+-----------+-----------------------------+-------+</span><br><span class="line">| 20180101 | 杜子腾    | 母猪的产后护理              |    78 |</span><br><span class="line">| 20180101 | 杜子腾    | 论萨达姆的战争准备          |    88 |</span><br><span class="line">| 20180102 | 范统      | 论萨达姆的战争准备          |    98 |</span><br><span class="line">| 20180102 | 范统      | 母猪的产后护理              |   100 |</span><br><span class="line">+----------+-----------+-----------------------------+-------+</span><br><span class="line">4 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure></p>
 <p>从上述查询结果中我们可以看到，各个同学对应的各科成绩就都被查出来了，可是有个问题，史珍香同学，也就是学号为20180103的同学因为某些原因没有参加考试，所以在score表中没有对应的成绩记录。那如果老师想查看所有同学的考试成绩，即使是缺考的同学也应该展示出来，但是到目前为止我们介绍的连接查询是无法完成这样的需求的。我们稍微思考一下这个需求，其本质是想：驱动表中的记录即使在被驱动表中没有匹配的记录，也仍然需要加入到结果集。为了解决这个问题，就有了内连接和外连接的概念：</p>
 <ul>
 <li>对于内连接的两个表，驱动表中的记录在被驱动表中找不到匹配的记录，该记录不会加入到最后的结果集，我们上边提到的连接都是所谓的内连接。</li>
-<li>对于外连接的两个表，驱动表中的记录即使在被驱动表中没有匹配的记录，也仍然需要加入到结果集。<br>  在MySQL中，根据选取驱动表的不同，外连接仍然可以细分为2种：<ul>
-<li>左外连接<br>  选取左侧的表为驱动表。</li>
-<li>右外连接<br>  选取右侧的表为驱动表。</li>
+<li>对于外连接的两个表，驱动表中的记录即使在被驱动表中没有匹配的记录，也仍然需要加入到结果集。<br>&emsp;&emsp;在MySQL中，根据选取驱动表的不同，外连接仍然可以细分为2种：<ul>
+<li>左外连接<br>&emsp;&emsp;选取左侧的表为驱动表。</li>
+<li>右外连接<br>&emsp;&emsp;选取右侧的表为驱动表。</li>
 </ul>
 </li>
 </ul>
@@ -614,7 +614,7 @@
 <li><code>SELECT * FROM t1 INNER JOIN t2;</code></li>
 <li><code>SELECT * FROM t1 CROSS JOIN t2;</code></li>
 </ul>
-<p>上边的这些写法和直接把需要连接的表名放到FROM语句之后，用逗号,分隔开的写法是等价的：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t1, t2;</span><br></pre></td></tr></table></figure></p>
+<p>上边的这些写法和直接把需要连接的表名放到FROM语句之后，用逗号<code>,</code>分隔开的写法是等价的：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t1, t2;</span><br></pre></td></tr></table></figure></p>
 <p>现在我们虽然介绍了很多种内连接的书写方式，不过熟悉一种就好了，这里我们推荐INNER JOIN的形式书写内连接（因为INNER JOIN语义很明确嘛，可以和LEFT JOIN和RIGHT JOIN很轻松的区分开）。这里需要注意的是，由于在内连接中ON子句和WHERE子句是等价的，所以内连接中不要求强制写明ON子句。</p>
 <p>我们前边说过，连接的本质就是把各个连接表中的记录都取出来依次匹配的组合加入结果集并返回给用户。不论哪个表作为驱动表，两表连接产生的笛卡尔积肯定是一样的。而对于内连接来说，由于凡是不符合ON子句或WHERE子句中的条件的记录都会被过滤掉，其实也就相当于从两表连接的笛卡尔积中把不符合过滤条件的记录给踢出去，所以对于内连接来说，驱动表和被驱动表是可以互换的，并不会影响最后的查询结果。但是对于外连接来说，由于驱动表中的记录即使在被驱动表中找不到符合ON子句条件的记录时也要将其加入到结果集，所以此时驱动表和被驱动表的关系就很重要了，也就是说左外连接和右外连接的驱动表和被驱动表不能轻易互换。</p>
 <h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#00ACC1;">小结</span></h2><p>上边说了很多，给大家的感觉不是很直观，我们直接把表t1和t2的三种连接方式写在一起，这样大家理解起来就很easy了：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM t1 INNER JOIN t2 ON t1.m1 = t2.m2;</span><br><span class="line">+------+------+------+------+</span><br><span class="line">| m1   | n1   | m2   | n2   |</span><br><span class="line">+------+------+------+------+</span><br><span class="line">|    2 | b    |    2 | b    |</span><br><span class="line">|    3 | c    |    3 | c    |</span><br><span class="line">+------+------+------+------+</span><br><span class="line">2 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; SELECT * FROM t1 LEFT JOIN t2 ON t1.m1 = t2.m2;</span><br><span class="line">+------+------+------+------+</span><br><span class="line">| m1   | n1   | m2   | n2   |</span><br><span class="line">+------+------+------+------+</span><br><span class="line">|    2 | b    |    2 | b    |</span><br><span class="line">|    3 | c    |    3 | c    |</span><br><span class="line">|    1 | a    | NULL | NULL |</span><br><span class="line">+------+------+------+------+</span><br><span class="line">3 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; SELECT * FROM t1 RIGHT JOIN t2 ON t1.m1 = t2.m2;</span><br><span class="line">+------+------+------+------+</span><br><span class="line">| m1   | n1   | m2   | n2   |</span><br><span class="line">+------+------+------+------+</span><br><span class="line">|    2 | b    |    2 | b    |</span><br><span class="line">|    3 | c    |    3 | c    |</span><br><span class="line">| NULL | NULL |    4 | d    |</span><br><span class="line">+------+------+------+------+</span><br><span class="line">3 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure></p>
@@ -633,29 +633,29 @@
 <img src="/2022/06/05/连接的原理/5.awebp">
 <p>查询驱动表t1后的结果集中有两条记录，嵌套循环连接算法需要对被驱动表查询2次：</p>
 <ul>
-<li>当t1.m1 = 2时，去查询一遍t2表，对t2表的查询语句相当于：</li>
+<li>当<code>t1.m1 = 2</code>时，去查询一遍t2表，对t2表的查询语句相当于：</li>
 </ul>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t2 <span class="keyword">WHERE</span> t2.m2 = <span class="number">2</span> <span class="keyword">AND</span> t2.n2 &lt; <span class="string">'d'</span>;</span><br></pre></td></tr></table></figure>
 <ul>
-<li>当t1.m1 = 3时，再去查询一遍t2表，此时对t2表的查询语句相当于：</li>
+<li>当<code>t1.m1 = 3</code>时，再去查询一遍t2表，此时对t2表的查询语句相当于：</li>
 </ul>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t2 <span class="keyword">WHERE</span> t2.m2 = <span class="number">3</span> <span class="keyword">AND</span> t2.n2 &lt; <span class="string">'d'</span>;</span><br></pre></td></tr></table></figure>
-<p>可以看到，原来的t1.m1 = t2.m2这个涉及两个表的过滤条件在针对t2表做查询时关于t1表的条件就已经确定了，所以我们只需要单单优化对t2表的查询了，上述两个对t2表的查询语句中利用到的列是m2和n2列，我们可以：</p>
+<p>可以看到，原来的<code>t1.m1 = t2.m2</code>这个涉及两个表的过滤条件在针对t2表做查询时关于t1表的条件就已经确定了，所以我们只需要单单优化对t2表的查询了，上述两个对t2表的查询语句中利用到的列是m2和n2列，我们可以：</p>
 <ul>
-<li>在m2列上建立索引，因为对m2列的条件是等值查找，比如t2.m2 = 2、t2.m2 = 3等，所以可能使用到ref的访问方法，假设使用ref的访问方法去执行对t2表的查询的话，需要回表之后再判断t2.n2 &lt; d这个条件是否成立。</li>
+<li>在m2列上建立索引，因为对m2列的条件是等值查找，比如<code>t2.m2 = 2</code>、<code>t2.m2 = 3</code>等，所以可能使用到ref的访问方法，假设使用ref的访问方法去执行对t2表的查询的话，需要回表之后再判断<code>t2.n2 &lt; d</code>这个条件是否成立。</li>
 </ul>
-<p>这里有一个比较特殊的情况，就是假设m2列是t2表的主键或者唯一二级索引列，那么使用t2.m2 = 常数值这样的条件从t2表中查找记录的过程的代价就是常数级别的。我们知道在单表中使用主键值或者唯一二级索引列的值进行等值查找的方式称之为const，而设计MySQL的大叔把在连接查询中对被驱动表使用主键值或者唯一二级索引列的值进行等值查找的查询执行方式称之为：eq_ref。</p>
+<p>这里有一个比较特殊的情况，就是假设m2列是t2表的主键或者唯一二级索引列，那么使用<code>t2.m2 = 常数值</code>这样的条件从t2表中查找记录的过程的代价就是常数级别的。我们知道在单表中使用主键值或者唯一二级索引列的值进行等值查找的方式称之为const，而设计MySQL的大叔把在连接查询中对被驱动表使用主键值或者唯一二级索引列的值进行等值查找的查询执行方式称之为：eq_ref。</p>
 <ul>
-<li>在n2列上建立索引，涉及到的条件是t2.n2 &lt; ‘d’，可能用到range的访问方法，假设使用range的访问方法对t2表的查询的话，需要回表之后再判断在m2列上的条件是否成立。</li>
+<li>在n2列上建立索引，涉及到的条件是<code>t2.n2 &lt; &#39;d&#39;</code>，可能用到range的访问方法，假设使用range的访问方法对t2表的查询的话，需要回表之后再判断在m2列上的条件是否成立。</li>
 </ul>
 <p>假设m2和n2列上都存在索引的话，那么就需要从这两个里边儿挑一个代价更低的去执行对t2表的查询。当然，建立了索引不一定使用索引，只有在二级索引 + 回表的代价比全表扫描的代价更低时才会使用索引。</p>
-<p>另外，有时候连接查询的查询列表和过滤条件中可能只涉及被驱动表的部分列，而这些列都是某个索引的一部分，这种情况下即使不能使用eq_ref、ref、ref_or_null或者range这些访问方法执行对被驱动表的查询的话，也可以使用索引扫描，也就是index的访问方法来查询被驱动表。所以我们建议在真实工作中最好不要使用*作为查询列表，最好把真实用到的列作为查询列表。</p>
+<p>另外，有时候连接查询的查询列表和过滤条件中可能只涉及被驱动表的部分列，而这些列都是某个索引的一部分，这种情况下即使不能使用eq_ref、ref、ref_or_null或者range这些访问方法执行对被驱动表的查询的话，也可以使用索引扫描，也就是index的访问方法来查询被驱动表。所以我们建议在真实工作中最好不要使用<code>*</code>作为查询列表，最好把真实用到的列作为查询列表。</p>
 <h2 id="基于块的嵌套循环连接（Block-Nested-Loop-Join）"><a href="#基于块的嵌套循环连接（Block-Nested-Loop-Join）" class="headerlink" title="基于块的嵌套循环连接（Block Nested-Loop Join）"></a><span style="color:#00ACC1;">基于块的嵌套循环连接（Block Nested-Loop Join）</span></h2><p>扫描一个表的过程其实是先把这个表从磁盘上加载到内存中，然后从内存中比较匹配条件是否满足。现实生活中的表可不像t1、t2这种只有3条记录，成千上万条记录都是少的，几百万、几千万甚至几亿条记录的表到处都是。内存里可能并不能完全存放的下表中所有的记录，所以在扫描表前边记录的时候后边的记录可能还在磁盘上，等扫描到后边记录的时候可能内存不足，所以需要把前边的记录从内存中释放掉。我们前边又说过，采用嵌套循环连接算法的两表连接过程中，被驱动表可是要被访问好多次的，如果这个被驱动表中的数据特别多而且不能使用索引进行访问，那就相当于要从磁盘上读好几次这个表，这个I/O代价就非常大了，所以我们得想办法：尽量减少访问被驱动表的次数。</p>
-<p>当被驱动表中的数据非常多时，每次访问被驱动表，被驱动表的记录会被加载到内存中，在内存中的每一条记录只会和驱动表结果集的一条记录做匹配，之后就会被从内存中清除掉。然后再从驱动表结果集中拿出另一条记录，再一次把被驱动表的记录加载到内存中一遍，周而复始，驱动表结果集中有多少条记录，就得把被驱动表从磁盘上加载到内存中多少次。所以我们可不可以在把被驱动表的记录加载到内存的时候，一次性和多条驱动表中的记录做匹配，这样就可以大大减少重复从磁盘上加载被驱动表的代价了。所以设计MySQL的大叔提出了一个join buffer的概念，join buffer就是执行连接查询前申请的一块固定大小的内存，先把若干条驱动表结果集中的记录装在这个join buffer中，然后开始扫描被驱动表，每一条被驱动表的记录一次性和join buffer中的多条驱动表记录做匹配，因为匹配的过程都是在内存中完成的，所以这样可以显著减少被驱动表的I/O代价。使用join buffer的过程如下图所示：</p>
+<p>当被驱动表中的数据非常多时，每次访问被驱动表，被驱动表的记录会被加载到内存中，在内存中的每一条记录只会和驱动表结果集的一条记录做匹配，之后就会被从内存中清除掉。然后再从驱动表结果集中拿出另一条记录，再一次把被驱动表的记录加载到内存中一遍，周而复始，驱动表结果集中有多少条记录，就得把被驱动表从磁盘上加载到内存中多少次。所以我们可不可以在把被驱动表的记录加载到内存的时候，一次性和多条驱动表中的记录做匹配，这样就可以大大减少重复从磁盘上加载被驱动表的代价了。所以设计MySQL的大叔提出了一个<code>join buffer</code>的概念，<code>join buffer</code>就是执行连接查询前申请的一块固定大小的内存，先把若干条驱动表结果集中的记录装在这个<code>join buffer</code>中，然后开始扫描被驱动表，每一条被驱动表的记录一次性和<code>join buffer</code>中的多条驱动表记录做匹配，因为匹配的过程都是在内存中完成的，所以这样可以显著减少被驱动表的I/O代价。使用<code>join buffer</code>的过程如下图所示：</p>
 <img src="/2022/06/05/连接的原理/6.awebp">
-<p>最好的情况是join buffer足够大，能容纳驱动表结果集中的所有记录，这样只需要访问一次被驱动表就可以完成连接操作了。设计MySQL的大叔把这种加入了join buffer的嵌套循环连接算法称之为基于块的嵌套连接（Block Nested-Loop Join）算法。</p>
-<p>这个join buffer的大小是可以通过启动参数或者系统变量join_buffer_size进行配置，默认大小为262144字节（也就是256KB），最小可以设置为128字节。当然，对于优化被驱动表的查询来说，最好是为被驱动表加上效率高的索引，如果实在不能使用索引，并且自己的机器的内存也比较大可以尝试调大join_buffer_size的值来对连接查询进行优化。</p>
-<p>另外需要注意的是，驱动表的记录并不是所有列都会被放到join buffer中，只有查询列表中的列和过滤条件中的列才会被放到join buffer中，所以再次提醒我们，最好不要把*作为查询列表，只需要把我们关心的列放到查询列表就好了，这样还可以在join buffer中放置更多的记录呢哈。</p>
+<p>最好的情况是<code>join buffer</code>足够大，能容纳驱动表结果集中的所有记录，这样只需要访问一次被驱动表就可以完成连接操作了。设计MySQL的大叔把这种加入了<code>join buffer</code>的嵌套循环连接算法称之为基于块的嵌套连接（Block Nested-Loop Join）算法。</p>
+<p>这个<code>join buffer</code>的大小是可以通过启动参数或者系统变量join_buffer_size进行配置，默认大小为262144字节（也就是256KB），最小可以设置为128字节。当然，对于优化被驱动表的查询来说，最好是为被驱动表加上效率高的索引，如果实在不能使用索引，并且自己的机器的内存也比较大可以尝试调大join_buffer_size的值来对连接查询进行优化。</p>
+<p>另外需要注意的是，驱动表的记录并不是所有列都会被放到<code>join buffer</code>中，只有查询列表中的列和过滤条件中的列才会被放到<code>join buffer</code>中，所以再次提醒我们，最好不要把*作为查询列表，只需要把我们关心的列放到查询列表就好了，这样还可以在<code>join buffer</code>中放置更多的记录呢哈。</p>
 
       
     </div>
@@ -702,8 +702,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2022/06/06/Explain详解（上）/" rel="prev" title="Explain详解（上）">
-                Explain详解（上） <i class="fa fa-chevron-right"></i>
+              <a href="/2022/06/05/MySQL基于成本的优化/" rel="prev" title="MySQL基于成本的优化">
+                MySQL基于成本的优化 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -765,7 +765,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。</div>
+              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
           </div>
 
           
@@ -775,7 +775,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">479</span>
+                    <span class="site-state-item-count">614</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1047,7 +1047,15 @@
                     
                       
                     
-                    <span class="site-state-item-count">51</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">54</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1078,23 +1086,23 @@
                 
                 
                   <li>
-                    <a href="/2022/08/26/两条一样的INSERT语句竟然引发了死锁？/" title="两条一样的INSERT语句竟然引发了死锁？" target="_blank">两条一样的INSERT语句竟然引发了死锁？</a>
+                    <a href="/2022/09/14/15-深入解析Pod对象（二）：使用进阶/" title="15 | 深入解析Pod对象（二）：使用进阶" target="_blank">15 | 深入解析Pod对象（二）：使用进阶</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/26/MySQL如何查看事务加锁情况/" title="MySQL如何查看事务加锁情况" target="_blank">MySQL如何查看事务加锁情况</a>
+                    <a href="/2022/09/14/14-深入解析Pod对象（一）：基本概念/" title="14 | 深入解析Pod对象（一）：基本概念" target="_blank">14 | 深入解析Pod对象（一）：基本概念</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/25/03-库源码文件/" title="03 | 库源码文件" target="_blank">03 | 库源码文件</a>
+                    <a href="/2022/09/14/13-为什么我们需要Pod？/" title="13 | 为什么我们需要Pod？" target="_blank">13 | 为什么我们需要Pod？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/25/02-命令源码文件/" title="02 | 命令源码文件" target="_blank">02 | 命令源码文件</a>
+                    <a href="/2022/09/14/12-牛刀小试：我的第一个容器化应用/" title="12 | 牛刀小试：我的第一个容器化应用" target="_blank">12 | 牛刀小试：我的第一个容器化应用</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/25/01-工作区和GOPATH/" title="01 | 工作区和GOPATH" target="_blank">01 | 工作区和GOPATH</a>
+                    <a href="/2022/09/14/11-从0到1：搭建一个完整的Kubernetes集群/" title="11 | 从0到1：搭建一个完整的Kubernetes集群" target="_blank">11 | 从0到1：搭建一个完整的Kubernetes集群</a>
                   </li>
                 
               </ul>
@@ -1155,7 +1163,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">4.6m</span>
+    <span title="站点总字数">5.4m</span>
   
 
   
@@ -1166,7 +1174,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">70:27</span>
+    <span title="站点阅读时长">81:08</span>
   
 </div>
 

@@ -103,13 +103,13 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：">
+  <meta name="description" content="思考并回答以下问题：  直接提供查询结果，不需要回表，索引k已经“覆盖了”我们的查询需求，我们称为覆盖索引。怎么理解？ 在索引遍历过程中，对索引中包含的字段先做判断，直接过滤掉不满足条件的记录，减少回表次数。怎么理解索引下推？ 优化的一个方向是减少回表。怎么理解？">
 <meta name="keywords" content="MySQL实战45讲">
 <meta property="og:type" content="article">
 <meta property="og:title" content="05 | 深入浅出索引（下）">
 <meta property="og:url" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:description" content="思考并回答以下问题：  直接提供查询结果，不需要回表，索引k已经“覆盖了”我们的查询需求，我们称为覆盖索引。怎么理解？ 在索引遍历过程中，对索引中包含的字段先做判断，直接过滤掉不满足条件的记录，减少回表次数。怎么理解索引下推？ 优化的一个方向是减少回表。怎么理解？">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/0.png">
 <meta property="og:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/1.png">
@@ -120,10 +120,10 @@
 <meta property="og:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/2.webp">
 <meta property="og:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/3.webp">
 <meta property="og:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/4.webp">
-<meta property="og:updated_time" content="2022-08-29T01:14:24.624Z">
+<meta property="og:updated_time" content="2022-09-01T09:27:18.722Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="05 | 深入浅出索引（下）">
-<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:description" content="思考并回答以下问题：  直接提供查询结果，不需要回表，索引k已经“覆盖了”我们的查询需求，我们称为覆盖索引。怎么理解？ 在索引遍历过程中，对索引中包含的字段先做判断，直接过滤掉不满足条件的记录，减少回表次数。怎么理解索引下推？ 优化的一个方向是减少回表。怎么理解？">
 <meta name="twitter:image" content="http://yoursite.com/2022/08/23/05-深入浅出索引（下）/0.png">
 
 
@@ -394,7 +394,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。">
+      <meta itemprop="description" content="强迫自己去看，去做。">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -453,7 +453,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-29 09:14:24" itemprop="dateModified" datetime="2022-08-29T09:14:24+08:00">2022-08-29</time>
+                <time title="修改时间：2022-09-01 17:27:18" itemprop="dateModified" datetime="2022-09-01T17:27:18+08:00">2022-09-01</time>
               
             
           </span>
@@ -499,7 +499,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">4.5k</span>
+                <span title="本文字数">4.6k</span>
               
 
               
@@ -534,10 +534,15 @@
 
       
         <p>思考并回答以下问题：</p>
+<ul>
+<li>直接提供查询结果，不需要回表，索引k已经“覆盖了”我们的查询需求，我们称为覆盖索引。怎么理解？</li>
+<li>在索引遍历过程中，对索引中包含的字段先做判断，直接过滤掉不满足条件的记录，减少回表次数。怎么理解索引下推？</li>
+<li>优化的一个方向是减少回表。怎么理解？</li>
+</ul>
 <a id="more"></a>
 <p>在上一篇文章中，我和你介绍了InnoDB索引的数据结构模型，今天我们再继续聊聊跟MySQL索引有关的概念。</p>
 <p>在开始这篇文章之前，我们先来看一下这个问题：</p>
-<p>在下面这个表T中，如果我执行<code>select * from T where k between 3 and 5</code>，需要执行几次树的搜索操作，会扫描多少行？下面是这个表的初始化语句。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; create table T (</span><br><span class="line">ID int primary key,</span><br><span class="line">k int NOT NULL DEFAULT 0, </span><br><span class="line">s varchar(16) NOT NULL DEFAULT <span class="string">''</span>,</span><br><span class="line">index k(k))</span><br><span class="line">engine=InnoDB;</span><br><span class="line"></span><br><span class="line">insert into T values(100,1, <span class="string">'aa'</span>),(200,2,<span class="string">'bb'</span>),(300,3,<span class="string">'cc'</span>),(500,5,<span class="string">'ee'</span>),(600,6,<span class="string">'ff'</span>),(700,7,<span class="string">'gg'</span>);</span><br></pre></td></tr></table></figure></p>
+<p>在下面这个表T中，如果我执行<code>select * from T where k between 3 and 5</code>，需要执行几次树的搜索操作，会扫描多少行？下面是这个表的初始化语句。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> T (</span><br><span class="line">    <span class="keyword">ID</span> <span class="built_in">int</span> primary <span class="keyword">key</span>,</span><br><span class="line">    k <span class="built_in">int</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>, </span><br><span class="line">    s <span class="built_in">varchar</span>(<span class="number">16</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">''</span>,</span><br><span class="line">    <span class="keyword">index</span> k(k)</span><br><span class="line">)</span><br><span class="line"><span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> T <span class="keyword">values</span>(<span class="number">100</span>,<span class="number">1</span>,<span class="string">'aa'</span>),(<span class="number">200</span>,<span class="number">2</span>,<span class="string">'bb'</span>),(<span class="number">300</span>,<span class="number">3</span>,<span class="string">'cc'</span>),(<span class="number">500</span>,<span class="number">5</span>,<span class="string">'ee'</span>),(<span class="number">600</span>,<span class="number">6</span>,<span class="string">'ff'</span>),(<span class="number">700</span>,<span class="number">7</span>,<span class="string">'gg'</span>);</span><br></pre></td></tr></table></figure></p>
 <img src="/2022/08/23/05-深入浅出索引（下）/0.png">
 <img src="/2022/08/23/05-深入浅出索引（下）/1.png">
 <img src="/2022/08/23/05-深入浅出索引（下）/3.png">
@@ -570,20 +575,20 @@
 <p>这里，我先和你说结论吧。<strong>B+树这种索引结构，可以利用索引的“最左前缀”，来定位记录。</strong></p>
 <p>为了直观地说明这个概念，我们用<code>(name,age)</code>这个联合索引来分析。</p>
 <blockquote>
-<p>图2 (name,age)索引示意图</p>
+<p>图2 <code>(name,age)</code>索引示意图</p>
 </blockquote>
 <img src="/2022/08/23/05-深入浅出索引（下）/2.webp">
 <p>可以看到，索引项是按照索引定义里面出现的字段顺序排序的。</p>
 <p>当你的逻辑需求是查到所有名字是“张三”的人时，可以快速定位到ID4，然后向后遍历得到所有需要的结果。</p>
-<p>如果你要查的是所有名字第一个字是“张”的人，你的SQL语句的条件是<code>where name like ‘张 %’</code>。这时，你也能够用上这个索引，查找到第一个符合条件的记录是ID3，然后向后遍历，直到不满足条件为止。</p>
+<p>如果你要查的是所有名字第一个字是“张”的人，你的SQL语句的条件是<code>where name like ‘张%’</code>。这时，你也能够用上这个索引，查找到第一个符合条件的记录是ID3，然后向后遍历，直到不满足条件为止。</p>
 <p>可以看到，不只是索引的全部定义，只要满足最左前缀，就可以利用索引来加速检索。这个最左前缀可以是联合索引的最左N个字段，也可以是字符串索引的最左M个字符。</p>
 <p>基于上面对最左前缀索引的说明，我们来讨论一个问题：<strong>在建立联合索引的时候，如何安排索引内的字段顺序。</strong></p>
 <p>这里我们的评估标准是，索引的复用能力。因为可以支持最左前缀，所以当已经有了<code>(a,b)</code>这个联合索引后，一般就不需要单独在a上建立索引了。因此，<strong>第一原则是，如果通过调整顺序，可以少维护一个索引，那么这个顺序往往就是需要优先考虑采用的。</strong></p>
-<p>所以现在你知道了，这段开头的问题里，我们要为高频请求创建<code>(身份证号，姓名)</code>这个联合索引，并用这个索引支持“根据身份证号查询地址”的需求。</p>
+<p>所以现在你知道了，这段开头的问题里，我们要为高频请求创建（身份证号，姓名）这个联合索引，并用这个索引支持“根据身份证号查询地址”的需求。</p>
 <p>那么，如果既有联合查询，又有基于a、b各自的查询呢？查询条件里面只有b的语句，是无法使用<code>(a,b)</code>这个联合索引的，这时候你不得不维护另外一个索引，也就是说你需要同时维护<code>(a,b)</code>、<code>(b)</code>这两个索引。</p>
 <p>这时候，我们要<strong>考虑的原则就是空间</strong>了。比如上面这个市民表的情况，name字段是比age字段大的，那我就建议你创建一个<code>(name,age)</code>的联合索引和一个<code>(age)</code>的单字段索引。</p>
 <h1 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a><span style="color:#339AFF;">索引下推</span></h1><p>上一段我们说到满足最左前缀原则的时候，最左前缀可以用于在索引中定位记录。这时，你可能要问，那些不符合最左前缀的部分，会怎么样呢？</p>
-<p>我们还是以市民表的联合索引<code>(name,age)</code>为例。如果现在有一个需求：检索出表中“名字第一个字是张，而且年龄是10岁的所有男孩”。那么，SQL语句是这么写的：<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select * from tuser where name like '张%' and age=10 and ismale=1;</span><br></pre></td></tr></table></figure></p>
+<p>我们还是以市民表的联合索引<code>(name,age)</code>为例。如果现在有一个需求：检索出表中“名字第一个字是张，而且年龄是10岁的所有男孩”。那么，SQL语句是这么写的：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> tuser <span class="keyword">where</span> <span class="keyword">name</span> <span class="keyword">like</span> <span class="string">'张%'</span> <span class="keyword">and</span> age=<span class="number">10</span> <span class="keyword">and</span> ismale=<span class="number">1</span>;</span><br></pre></td></tr></table></figure></p>
 <p>你已经知道了前缀索引规则，所以这个语句在搜索索引树的时候，只能用“张”，找到第一个满足条件的记录ID3。当然，这还不错，总比全表扫描要好。</p>
 <p>然后呢？</p>
 <p>当然是判断其他条件是否满足。</p>
@@ -599,7 +604,7 @@
 </blockquote>
 <img src="/2022/08/23/05-深入浅出索引（下）/4.webp">
 <p>在图3和4这两个图里面，每一个虚线箭头表示回表一次。</p>
-<p>图3中，在<code>(name,age)</code>索引里面我特意去掉了age的值，这个过程InnoDB并不会去看age的值，只是按顺序把“name第一个字是’张’”的记录一条条取出来回表。因此，需要回表4次。</p>
+<p>图3中，在<code>(name,age)</code>索引里面我特意去掉了age的值，这个过程InnoDB并不会去看age的值，只是按顺序把“name第一个字是‘张’”的记录一条条取出来回表。因此，需要回表4次。</p>
 <p>图4跟图3的区别是，InnoDB在<code>(name,age)</code>索引内部就判断了age是否等于10，对于不等于10的记录，直接判断并跳过。在我们的这个例子中，只需要对ID4、ID5这两条记录回表取数据判断，就只需要回表2次。</p>
 <h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>今天这篇文章，我和你继续讨论了数据库索引的概念，包括了覆盖索引、前缀索引、索引下推。你可以看到，在满足语句需求的情况下，尽量少地访问资源是数据库设计的重要原则之一。我们在使用数据库的时候，尤其是在设计表结构时，也要以减少资源消耗作为目标。</p>
 <p>接下来我给你留下一个问题吧。</p>
@@ -608,7 +613,6 @@
 <p>但是，学过本章内容的小吕又纳闷了，既然主键包含了a、b这两个字段，那意味着单独在字段c上创建一个索引，就已经包含了三个字段了呀，为什么要创建“ca”“cb”这两个索引？</p>
 <p>同事告诉他，是因为他们的业务里面有这样的两种语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> geek <span class="keyword">where</span> c=N <span class="keyword">order</span> <span class="keyword">by</span> a <span class="keyword">limit</span> <span class="number">1</span>;</span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> geek <span class="keyword">where</span> c=N <span class="keyword">order</span> <span class="keyword">by</span> b <span class="keyword">limit</span> <span class="number">1</span>;</span><br></pre></td></tr></table></figure></p>
 <p>我给你的问题是，这位同事的解释对吗，为了这两个查询模式，这两个索引是否都是必须的？为什么呢？</p>
-<p>你可以把你的思考和观点写在留言区里，我会在下一篇文章的末尾和你讨论这个问题。感谢你的收听，也欢迎你把这篇文章分享给更多的朋友一起阅读。</p>
 <h1 id="上期问题时间"><a href="#上期问题时间" class="headerlink" title="上期问题时间"></a><span style="color:#339AFF;">上期问题时间</span></h1><p>上期的问题是，通过两个alter语句重建索引k，以及通过两个alter语句重建主键索引是否合理。</p>
 <p>在评论区，有同学问到为什么要重建索引。我们文章里面有提到，索引可能因为删除，或者页分裂等原因，导致数据页有空洞，重建索引的过程会创建一个新的索引，把数据按顺序插入，这样页面的利用率最高，也就是索引更紧凑、更省空间。</p>
 <p>这道题目，我给你的“参考答案”是：重建索引k的做法是合理的，可以达到省空间的目的。但是，重建主键的过程不合理。不论是删除主键还是创建主键，都会将整个表重建。所以连着执行这两个语句的话，第一个语句就白做了。这两个语句，你可以用这个语句代替：<code>alter table T engine=InnoDB</code>。在专栏的第12篇文章《为什么表数据删掉一半，表文件大小不变？》中，我会和你分析这条语句的执行流程。</p>
@@ -658,8 +662,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2022/08/23/06-全局锁和表锁：给表加个字段怎么有这么多阻碍？/" rel="prev" title="06|全局锁和表锁：给表加个字段怎么有这么多阻碍？">
-                06|全局锁和表锁：给表加个字段怎么有这么多阻碍？ <i class="fa fa-chevron-right"></i>
+              <a href="/2022/08/23/06-全局锁和表锁：给表加个字段怎么有这么多阻碍？/" rel="prev" title="06 | 全局锁和表锁：给表加个字段怎么有这么多阻碍？">
+                06 | 全局锁和表锁：给表加个字段怎么有这么多阻碍？ <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -721,7 +725,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">绝知此事要躬行，不动手就是懒。一篇文章看10遍，而不是10篇文章看1遍。</div>
+              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
           </div>
 
           
@@ -731,7 +735,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">479</span>
+                    <span class="site-state-item-count">614</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1003,7 +1007,15 @@
                     
                       
                     
-                    <span class="site-state-item-count">51</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">54</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1034,23 +1046,23 @@
                 
                 
                   <li>
-                    <a href="/2022/08/26/两条一样的INSERT语句竟然引发了死锁？/" title="两条一样的INSERT语句竟然引发了死锁？" target="_blank">两条一样的INSERT语句竟然引发了死锁？</a>
+                    <a href="/2022/09/14/15-深入解析Pod对象（二）：使用进阶/" title="15 | 深入解析Pod对象（二）：使用进阶" target="_blank">15 | 深入解析Pod对象（二）：使用进阶</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/26/MySQL如何查看事务加锁情况/" title="MySQL如何查看事务加锁情况" target="_blank">MySQL如何查看事务加锁情况</a>
+                    <a href="/2022/09/14/14-深入解析Pod对象（一）：基本概念/" title="14 | 深入解析Pod对象（一）：基本概念" target="_blank">14 | 深入解析Pod对象（一）：基本概念</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/25/03-库源码文件/" title="03 | 库源码文件" target="_blank">03 | 库源码文件</a>
+                    <a href="/2022/09/14/13-为什么我们需要Pod？/" title="13 | 为什么我们需要Pod？" target="_blank">13 | 为什么我们需要Pod？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/25/02-命令源码文件/" title="02 | 命令源码文件" target="_blank">02 | 命令源码文件</a>
+                    <a href="/2022/09/14/12-牛刀小试：我的第一个容器化应用/" title="12 | 牛刀小试：我的第一个容器化应用" target="_blank">12 | 牛刀小试：我的第一个容器化应用</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/08/25/01-工作区和GOPATH/" title="01 | 工作区和GOPATH" target="_blank">01 | 工作区和GOPATH</a>
+                    <a href="/2022/09/14/11-从0到1：搭建一个完整的Kubernetes集群/" title="11 | 从0到1：搭建一个完整的Kubernetes集群" target="_blank">11 | 从0到1：搭建一个完整的Kubernetes集群</a>
                   </li>
                 
               </ul>
@@ -1111,7 +1123,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">4.6m</span>
+    <span title="站点总字数">5.4m</span>
   
 
   
@@ -1122,7 +1134,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">70:27</span>
+    <span title="站点阅读时长">81:08</span>
   
 </div>
 
