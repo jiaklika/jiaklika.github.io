@@ -113,7 +113,7 @@
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/08/21/03-事务隔离：为什么你改了我还看不见/1.webp">
 <meta property="og:image" content="http://yoursite.com/2022/08/21/03-事务隔离：为什么你改了我还看不见/2.webp">
-<meta property="og:updated_time" content="2022-09-12T06:25:35.714Z">
+<meta property="og:updated_time" content="2022-09-20T08:28:37.868Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="03 | 事务隔离：为什么你改了我还看不见">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -446,7 +446,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-12 14:25:35" itemprop="dateModified" datetime="2022-09-12T14:25:35+08:00">2022-09-12</time>
+                <time title="修改时间：2022-09-20 16:28:37" itemprop="dateModified" datetime="2022-09-20T16:28:37+08:00">2022-09-20</time>
               
             
           </span>
@@ -532,7 +532,7 @@
 <p>转账过程具体到程序里会有一系列的操作，比如查询余额、做加减法、更新余额等，这些操作必须保证是一体的，不然等程序查完之后，还没做减法之前，你这100块钱，完全可以借着这个时间差再查一次，然后再给另外一个朋友转账，如果银行这么整，不就乱了么？这时就要用到“事务”这个概念了。</p>
 <p>简单来说，事务就是要保证一组数据库操作，要么全部成功，要么全部失败。在MySQL中，事务支持是在引擎层实现的。你现在知道，MySQL是一个支持多引擎的系统，但并不是所有的引擎都支持事务。比如MySQL原生的MyISAM引擎就不支持事务，这也是MyISAM被InnoDB取代的重要原因之一。</p>
 <p>今天的文章里，我将会以InnoDB为例，剖析MySQL在事务支持方面的特定实现，并基于原理给出相应的实践建议，希望这些案例能加深你对MySQL事务原理的理解。</p>
-<h1 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a>隔离性与隔离级别</h1><p>提到事务，你肯定会想到ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性），今天我们就来说说其中I，也就是“隔离性”。</p>
+<h1 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a><span style="color:#339AFF;">隔离性与隔离级别</span></h1><p>提到事务，你肯定会想到ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性），今天我们就来说说其中I，也就是“隔离性”。</p>
 <p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirty read）、不可重复读（non-repeatable read）、幻读（phantom read）的问题，为了解决这些问题，就有了“隔离级别”的概念。</p>
 <p>在谈隔离级别之前，你首先要知道，你隔离得越严实，效率就会越低。因此很多时候，我们都要在二者之间寻找一个平衡点。SQL标准的事务隔离级别包括：读未提交（read uncommitted）、读提交（read committed）、可重复读（repeatable read）和串行化（serializable）。下面我逐一为你解释：</p>
 <ul>
@@ -541,7 +541,7 @@
 <li>可重复读是指，一个事务执行过程中看到的数据，总是跟这个事务在启动时看到的数据是一致的。当然在可重复读隔离级别下，未提交变更对其他事务也是不可见的。</li>
 <li>串行化，顾名思义是对于同一行记录，“写”会加“写锁”，“读”会加“读锁”。当出现读写锁冲突的时候，后访问的事务必须等前一个事务执行完成，才能继续执行。</li>
 </ul>
-<p>其中“读提交”和“可重复读”比较难理解，所以我用一个例子说明这几种隔离级别。假设数据表T中只有一列，其中一行的值为1，下面是按照时间顺序执行两个事务的行为。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; create table T(c int) engine=InnoDB;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> T(c) <span class="keyword">values</span>(<span class="number">1</span>);</span><br></pre></td></tr></table></figure></p>
+<p>其中“读提交”和“可重复读”比较难理解，所以我用一个例子说明这几种隔离级别。假设数据表T中只有一列，其中一行的值为1，下面是按照时间顺序执行两个事务的行为。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> T(c <span class="built_in">int</span>) <span class="keyword">engine</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> T(c) <span class="keyword">values</span>(<span class="number">1</span>);</span><br></pre></td></tr></table></figure></p>
 <img src="/2022/08/21/03-事务隔离：为什么你改了我还看不见/1.webp">
 <p>我们来看看在不同的隔离级别下，事务A会有哪些不同的返回结果，也就是图里面V1、V2、V3的返回值分别是什么。</p>
 <ul>
@@ -556,28 +556,28 @@
 <p>总结来说，存在即合理，每种隔离级别都有自己的使用场景，你要根据自己的业务情况来定。我想你可能会问那什么时候需要“可重复读”的场景呢？我们来看一个数据校对逻辑的案例。</p>
 <p>假设你在管理一个个人银行账户表。一个表存了账户余额，一个表存了账单明细。到了月底你要做数据校对，也就是判断上个月的余额和当前余额的差额，是否与本月的账单明细一致。你一定希望在校对过程中，即使有用户发生了一笔新的交易，也不影响你的校对结果。</p>
 <p>这时候使用“可重复读”隔离级别就很方便。事务启动时的视图可以认为是静态的，不受其他事务更新的影响。</p>
-<h1 id="事务隔离的实现"><a href="#事务隔离的实现" class="headerlink" title="事务隔离的实现"></a>事务隔离的实现</h1><p>理解了事务的隔离级别，我们再来看看事务隔离具体是怎么实现的。这里我们展开说明“可重复读”。</p>
+<h1 id="事务隔离的实现"><a href="#事务隔离的实现" class="headerlink" title="事务隔离的实现"></a><span style="color:#339AFF;">事务隔离的实现</span></h1><p>理解了事务的隔离级别，我们再来看看事务隔离具体是怎么实现的。这里我们展开说明“可重复读”。</p>
 <p>在MySQL中，实际上每条记录在更新的时候都会同时记录一条回滚操作。记录上的最新值，通过回滚操作，都可以得到前一个状态的值。</p>
 <p>假设一个值从1被按顺序改成了2、3、4，在回滚日志里面就会有类似下面的记录。</p>
 <img src="/2022/08/21/03-事务隔离：为什么你改了我还看不见/2.webp">
-<p>当前值是4，但是在查询这条记录的时候，不同时刻启动的事务会有不同的read-view。如图中看到的，在视图A、B、C里面，这一个记录的值分别是1、2、4，同一条记录在系统中可以存在多个版本，就是数据库的多版本并发控制（MVCC）。对于read-viewA，要得到1，就必须将当前值依次执行图中所有的回滚操作得到。</p>
-<p>同时你会发现，即使现在有另外一个事务正在将4改成5，这个事务跟read-viewA、B、C对应的事务是不会冲突的。</p>
+<p>当前值是4，但是在查询这条记录的时候，不同时刻启动的事务会有不同的read-view。如图中看到的，在视图A、B、C里面，这一个记录的值分别是1、2、4，同一条记录在系统中可以存在多个版本，就是数据库的多版本并发控制（MVCC）。对于read-view A，要得到1，就必须将当前值依次执行图中所有的回滚操作得到。</p>
+<p>同时你会发现，即使现在有另外一个事务正在将4改成5，这个事务跟read-view A、B、C对应的事务是不会冲突的。</p>
 <p>你一定会问，回滚日志总不能一直保留吧，什么时候删除呢？答案是，在不需要的时候才删除。也就是说，系统会判断，当没有事务再需要用到这些回滚日志时，回滚日志会被删除。</p>
 <p>什么时候才不需要了呢？就是当系统里没有比这个回滚日志更早的read-view的时候。</p>
 <p>基于上面的说明，我们来讨论一下为什么建议你尽量不要使用长事务。</p>
 <p>长事务意味着系统里面会存在很老的事务视图。由于这些事务随时可能访问数据库里面的任何数据，所以这个事务提交之前，数据库里面它可能用到的回滚记录都必须保留，这就会导致大量占用存储空间。</p>
-<p>在MySQL5.5及以前的版本，回滚日志是跟数据字典一起放在ibdata文件里的，即使长事务最终提交，回滚段被清理，文件也不会变小。我见过数据只有20GB，而回滚段有200GB的库。最终只好为了清理回滚段，重建整个库。</p>
+<p>在MySQL 5.5及以前的版本，回滚日志是跟数据字典一起放在ibdata文件里的，即使长事务最终提交，回滚段被清理，文件也不会变小。我见过数据只有20GB，而回滚段有200GB的库。最终只好为了清理回滚段，重建整个库。</p>
 <p>除了对回滚段的影响，长事务还占用锁资源，也可能拖垮整个库，这个我们会在后面讲锁的时候展开。</p>
-<h1 id="事务的启动方式"><a href="#事务的启动方式" class="headerlink" title="事务的启动方式"></a>事务的启动方式</h1><p>如前面所述，长事务有这些潜在风险，我当然是建议你尽量避免。其实很多时候业务开发同学并不是有意使用长事务，通常是由于误用所致。MySQL的事务启动方式有以下几种：</p>
-<p>1，显式启动事务语句，begin或<code>starttransaction</code>。配套的提交语句是commit，回滚语句是rollback。</p>
-<p>2，<code>setautocommit=0</code>，这个命令会将这个线程的自动提交关掉。意味着如果你只执行一个select语句，这个事务就启动了，而且并不会自动提交。这个事务持续存在直到你主动执行commit或rollback语句，或者断开连接。</p>
-<p>有些客户端连接框架会默认连接成功后先执行一个<code>setautocommit=0</code>的命令。这就导致接下来的查询都在事务中，如果是长连接，就导致了意外的长事务。</p>
+<h1 id="事务的启动方式"><a href="#事务的启动方式" class="headerlink" title="事务的启动方式"></a><span style="color:#339AFF;">事务的启动方式</span></h1><p>如前面所述，长事务有这些潜在风险，我当然是建议你尽量避免。其实很多时候业务开发同学并不是有意使用长事务，通常是由于误用所致。MySQL的事务启动方式有以下几种：</p>
+<p>1，显式启动事务语句，begin或<code>start transaction</code>。配套的提交语句是commit，回滚语句是rollback。</p>
+<p>2，<code>set autocommit=0</code>，这个命令会将这个线程的自动提交关掉。意味着如果你只执行一个select语句，这个事务就启动了，而且并不会自动提交。这个事务持续存在直到你主动执行commit或rollback语句，或者断开连接。</p>
+<p>有些客户端连接框架会默认连接成功后先执行一个<code>set autocommit=0</code>的命令。这就导致接下来的查询都在事务中，如果是长连接，就导致了意外的长事务。</p>
 <p>因此，我会建议你总是使用<code>set autocommit=1</code>,通过显式语句的方式来启动事务。但是有的开发同学会纠结“多一次交互”的问题。对于一个需要频繁使用事务的业务，第二种方式每个事务在开始时都不需要主动执行一次“begin”，减少了语句的交互次数。如果你也有这个顾虑，我建议你使用commitworkandchain语法。</p>
-<p>在autocommit为1的情况下，用begin显式启动的事务，如果执行commit则提交事务。如果执行<code>commitworkandchain</code>，则是提交事务并自动启动下一个事务，这样也省去了再次执行begin语句的开销。同时带来的好处是从程序开发的角度明确地知道每个语句是否处于事务中。</p>
+<p>在autocommit为1的情况下，用begin显式启动的事务，如果执行commit则提交事务。如果执行<code>commit work and chain</code>，则是提交事务并自动启动下一个事务，这样也省去了再次执行begin语句的开销。同时带来的好处是从程序开发的角度明确地知道每个语句是否处于事务中。</p>
 <p>你可以在information_schema库的innodb_trx这个表中查询长事务，比如下面这个语句，用于查找持续时间超过60s的事务。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> information_schema.innodb_trx <span class="keyword">where</span> TIME_TO_SEC(<span class="keyword">timediff</span>(<span class="keyword">now</span>(),trx_started))&gt;<span class="number">60</span></span><br></pre></td></tr></table></figure></p>
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>这篇文章里面，我介绍了MySQL的事务隔离级别的现象和实现，根据实现原理分析了长事务存在的风险，以及如何用正确的方式避免长事务。希望我举的例子能够帮助你理解事务，并更好地使用MySQL的事务特性。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>这篇文章里面，我介绍了MySQL的事务隔离级别的现象和实现，根据实现原理分析了长事务存在的风险，以及如何用正确的方式避免长事务。希望我举的例子能够帮助你理解事务，并更好地使用MySQL的事务特性。</p>
 <p>我给你留一个问题吧。你现在知道了系统里面应该避免长事务，如果你是业务开发负责人同时也是数据库负责人，你会有什么方案来避免出现或者处理这种情况呢？</p>
-<h1 id="上期问题时间"><a href="#上期问题时间" class="headerlink" title="上期问题时间"></a>上期问题时间</h1><p>在上期文章的最后，我给你留下的问题是一天一备跟一周一备的对比。</p>
+<h1 id="上期问题时间"><a href="#上期问题时间" class="headerlink" title="上期问题时间"></a><span style="color:#339AFF;">上期问题时间</span></h1><p>在上期文章的最后，我给你留下的问题是一天一备跟一周一备的对比。</p>
 <p>好处是“最长恢复时间”更短。</p>
 <p>在一天一备的模式里，最坏情况下需要应用一天的binlog。比如，你每天0点做一次全量备份，而要恢复出一个到昨天晚上23点的备份。</p>
 <p>一周一备最坏情况就要应用一周的binlog了。</p>
@@ -702,7 +702,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">614</span>
+                    <span class="site-state-item-count">638</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -982,7 +982,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">54</span>
+                      
+                    
+                    <span class="site-state-item-count">55</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1013,23 +1015,23 @@
                 
                 
                   <li>
-                    <a href="/2022/09/14/15-深入解析Pod对象（二）：使用进阶/" title="15 | 深入解析Pod对象（二）：使用进阶" target="_blank">15 | 深入解析Pod对象（二）：使用进阶</a>
+                    <a href="/2022/09/27/第1章-Kubernetes系统基础/" title="第1章 Kubernetes系统基础" target="_blank">第1章 Kubernetes系统基础</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/14-深入解析Pod对象（一）：基本概念/" title="14 | 深入解析Pod对象（一）：基本概念" target="_blank">14 | 深入解析Pod对象（一）：基本概念</a>
+                    <a href="/2022/09/26/33-临时对象池sync-Pool/" title="33 | 临时对象池sync.Pool" target="_blank">33 | 临时对象池sync.Pool</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/13-为什么我们需要Pod？/" title="13 | 为什么我们需要Pod？" target="_blank">13 | 为什么我们需要Pod？</a>
+                    <a href="/2022/09/26/32-context-Context类型/" title="32 | context.Context类型" target="_blank">32 | context.Context类型</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/12-牛刀小试：我的第一个容器化应用/" title="12 | 牛刀小试：我的第一个容器化应用" target="_blank">12 | 牛刀小试：我的第一个容器化应用</a>
+                    <a href="/2022/09/26/31-sync-WaitGroup和sync-Once/" title="31 | sync.WaitGroup和sync.Once" target="_blank">31 | sync.WaitGroup和sync.Once</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/11-从0到1：搭建一个完整的Kubernetes集群/" title="11 | 从0到1：搭建一个完整的Kubernetes集群" target="_blank">11 | 从0到1：搭建一个完整的Kubernetes集群</a>
+                    <a href="/2022/09/26/30-原子操作（下）/" title="30 | 原子操作（下）" target="_blank">30 | 原子操作（下）</a>
                   </li>
                 
               </ul>
@@ -1090,7 +1092,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">5.4m</span>
+    <span title="站点总字数">5.6m</span>
   
 
   
@@ -1101,7 +1103,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">81:08</span>
+    <span title="站点阅读时长">85:25</span>
   
 </div>
 

@@ -112,7 +112,7 @@
 <meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/06/12/MySQL使用索引执行IN子句/1.awebp">
-<meta property="og:updated_time" content="2022-08-30T14:09:31.301Z">
+<meta property="og:updated_time" content="2022-09-26T07:26:13.915Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MySQL使用索引执行IN子句">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
@@ -445,7 +445,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-30 22:09:31" itemprop="dateModified" datetime="2022-08-30T22:09:31+08:00">2022-08-30</time>
+                <time title="修改时间：2022-09-26 15:26:13" itemprop="dateModified" datetime="2022-09-26T15:26:13+08:00">2022-09-26</time>
               
             
           </span>
@@ -531,14 +531,14 @@
 </ul>
 <a id="more"></a>
 <p>对于开发小伙伴来说，对MySQL中的包含IN子句的语句肯定熟悉的不能再熟悉了，几乎天天用，时时用。可是很多小伙伴不知道包含IN子句的语句是怎样执行的，在一些查询优化的场景中就开始找不着北了，本篇文章就来唠叨一下MySQL中的IN语句是怎样执行的（以MySQL 5.7的InnoDB存储引擎为例）。</p>
-<h1 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h1><p>为了故事的顺利发展，我们先创建一个表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> t (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    key1 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    common_field <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key1 (key1)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
+<h1 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a><span style="color:#339AFF;">准备工作</span></h1><p>为了故事的顺利发展，我们先创建一个表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> t (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    key1 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    common_field <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key1 (key1)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
 <p>可以看到表t中包含两个索引：</p>
 <ul>
 <li>以id列为主键的聚簇索引</li>
 <li>为key1列建立的二级索引</li>
 </ul>
 <p>这个表里边现在有10000条数据：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT COUNT(*) FROM t;</span><br><span class="line">+----------+</span><br><span class="line">| COUNT(*) |</span><br><span class="line">+----------+</span><br><span class="line">|    10000 |</span><br><span class="line">+----------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure></p>
-<h1 id="从B-树中定位记录"><a href="#从B-树中定位记录" class="headerlink" title="从B+树中定位记录"></a>从B+树中定位记录</h1><p>我们现在想执行下边这个语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 &gt;= <span class="string">'b'</span> <span class="keyword">AND</span> key1 &lt;= <span class="string">'c'</span>;</span><br></pre></td></tr></table></figure></p>
+<h1 id="从B-树中定位记录"><a href="#从B-树中定位记录" class="headerlink" title="从B+树中定位记录"></a><span style="color:#339AFF;">从B+树中定位记录</span></h1><p>我们现在想执行下边这个语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 &gt;= <span class="string">'b'</span> <span class="keyword">AND</span> key1 &lt;= <span class="string">'c'</span>;</span><br></pre></td></tr></table></figure></p>
 <p>假设优化器选择使用二级索引来执行查询，那么查询语句的执行示意图就如下图所示：</p>
 <img src="/2022/06/12/MySQL使用索引执行IN子句/1.awebp">
 <blockquote>
@@ -549,7 +549,7 @@
 <p>记录按照键值由小到大的顺序排列成一个单链表的形式，所以我们可以沿着这个单链表接着定位到下一条二级索引记录，并且执行回表操作，将完整的记录交给server层之后发送给客户端。</p>
 <p>继续沿着记录的单向链表查找，重复上述过程，直到找到的二级索引记录的key1列的值不满足<code>key1 &lt;= &#39;c&#39;</code>的这个条件，如图所示，也就是当我们在idx_key1二级索引中找到了<code>key1=&#39;ca&#39;</code>的那条记录后，发现它不符合<code>key1 &lt;= &#39;c&#39;</code>的条件，所以就停止查找。</p>
 <p>上述过程就是通过B+树查找一个键值在某一个范围区间的记录的过程。</p>
-<h1 id="包含IN子句的执行过程"><a href="#包含IN子句的执行过程" class="headerlink" title="包含IN子句的执行过程"></a>包含IN子句的执行过程</h1><p>如果我们想执行下边这个语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 <span class="keyword">IN</span> (<span class="string">'b'</span>, <span class="string">'c'</span>);</span><br></pre></td></tr></table></figure></p>
+<h1 id="包含IN子句的执行过程"><a href="#包含IN子句的执行过程" class="headerlink" title="包含IN子句的执行过程"></a><span style="color:#339AFF;">包含IN子句的执行过程</span></h1><p>如果我们想执行下边这个语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 <span class="keyword">IN</span> (<span class="string">'b'</span>, <span class="string">'c'</span>);</span><br></pre></td></tr></table></figure></p>
 <p>如果优化器选择使用二级索引执行上述语句，那它是如何执行的呢？</p>
 <p>优化器会将IN子句中的条件看成是2个范围区间（虽然这两个区间中都仅仅包含一个值）：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[&apos;b&apos;, &apos;b&apos;]</span><br><span class="line">[&apos;c&apos;, &apos;c&apos;]</span><br></pre></td></tr></table></figure></p>
 <p>那么在语句执行过程中就需要通过B+树去定位两次记录所在的位置：</p>
@@ -560,14 +560,14 @@
 <p>再定位键值在范围区间<code>[&#39;c&#39;, &#39;c&#39;]</code>的记录：</p>
 <p>查找过程类似，就不多赘述了。</p>
 <p>所以如果你写的IN语句中的参数越多，意味着需要通过B+树定位记录的次数就越多。</p>
-<h1 id="IN子句中参数值重复的情况"><a href="#IN子句中参数值重复的情况" class="headerlink" title="IN子句中参数值重复的情况"></a>IN子句中参数值重复的情况</h1><p>比方说下边这条语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 <span class="keyword">IN</span> (<span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>);</span><br></pre></td></tr></table></figure></p>
+<h1 id="IN子句中参数值重复的情况"><a href="#IN子句中参数值重复的情况" class="headerlink" title="IN子句中参数值重复的情况"></a><span style="color:#339AFF;">IN子句中参数值重复的情况</span></h1><p>比方说下边这条语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 <span class="keyword">IN</span> (<span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>, <span class="string">'b'</span>);</span><br></pre></td></tr></table></figure></p>
 <p>虽然IN子句中包含好多个参数，但MySQL在语法解析的时候只会为其生成一个范围区间，那就是：<code>[&#39;b&#39;, &#39;b&#39;]</code>。</p>
-<h1 id="IN子句的参数顺序问题"><a href="#IN子句的参数顺序问题" class="headerlink" title="IN子句的参数顺序问题"></a>IN子句的参数顺序问题</h1><p>比方说下边这条语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 <span class="keyword">IN</span> (<span class="string">'c'</span>, <span class="string">'b'</span>);</span><br></pre></td></tr></table></figure></p>
+<h1 id="IN子句的参数顺序问题"><a href="#IN子句的参数顺序问题" class="headerlink" title="IN子句的参数顺序问题"></a><span style="color:#339AFF;">IN子句的参数顺序问题</span></h1><p>比方说下边这条语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 <span class="keyword">IN</span> (<span class="string">'c'</span>, <span class="string">'b'</span>);</span><br></pre></td></tr></table></figure></p>
 <p><code>IN (&#39;c&#39;, &#39;b&#39;)</code>和<code>IN (&#39;b&#39;, &#39;c&#39;)</code>有啥差别么？也就是存储引擎在对待<code>IN (&#39;c&#39;, &#39;b&#39;)</code>子句时，会先去找<code>key1 = &#39;c&#39;</code>的记录，再去找<code>key1 = &#39;b&#39;</code>的记录么？如果是这样的话，下边两条语句岂不是可能发生死锁：</p>
 <p>事务T1中的语句一：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 <span class="keyword">IN</span> (<span class="string">'b'</span>, <span class="string">'c'</span>) <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br></pre></td></tr></table></figure></p>
 <p>事务T2中的语句二：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 <span class="keyword">IN</span> (<span class="string">'c'</span>, <span class="string">'b'</span>) <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br></pre></td></tr></table></figure></p>
 <p>放心，在生成范围区间的时候，自然是将范围区间排了序，也就是即使条件是<code>IN (&#39;c&#39;, &#39;b&#39;)</code>，那优化器也会先让存储引擎去找键值在<code>[&#39;b&#39;, &#39;b&#39;]</code>这个范围区间中的记录，然后再去找键值在<code>[&#39;c&#39;, &#39;c&#39;]</code>这个范围区间中的记录。</p>
-<h1 id="系统变量eq-range-index-dive-limit对IN子句的影响"><a href="#系统变量eq-range-index-dive-limit对IN子句的影响" class="headerlink" title="系统变量eq_range_index_dive_limit对IN子句的影响"></a>系统变量eq_range_index_dive_limit对IN子句的影响</h1><p>大家一定要记着：MySQL优化器决定使用某个索引执行查询的仅仅是因为：使用该索引时的成本足够低。也就是说即使我们有下边的语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 <span class="keyword">IN</span> (<span class="string">'b'</span>, <span class="string">'c'</span>);</span><br></pre></td></tr></table></figure></p>
+<h1 id="系统变量eq-range-index-dive-limit对IN子句的影响"><a href="#系统变量eq-range-index-dive-limit对IN子句的影响" class="headerlink" title="系统变量eq_range_index_dive_limit对IN子句的影响"></a><span style="color:#339AFF;">系统变量eq_range_index_dive_limit对IN子句的影响</span></h1><p>大家一定要记着：MySQL优化器决定使用某个索引执行查询的仅仅是因为：使用该索引时的成本足够低。也就是说即使我们有下边的语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> </span><br><span class="line">    key1 <span class="keyword">IN</span> (<span class="string">'b'</span>, <span class="string">'c'</span>);</span><br></pre></td></tr></table></figure></p>
 <p>MySQL优化器需要去分析一下如果使用二级索引idx_key1执行查询的话，键值在<code>[&#39;b&#39;, &#39;b&#39;]</code>和<code>[&#39;c&#39;, &#39;c&#39;]</code>这两个范围区间的记录共有多少条，然后通过一定方式计算出成本，与全表扫描的成本相对比，选取成本更低的那种方式执行查询。</p>
 <p>在计算查询成本的这一步骤中大家需要注意，对于包含IN子句条件的查询来说，需要依次分析一下每一个范围区间中的记录数量是多少。MySQL优化器针对IN子句对应的范围区间的多少而指定了不同的策略：</p>
 <p>如果IN子句对应的范围区间比较少，那么将率先去访问一下存储引擎，看一下每个范围区间中的记录有多少条（如果范围区间的记录比较少，那么统计结果就是精确的，反之会采用一定的手段计算一个模糊的值，当然算法也比较麻烦，我们就不展开说了，小册里有说），这种在查询真正执行前优化器就率先访问索引来计算需要扫描的索引记录数量的方式称之为index dive。</p>
@@ -694,7 +694,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">614</span>
+                    <span class="site-state-item-count">638</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -974,7 +974,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">54</span>
+                      
+                    
+                    <span class="site-state-item-count">55</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1005,23 +1007,23 @@
                 
                 
                   <li>
-                    <a href="/2022/09/14/15-深入解析Pod对象（二）：使用进阶/" title="15 | 深入解析Pod对象（二）：使用进阶" target="_blank">15 | 深入解析Pod对象（二）：使用进阶</a>
+                    <a href="/2022/09/27/第1章-Kubernetes系统基础/" title="第1章 Kubernetes系统基础" target="_blank">第1章 Kubernetes系统基础</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/14-深入解析Pod对象（一）：基本概念/" title="14 | 深入解析Pod对象（一）：基本概念" target="_blank">14 | 深入解析Pod对象（一）：基本概念</a>
+                    <a href="/2022/09/26/33-临时对象池sync-Pool/" title="33 | 临时对象池sync.Pool" target="_blank">33 | 临时对象池sync.Pool</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/13-为什么我们需要Pod？/" title="13 | 为什么我们需要Pod？" target="_blank">13 | 为什么我们需要Pod？</a>
+                    <a href="/2022/09/26/32-context-Context类型/" title="32 | context.Context类型" target="_blank">32 | context.Context类型</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/12-牛刀小试：我的第一个容器化应用/" title="12 | 牛刀小试：我的第一个容器化应用" target="_blank">12 | 牛刀小试：我的第一个容器化应用</a>
+                    <a href="/2022/09/26/31-sync-WaitGroup和sync-Once/" title="31 | sync.WaitGroup和sync.Once" target="_blank">31 | sync.WaitGroup和sync.Once</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/11-从0到1：搭建一个完整的Kubernetes集群/" title="11 | 从0到1：搭建一个完整的Kubernetes集群" target="_blank">11 | 从0到1：搭建一个完整的Kubernetes集群</a>
+                    <a href="/2022/09/26/30-原子操作（下）/" title="30 | 原子操作（下）" target="_blank">30 | 原子操作（下）</a>
                   </li>
                 
               </ul>
@@ -1082,7 +1084,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">5.4m</span>
+    <span title="站点总字数">5.6m</span>
   
 
   
@@ -1093,7 +1095,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">81:08</span>
+    <span title="站点阅读时长">85:25</span>
   
 </div>
 

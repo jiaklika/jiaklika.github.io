@@ -103,20 +103,20 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：">
+  <meta name="description" content="思考并回答以下问题：  当一个程序有两个或者多个goroutine时，每个goroutine内部的各个步骤也是顺序执行的，但我们无法知道一个goroutine中的事件x和另外一个goroutine中的事件y的先后顺序。如果我们无法自信地说一个事件肯定先于另外一个事件，那么这两个事件就是并发的。怎么理解？">
 <meta name="keywords" content="Go程序设计语言">
 <meta property="og:type" content="article">
 <meta property="og:title" content="第9章 使用共享变量实现并发">
 <meta property="og:url" content="http://yoursite.com/2021/09/14/第9章-使用共享变量实现并发/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:description" content="思考并回答以下问题：  当一个程序有两个或者多个goroutine时，每个goroutine内部的各个步骤也是顺序执行的，但我们无法知道一个goroutine中的事件x和另外一个goroutine中的事件y的先后顺序。如果我们无法自信地说一个事件肯定先于另外一个事件，那么这两个事件就是并发的。怎么理解？">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2021/09/14/第9章-使用共享变量实现并发/t-1.png">
 <meta property="og:image" content="http://yoursite.com/2021/09/14/第9章-使用共享变量实现并发/t-2.png">
-<meta property="og:updated_time" content="2022-02-18T07:14:16.268Z">
+<meta property="og:updated_time" content="2022-09-27T02:35:53.581Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第9章 使用共享变量实现并发">
-<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:description" content="思考并回答以下问题：  当一个程序有两个或者多个goroutine时，每个goroutine内部的各个步骤也是顺序执行的，但我们无法知道一个goroutine中的事件x和另外一个goroutine中的事件y的先后顺序。如果我们无法自信地说一个事件肯定先于另外一个事件，那么这两个事件就是并发的。怎么理解？">
 <meta name="twitter:image" content="http://yoursite.com/2021/09/14/第9章-使用共享变量实现并发/t-1.png">
 
 
@@ -446,7 +446,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-02-18 15:14:16" itemprop="dateModified" datetime="2022-02-18T15:14:16+08:00">2022-02-18</time>
+                <time title="修改时间：2022-09-27 10:35:53" itemprop="dateModified" datetime="2022-09-27T10:35:53+08:00">2022-09-27</time>
               
             
           </span>
@@ -527,14 +527,17 @@
 
       
         <p>思考并回答以下问题：</p>
+<ul>
+<li>当一个程序有两个或者多个goroutine时，每个goroutine内部的各个步骤也是顺序执行的，但我们无法知道一个goroutine中的事件x和另外一个goroutine中的事件y的先后顺序。如果我们无法自信地说一个事件肯定先于另外一个事件，那么这两个事件就是并发的。怎么理解？</li>
+</ul>
 <a id="more"></a>
 <p>上一章用几个程序来演示了如何使用goroutine和通道来实现一种直接和自然的并发方式。当然，我们避开了一些微妙的要点，这些点是写并发代码时必须铭记在心的。</p>
 <p>本章将深入到并发机制内部，特别是与多个goroutine共享变量相关的问题，以及识别这些问题的分析技术，还有解决这些问题的模式。最后将解释一下goroutine和操作系统线程的差别。</p>
-<h1 id="竞态"><a href="#竞态" class="headerlink" title="竞态"></a><span style="color:#339AFF;">竞态</span></h1><p>在串行程序中（即一个程序只有一个goroutine），程序中各个步骤的执行顺序由程序逻辑来决定。比如，在一系列语句中，第一句在第二句之前执行，以此类推。当一个程序有两个或者多个goroutine时，每个goroutine内部的各个步骤也是顺序执行的，但我们无法知道一个goroutine中的事件x和另外一个goroutine中的事件y的先后顺序。如果我们无法自信地说一个事件肯定先于另外一个事件，那么这两个事件就是并发的。</p>
-<p>考虑一个能在串行程序中正确工作的函数。如果这个函数在并发调用时仍然能正确工作，那么这个函数是并发安全（concurrency-safe）的，在这里并发调用是指，在没有额外同步机制的情况下，从两个或者多个goroutine同时调用这个函数。这个概念也可以推广到其他函数，比如方法或者作用于特定类型的一些操作。如果一个类型的所有可访问方法和操作都是并发安全时，则它可称为并发安全的类型。</p>
-<p>让一个程序并发安全并不需要其中的每一个具体类型都是并发安全的。实际上，并发安全的类型其实是特例而不是普遍存在的，所以仅在文档指出类型是安全的情况下，才可以并发地访问一个变量。对于绝大部分变量，如要回避并发访问，要么限制变量只存在于一个goroutine内，要么维护一个更高层的互斥不变量。本章将详细解释这些概念。</p>
+<h1 id="竞态"><a href="#竞态" class="headerlink" title="竞态"></a><span style="color:#339AFF;">竞态</span></h1><p>在串行程序中（即一个程序只有一个goroutine），程序中各个步骤的执行顺序由程序逻辑来决定。比如，在一系列语句中，第一句在第二句之前执行，以此类推。当一个程序有两个或者多个goroutine时，每个goroutine内部的各个步骤也是顺序执行的，但我们无法知道一个goroutine中的事件x和另外一个goroutine中的事件y的先后顺序。如果我们无法自信地说一个事件肯定先于另外一个事件，那么这两个事件就是<strong>并发</strong>的。</p>
+<p>考虑一个能在串行程序中正确工作的函数。如果这个函数在并发调用时仍然能正确工作，那么这个函数是<strong>并发安全</strong>（concurrency-safe）的，在这里并发调用是指，在没有额外同步机制的情况下，从两个或者多个goroutine同时调用这个函数。这个概念也可以推广到其他函数，比如方法或者作用于特定类型的一些操作。如果一个类型的所有可访问方法和操作都是并发安全时，则它可称为并发安全的类型。</p>
+<p>让一个程序并发安全并不需要其中的每一个具体类型都是并发安全的。实际上，并发安全的类型其实是特例而不是普遍存在的，所以仅在文档指出类型是安全的情况下，才可以并发地访问一个变量。对于绝大部分变量，如要回避并发访问，要么限制变量只存在于一个goroutine内，要么维护一个更高层的<strong>互斥不变量</strong>。本章将详细解释这些概念。</p>
 <p>与之对应的是，导出的包级别函数通常可以认为是并发安全的。因为包级别的变量无法限制在一个goroutine内，所以那些修改这些变量的函数就必须采用互斥机制。</p>
-<p>函数并发调用时不工作的原因有很多，包括死锁、活锁（live lock）以及资源耗尽。我们没有足够的时间来讨论所有的情形，因此接下来会重点讨论最重要的一种情形，即竞态。</p>
+<p>函数并发调用时不工作的原因有很多，包括死锁、活锁（livelock）（比如多个线程在尝试绕开死锁，却由于过分同步导致反复冲突）以及资源耗尽。我们没有足够的时间来讨论所有的情形，因此接下来会重点讨论最重要的一种情形，即竞态。</p>
 <p>竞态是指在多个goroutine按某些交错顺序执行时程序无法给出正确的结果。竞态对于程序是致命的，因为它们可能会潜伏在程序中，出现频率也很低，有可能仅在高负载环境或者在使用特定的编译器、平台和架构时才出现。这些都让竞态很难再现和分析。</p>
 <p>我们常用一个经济损失的隐喻来解释竞态的严重性，在这里也先考虑一个简单的银行账户程序：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// bank包实现了一个只有一个账户的银行</span></span><br><span class="line"><span class="keyword">package</span> bank</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> balance <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Deposit</span><span class="params">(amount <span class="keyword">int</span>)</span></span> &#123; balance += amount&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Balance</span><span class="params">()</span> <span class="title">int</span></span> &#123; <span class="keyword">return</span> balance &#125;</span><br></pre></td></tr></table></figure></p>
 <p>对于一个如此简单的程序，我们一眼就可以看出，任意串行地调用Deposit和Balance都可以得到正确的结果。即Balance会输出之前存入的金额总数。但如果这些函数的调用顺序不是串行而是并行，Balance就不保证输出正确结果了。考虑如下两个goroutine，它们代表对一个共享账户的两笔交易：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Alice:</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    bank.Deposit(<span class="number">200</span>)                <span class="comment">// A1</span></span><br><span class="line">    fmt.Println(<span class="string">"="</span>, bank.Balance()) <span class="comment">// A2</span></span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// Bob:</span></span><br><span class="line"><span class="keyword">go</span> bank.Deposit(<span class="number">100</span>) <span class="comment">// B</span></span><br></pre></td></tr></table></figure></p>
@@ -547,10 +550,10 @@
 <p>程序中的这种状况是竞态中的一种，称为数据竞态（data race）。数据竞态发生于两个goroutine并发读写同一个变量并且至少其中一个是写入时。</p>
 <p>当发生数据竞态的变量类型是大于一个机器字长的类型（比如接口、字符串或slice）时，事情就更复杂了。下面的代码并发把x更新为两个不同长度的slice。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> x []<span class="keyword">int</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; x = <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">10</span>) &#125;()</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; x = <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">1000000</span>) &#125;()</span><br><span class="line">x[<span class="number">999999</span>] = <span class="number">1</span> <span class="comment">// 注意：未定义行为，可能造成内存异常</span></span><br></pre></td></tr></table></figure></p>
 <p>最后一个表达式中x的值是未定义的，它可能是nil、一个长度为10的slice或者一个长度为100000的slice。回想一下slice的三个部分：指针、长度和容量。如果指针来自于第一个make调用而长度来自第二个make调用，那么x会变成一个嵌合体，它名义上长度为1000000但底层的数组只有10个元素。在这种情况下，尝试存储到第999999个元素会伤及很遥远的一段内存，其恶果无法预测，问题也很难调试和定位。这种语义上的雷区称为未定义行为，C程序员应当对此很熟悉了。幸运的是，相比之下Go语言很少有这种问题。</p>
-<p>并行程序是几个串行程序交错执行这个观念也是一个错觉。在9.4节中可以看到，数据竞态可能由更奇怪的原因来引发。很多程序员（甚至是非常聪明的程序员）偶尔也会为自己程序中的数据竞态找借口：比如“互斥机制的成本太高了”“这段逻辑只用于输出日志”“我不在意丢掉一些消息”等。在给定的编译器和平台下不存在问题也给了他们盲目的自信。一个好的习惯是根本就没有什么温和的数据竞态。所以如何在程序中避免数据竞态呢？</p>
+<p>并行程序是几个串行程序交错执行这个观念也是一个错觉。在9.4节中可以看到，数据竞态可能由更奇怪的原因来引发。很多程序员（甚至是非常聪明的程序员）偶尔也会为自己程序中的数据竞态找借口：比如“互斥机制的成本太高了”“这段逻辑只用于输出日志”“我不在意丢掉一些消息”等。在给定的编译器和平台下不存在问题也给了他们盲目的自信。一个好的习惯是<strong>根本就没有什么温和的数据竞态</strong>。所以如何在程序中避免数据竞态呢？</p>
 <p>再回顾一下定义（因为定义非常重要）：数据竞态发生于两个goroutine并发读写同一个变量并且至少其中一个是写入时。从定义不难看出，有三种方法来避免数据竞态。</p>
-<p>第一种方法是不要修改变量。考虑如下的map，它进行了延迟初始化，对于每个键，在第一次访问时才触发加载。如果Icon的调用是串行的，那么程序能正常工作，但如果Icon的调用是并发的，在访问map时就存在数据竞态。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> icons = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]image.Image)</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">loadIcon</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">image</span>.<span class="title">Image</span></span></span><br><span class="line"><span class="function">//注意并发不安全</span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="title">Icon</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">image</span>.<span class="title">Image</span></span> &#123;</span><br><span class="line">icon, ok :- icons[name]</span><br><span class="line"><span class="keyword">if</span> !ok&#123;</span><br><span class="line">icon = loadIcon(name)</span><br><span class="line">icons[name]=icon</span><br><span class="line"><span class="keyword">return</span> icon</span><br></pre></td></tr></table></figure></p>
-<p>如果在创建其他goroutine之前就用完整的数据来初始化map，并且不再修改。那么无论多少goroutine也可以安全地并发调用Icon，因为每个goroutine都只读取这个map。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> icons = <span class="keyword">map</span>[<span class="keyword">string</span>]image.Image&#123;</span><br><span class="line"><span class="string">"spades.png"</span>: loadIcon(<span class="string">"spades.png"</span>),</span><br><span class="line"><span class="string">"hearts.png"</span>: loadIcon(<span class="string">"hearts.png"</span>),</span><br><span class="line"><span class="string">"diamonds.png"</span>: loadIcon(<span class="string">"diamonds.png"</span>),</span><br><span class="line"><span class="string">"clubs.png"</span>: loadIcon(<span class="string">"clubs.png"</span>),</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//并发安全</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Icon</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">image</span>.<span class="title">Image</span></span> &#123; <span class="keyword">return</span> icons[name]&#125;</span><br></pre></td></tr></table></figure></p>
+<p>第一种方法是不要修改变量。考虑如下的map，它进行了延迟初始化，对于每个键，在第一次访问时才触发加载。如果Icon的调用是串行的，那么程序能正常工作，但如果Icon的调用是并发的，在访问map时就存在数据竞态。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> icons = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]image.Image)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">loadIcon</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">image</span>.<span class="title">Image</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">// 注意并发不安全</span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="title">Icon</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">image</span>.<span class="title">Image</span></span> &#123;</span><br><span class="line">    icon, ok := icons[name]</span><br><span class="line">    <span class="keyword">if</span> !ok &#123;</span><br><span class="line">        icon = loadIcon(name)</span><br><span class="line">        icons[name] = icon</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> icon</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果在创建其他goroutine之前就用完整的数据来初始化map，并且不再修改。那么无论多少goroutine也可以安全地并发调用Icon，因为每个goroutine都只读取这个map。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> icons = <span class="keyword">map</span>[<span class="keyword">string</span>]image.Image&#123;</span><br><span class="line">    <span class="string">"spades.png"</span>: loadIcon(<span class="string">"spades.png"</span>),</span><br><span class="line">    <span class="string">"hearts.png"</span>: loadIcon(<span class="string">"hearts.png"</span>),</span><br><span class="line">    <span class="string">"diamonds.png"</span>: loadIcon(<span class="string">"diamonds.png"</span>),</span><br><span class="line">    <span class="string">"clubs.png"</span>: loadIcon(<span class="string">"clubs.png"</span>),</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 并发安全</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Icon</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">image</span>.<span class="title">Image</span></span> &#123; <span class="keyword">return</span> icons[name]&#125;</span><br></pre></td></tr></table></figure></p>
 <p>在上面的例子中，icons变量的赋值发生在包初始化时，也就是在程序的main函数开始运行之前。一旦初始化完成后，icons就不再修改。那些从不修改的数据结构以及不可变数据结构本质上是并发安全的，也不需要做任何同步。但显然我们不能把这个方法用在必然会有更新的场景，比如一个银行账号。</p>
 <p>第二种避免数据竞态的方法是避免从多个goroutine访问同一个变量。上一章的很多程序都采用了这个方法。比如，并发的Web爬虫（见8.6节）中主goroutine是唯一个能访问seen map的goroutine；聊天服务器（见8.10节）中的broadcaster goroutine是唯一个能访问clients map的goroutine。这些变量都限制在单个goroutine内部。</p>
 <p>由于其他goroutine无法直接访问相关变量，因此它们就必须使用通道来向受限goroutine发送查询请求或者更新变量。这也是这句Go箴言的含义“不要通过共享内存来通信，而应该通过通信来共享内存”。使用通道请求来代理一个受限变量的所有访问的goroutine称为该变量的监控goroutine （monitor goroutine）。比如，broadcaster goroutine监控了对clients map的访问。</p>
@@ -773,7 +776,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">614</span>
+                    <span class="site-state-item-count">638</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1053,7 +1056,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">54</span>
+                      
+                    
+                    <span class="site-state-item-count">55</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1084,23 +1089,23 @@
                 
                 
                   <li>
-                    <a href="/2022/09/14/15-深入解析Pod对象（二）：使用进阶/" title="15 | 深入解析Pod对象（二）：使用进阶" target="_blank">15 | 深入解析Pod对象（二）：使用进阶</a>
+                    <a href="/2022/09/27/第1章-Kubernetes系统基础/" title="第1章 Kubernetes系统基础" target="_blank">第1章 Kubernetes系统基础</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/14-深入解析Pod对象（一）：基本概念/" title="14 | 深入解析Pod对象（一）：基本概念" target="_blank">14 | 深入解析Pod对象（一）：基本概念</a>
+                    <a href="/2022/09/26/33-临时对象池sync-Pool/" title="33 | 临时对象池sync.Pool" target="_blank">33 | 临时对象池sync.Pool</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/13-为什么我们需要Pod？/" title="13 | 为什么我们需要Pod？" target="_blank">13 | 为什么我们需要Pod？</a>
+                    <a href="/2022/09/26/32-context-Context类型/" title="32 | context.Context类型" target="_blank">32 | context.Context类型</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/12-牛刀小试：我的第一个容器化应用/" title="12 | 牛刀小试：我的第一个容器化应用" target="_blank">12 | 牛刀小试：我的第一个容器化应用</a>
+                    <a href="/2022/09/26/31-sync-WaitGroup和sync-Once/" title="31 | sync.WaitGroup和sync.Once" target="_blank">31 | sync.WaitGroup和sync.Once</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/11-从0到1：搭建一个完整的Kubernetes集群/" title="11 | 从0到1：搭建一个完整的Kubernetes集群" target="_blank">11 | 从0到1：搭建一个完整的Kubernetes集群</a>
+                    <a href="/2022/09/26/30-原子操作（下）/" title="30 | 原子操作（下）" target="_blank">30 | 原子操作（下）</a>
                   </li>
                 
               </ul>
@@ -1161,7 +1166,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">5.4m</span>
+    <span title="站点总字数">5.6m</span>
   
 
   
@@ -1172,7 +1177,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">81:08</span>
+    <span title="站点阅读时长">85:25</span>
   
 </div>
 

@@ -122,7 +122,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/09/06/XA事务与两阶段提交/9.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/09/06/XA事务与两阶段提交/10.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/09/06/XA事务与两阶段提交/11.awebp">
-<meta property="og:updated_time" content="2022-09-13T07:19:29.375Z">
+<meta property="og:updated_time" content="2022-09-16T02:45:01.296Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="XA事务与两阶段提交">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -455,7 +455,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-13 15:19:29" itemprop="dateModified" datetime="2022-09-13T15:19:29+08:00">2022-09-13</time>
+                <time title="修改时间：2022-09-16 10:45:01" itemprop="dateModified" datetime="2022-09-16T10:45:01+08:00">2022-09-16</time>
               
             
           </span>
@@ -597,7 +597,7 @@
 <img src="/2022/09/06/XA事务与两阶段提交/1.awebp">
 <p>哔哔了很多，赶紧来做个实验：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; XA START <span class="string">'a'</span>;    //XA事务进入ACTIVE状态</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; DELETE FROM x WHERE id = 1;  //XA事务中包含的语句</span><br><span class="line">Query OK, 1 row affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; XA END <span class="string">'a'</span>;      //XA事务进入IDEL状态</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; XA PREPARE <span class="string">'a'</span>;  //XA事务进入PREPARE状态</span><br><span class="line">Query OK, 0 rows affected (0.01 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; XA COMMIT <span class="string">'a'</span>;   //XA事务进入COMMIT状态</span><br><span class="line">Query OK, 0 rows affected (0.01 sec)</span><br></pre></td></tr></table></figure></p>
 <p>MySQL的外部XA除了被用于跨行转账这种经典的分布式事务应用场景，还被广泛应用于所谓的数据库中间件。</p>
-<p>现在各个公司由于表中数据太多，这些数据会被分散在不通服务器中存储。由应用程序员分别和不同的MySQL服务器打交道实在费劲，所以有一种称作数据库中间件的东西开始问世。即应用程序只将SQL语句发送给数据库中间件，中间件分析一下该SQL访问的数据都在哪些不同的服务器中存储着，并且计算出不通服务器应该执行哪些SQL语句。然后就可以对不同的服务器分别开启XA事务，并且让把不同服务器需要执行的语句分别发送到不同的服务器中。等应用程序员告知中间件准备提交事务时，中间件先给各个服务器发送XA PREPARE语句，如果各个服务器都返回OK的话，接着就给各个服务器发送XA COMMIT语句来提交XA事务，等各个服务器把提交成功的消息返回给中间件，中间件就可以通知应用程序事务提交成功了。</p>
+<p>现在各个公司由于表中数据太多，这些数据会被分散在不通服务器中存储。由应用程序员分别和不同的MySQL服务器打交道实在费劲，所以有一种称作数据库中间件的东西开始问世。即应用程序只将SQL语句发送给数据库中间件，中间件分析一下该SQL访问的数据都在哪些不同的服务器中存储着，并且计算出不通服务器应该执行哪些SQL语句。然后就可以对不同的服务器分别开启XA事务，并且让把不同服务器需要执行的语句分别发送到不同的服务器中。等应用程序员告知中间件准备提交事务时，中间件先给各个服务器发送<code>XA PREPARE</code>语句，如果各个服务器都返回OK的话，接着就给各个服务器发送<code>XA COMMIT</code>语句来提交XA事务，等各个服务器把提交成功的消息返回给中间件，中间件就可以通知应用程序事务提交成功了。</p>
 <h2 id="内部XA"><a href="#内部XA" class="headerlink" title="内部XA"></a>内部XA</h2><p>对于一台服务器来说，即使客户端使用BEGIN/START TRANSACTION语句开启的普通事务，该事务所包含的语句也有可能涉及多个存储引擎。此时MySQL内部采用XA规范来保证所有支持事务的存储引擎要么全部提交，要么全部回滚，这也被称作MySQL的内部XA。</p>
 <p>另外有一点值得注意的是，内部XA除了解决这种设计多个存储引擎的事务之外，还解决保证binlog和存储引擎所做的修改是一致的问题。我们稍后重点展开一下这个问题。</p>
 <p>在MySQL内部执行一个事务时，存储引擎会修改相应的数据，server层会记录语句对应的binlog。这是两个要么都完成，要么都步完成的事情。否则的话：</p>
@@ -788,7 +788,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">614</span>
+                    <span class="site-state-item-count">638</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1068,7 +1068,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">54</span>
+                      
+                    
+                    <span class="site-state-item-count">55</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1099,23 +1101,23 @@
                 
                 
                   <li>
-                    <a href="/2022/09/14/15-深入解析Pod对象（二）：使用进阶/" title="15 | 深入解析Pod对象（二）：使用进阶" target="_blank">15 | 深入解析Pod对象（二）：使用进阶</a>
+                    <a href="/2022/09/27/第1章-Kubernetes系统基础/" title="第1章 Kubernetes系统基础" target="_blank">第1章 Kubernetes系统基础</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/14-深入解析Pod对象（一）：基本概念/" title="14 | 深入解析Pod对象（一）：基本概念" target="_blank">14 | 深入解析Pod对象（一）：基本概念</a>
+                    <a href="/2022/09/26/33-临时对象池sync-Pool/" title="33 | 临时对象池sync.Pool" target="_blank">33 | 临时对象池sync.Pool</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/13-为什么我们需要Pod？/" title="13 | 为什么我们需要Pod？" target="_blank">13 | 为什么我们需要Pod？</a>
+                    <a href="/2022/09/26/32-context-Context类型/" title="32 | context.Context类型" target="_blank">32 | context.Context类型</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/12-牛刀小试：我的第一个容器化应用/" title="12 | 牛刀小试：我的第一个容器化应用" target="_blank">12 | 牛刀小试：我的第一个容器化应用</a>
+                    <a href="/2022/09/26/31-sync-WaitGroup和sync-Once/" title="31 | sync.WaitGroup和sync.Once" target="_blank">31 | sync.WaitGroup和sync.Once</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/14/11-从0到1：搭建一个完整的Kubernetes集群/" title="11 | 从0到1：搭建一个完整的Kubernetes集群" target="_blank">11 | 从0到1：搭建一个完整的Kubernetes集群</a>
+                    <a href="/2022/09/26/30-原子操作（下）/" title="30 | 原子操作（下）" target="_blank">30 | 原子操作（下）</a>
                   </li>
                 
               </ul>
@@ -1176,7 +1178,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">5.4m</span>
+    <span title="站点总字数">5.6m</span>
   
 
   
@@ -1187,7 +1189,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">81:08</span>
+    <span title="站点阅读时长">85:25</span>
   
 </div>
 
