@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="keywords" content="Kubernetes in Action">
+<meta property="og:type" content="article">
+<meta property="og:title" content="15-自动横向伸缩pod与集群节点">
+<meta property="og:url" content="http://yoursite.com/2022/10/01/15-自动横向伸缩pod与集群节点/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-10-03T10:24:23.400Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="15-自动横向伸缩pod与集群节点">
+<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/10/01/15-自动横向伸缩pod与集群节点/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>15-自动横向伸缩pod与集群节点 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/10/01/15-自动横向伸缩pod与集群节点/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="强迫自己去看，去做。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">15-自动横向伸缩pod与集群节点
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-10-01 10:11:46" itemprop="dateCreated datePublished" datetime="2022-10-01T10:11:46+08:00">2022-10-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-10-03 18:24:23" itemprop="dateModified" datetime="2022-10-03T18:24:23+08:00">2022-10-03</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">16k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">14 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>总结一下，这章作者最主要想表达什么观点？</li>
+</ul>
+<a id="more"></a>
+<p>本章内容涵盖<br>基于 CPU 使用率配置 pod 的自动横向伸缩基于自定义度量配置 pod 的自动横向伸缩了解为何 pod 纵向伸缩暂时无法实现了解集群节点的自动横向伸缩<br>我们可以通过调高 ReplicationController、 ReplicaSet、Deployment等可伸缩资源 的 replicas 字段， 来手动实现 pod 中应用的横向扩容。 我们也可以通过增加pod容器的资源请求和限制来纵向扩容 pod （尽管目前该操作只能在 pod 创建时，而非 运行时进行）。 虽然如果你能预先知道负载何时会飙升， 或者如果负载的变化是较长时间内逐渐发生的， 手动扩容也是可以接受的， 但指望靠人工干预来处理突发而不可预测的流量增长，仍然不够理想。<br>幸运的是，Kubernetes 可以监控你的 pod， 并在检测到 CPU 使用率或其他度量 增长时自动对它们扩容。如果 Kubernetes 运行在云端基础架构之上，它甚至能在现 有节点无法承载更多 pod 之时自动新建更多节点。 本章将会解释如何让Kubernetes进行pod 与节点级别的自动伸缩。<br>Kubernetes 的自动伸缩特性在 1.6 与 1.7 版本之间经历了一次重写， 因此注意网上关于此方面的内容有可能已经过时了。</p>
+<p>15.1 pod的横 向自动伸缩<br>横向pod自动伸缩是指由控制器管理的pod副本数量的自动伸缩。它由Horizontal控制器执行，我们通过创建一个HorizontalpodAutoscaler （HPA）资源来启用和配置Horizontal控制器。该控制器周期性检查pod度量，计算满足HPA.资源所配置的目标数值所需的副本数量，进而调整目标资源（如Deployment、ReplicaSet、ReplicationController StatefulSet 等）的replicas 字段。<br>15.1.1 了解自动伸缩过程<br>自动伸缩的过程可以分为三个步骤：<br>·获取被伸缩资源对象所管理的所有pod度量。<br>·计算使度量数值到达（或接近）所指定目标数值所需的pod数量。<br>·更新被伸缩资源的replicas字段。<br>下面我们就来看看这三个步骤。<br>获取pod度量<br>Autoscaler本身并不负责采集pod度量数据，而是从另外的来源获取。正如上一章提到的，pod与节点度量数据是由运行在每个节点的kubelet之上，名为cAdvisor的agent采集的；这些数据将由集群级的组件Heapster聚合。HPA控制器向Heapster发起REST调用来获取所有pod度量数据。图15.1展示了度量数据的流动情况（注意所有连接都是按照箭头反方向发起的）。<br>Pod(s)  cAdvisots） 一Heapster- Horizontal Pod Autoscaler(s)<br>图15.1度量数据从 pod到HPA的流动<br>这样的数据流意味着在集群中必须运行Heapster才能实现自动伸缩。如果你在使用Minikube并且在前面的章节中都跟着操作了，Heapster应该已经在你的集群中启用了。如果没有的话，在尝试自动伸缩示例之前记得启用Heapster附加组件。<br>尽管你并不需要直接查询Heapster，如果你感兴趣，可以在kube-system命名空间中找到Heapster的pod和Service.<br>关于Autoscaler采集度量数据方式的改变<br>在Kubernetes 1.6版本之前，HPA直接从Heapster采集度量。在1.8版本中，如果用—horizontal -pod-autoscaler -use-rest-clients=true参</p>
+<p>数启动ControllerManager， Autoscaler 就能通过聚合版的资源度量API拉取度量了。该行为从1.9版本开始将变为默认。<br>核心API服务器本身并不会向外界暴露度量数据。从1.7版本开始，Kubernetes允许注册多个API服务器并使它们对外呈现为单个API服务器。这允许Kubernetes通过这些底层API服务器之一来对外暴露度量数据。我们将在最后一章讲述API服务器聚合的内容。<br>集群管理员负责选择集群中使用何种度量采集器。我们通常需要一层简单的转换组件将度量数据以正确的格式暴露在正确的API路径下。<br>计算所需的pod数量<br>一旦Autoscaler获得了它所调整的资源（Deployment、ReplicaSet、ReplicationController或StatefulSet）所辖pod的全部度量，它便可以利用这些度量计算出所需的副本数量。它需要计算出一个合适的副本数量，以使所有副本.上度量的平均值尽量接近配置的目标值。该计算的输入是一组pod度量（每个pod可能有多个），输出则是一个整数（pod 副本数量）。<br>当Autoscaler配置为只考虑单个度量时，计算所需副本数很简单。只要将所有pod的度量求和后除以HPA资源上配置的目标值，再向上取整即可。实际的计算稍微复杂一些； Autoscaler 还保证了度量数值不稳定、 迅速抖动时不会 导致系统抖动( thrash)。<br>基于多个pod度量的自动伸缩（例如：CPU使用率和每秒查询率[QPS]）的计算也并不复杂。Autoscaler 单独计算每个度量的副本数，然后取最大值（例如：如果需要4个pod达到目标CPU使用率，以及需要3个pod来达到目标QPS，那么Autoscaler将扩展到4个pod）。图15.2展示了这个示例。</p>
+<p>图15.2从两个度量计算副本数<br>446<br>15自动横向伸缩pod与集群节点<br>更新被伸缩资源的副本数<br>自动伸缩操作的最后一步是更新被伸缩资源对象（比如ReplicaSet）上的副本数字段，然后让ReplicaSet控制器负责启动更多pod或者删除多余的pod。<br>Autoscaler控制器通过Scale子资源来修改被伸缩资源的replicas字段。这样Autoscaler不必了解它所管理资源的细节，而只需要通过Scale子资源暴露的界面，就可以完成它的工作了（见图15.3）。</p>
+<p>图15.3HPA只对Scale子资源进行更改<br>这意味着只要API服务器为某个可伸缩资源暴露了Scale子资源，Autoscaler即可操作该资源。目前暴露了Scale子资源的资源有：<br>● Deployment<br>● ReplicaSet<br>● ReplicationController<br>● StatefulSet<br>目前也只有这些对象可以附着Autoscaler。<br>了解整个自动伸缩过程<br>既然你对自动伸缩过程的三个步骤都有所了解了，我们就用一张图表直观地感受一下自动伸缩过程中的各个组件吧，如图15.4所示。<br>从pod指向cAdvisor，再经过Heapster，而最终到达HPA的箭头代表度量数据的流向。值得注意的是，每个组件从其他组件拉取数据的动作是周期性的（即 cAdvisor用一个无限循环从pod中采集数据Heapster与HPA控制器亦是如此）。这意味着度量数据的传播与相应动作的触发都需要相当一段时间，不是立即发生的。接下来实地观察Autoscaler行为时要注意这一点。</p>
+<p>图15.4Autoscaler 获取度量数据伸缩目标部署的方式<br>15.1.2 基于 CPU使用率进行自动伸缩<br>可能你最想用以指导自动伸缩的度量就是 pod 中进程的 CPU 使用率了。假设你 用几个 pod 来提供服务， 如果它们的 CPU 使用率达到了 100%， 显然它们已经扛不住压力了，要么进行纵向扩容（scale up）， 增加它们可用的 CPU 时间，要么进行横 向扩容（scale out）， 增加 pod 数量。 因为本章谈论的是 HPA，我们仅仅关注横向扩容。这么一来，平均 CPU 使用率就应该下降了。<br>因为 CPU 使用通常是不稳定的， 比较靠谱的做法是在 CPU 被压垮之前就横向扩容一句能平均负载达到或超过 80% 的时候就进行扩容。但这里有个问题， 到底是谁的 80% 呢？<br>提示 一定把目标CPU使用率设置得远远低于 100%（一定不要超过90%），以预留充分空间给突发的流量洪峰。<br>你可能还记得，上一章中提到容器中的进程被保证能够使用该容器资源请求中所请求的CPU 资源数量。 但在没有其他进程需要 CPU 时， 进程就能使用节点上所有可用的 CPU 资源。如果有人说 “这个 pod 用了 80% 的 CPU”， 我们并不清楚对方的意思是 80% 的节点 CPU，还是 80% 的guaranteed CPU（资源请求量），还是用资源限额给 pod 配置的硬上限的80%。</p>
+<p>就Autoscaler而言，只有pod的保证CPU用量（CPU请求）才与确认pod的CPU使用有关。Autoscaler对比pod的实际CPU使用与它的请求，这意味着你需要给被伸缩的pod设置CPU请求，不管是直接设置还是通过LimitRange对象间接设置，这样Autoscaler才能确定CPU使用率。<br>基于CPU使用率创建HPA<br>我们现在来看看如何创建一个HPA，并让它基于CPU使用率来伸缩pod。你将创建一个类似第9章中的Deployment，但正如我们讨论的，你需要确保Deployment所创建的所有pod都指定了CPU资源请求，这样才有可能实现自动伸缩。你需要给Deployment的pod模板添加一个CPU资源请求，如以下代码清单所示。<br>器代码清单15.1设置了CPU请求的Deployment： deployment.yaml</p>
+<p>这就是一个正常的Deployment对象现在还没有启用自动伸缩。它会运行3个实例的kubia NodeJS应用，每个实例请求100毫核的CPU。<br>创建了Deployment之后，为了给它的pod启用横向自动伸缩，需要创建一个HorizontalpodAutoscaler （HPA）对象，并把它指向该Deployment。可以给HPA准备YAML manifest，但有个办法更简单一还可以用kubectl autoscale命令： $ kubectl autoscale deployment kubia —cpu-percent=3o—min=1 —max=5<br>deployment “kubia” autoscaled<br>这会帮你创建HPA对象，并将叫作kubia的Deployment设置为伸缩目标。你还设置了pod的目标CPU使用率为30%，指定了副本的最小和最大数量。Autoscaler会持续调整副本的数量以使CPU使用率接近30%，但它永远不会调整到</p>
+<p>少于1个或者多于5个。<br>提示一定要确保自动伸缩的目标是 Deployment而不是底层的 ReplicaSet。这样 才能确保预期的副本数量在应用更新后继续保持（记着 Deployment 会给每个应用版本创建一个新的 ReplicaSet）。 手动伸缩也是同样的道理。<br>让我们看看 HorizontalpodAutoscaler 资源的定义，更深入地理解它， 如以下代码清单所示。<br>代码清单15.2一个 HorizontalpodAutoscaler的 YAML 定义 </p>
+<p>注意HPA资源存在多个版本：新的autoscaling/v2betal和旧的autoscaling/vl。此处请求的是新版资源。<br>观察第一个自动伸缩事件<br>cAdvisor获取CPU度量与Heapster收集这些度量都需要一阵子，之后 Autoscaler才能采取行动。在这段时间里，如果用kubectl get 显示HPA资源， TARGETS列就会显示<unknown> ：</unknown></p>
+<p>因为在运行三个空无一请求的pod，它们的CPU使用率应该接近0，应该预期Autoscaler将它们收缩到1个pod，因为即便只有一个pod，CPU使用率仍然会低于30%的目标值。<br>确实，Autoscaler 就是这么做的。它很快就把Deployment收缩到单个副本：<br>$ kubectl get deployment<br>NAME<br>DESIRED CURRENT UP-TO- DATE AVAILABLE AGE<br>kubia<br>23m<br>记住，Autoscaler 只会在Deployment上调节预期的副本数量。接下来由Deployment控制器负责更新ReplicaSet对象上的副本数量，从而使ReplicaSet控制器删除多余的两个pod而留下一个。<br>可以使用kubectl describe 来观察HorizontalpodAutoscaler的更多信息，以及它底层控制器的工作，如以下代码清单所示。<br>代码清单15.3用kubectl describe 检查个HorizontalpodAutoscaler</p>
+<p>注意为使可读性更佳， 输出被重新排版了。<br>把你的注意力转移到代码清单底部的 事件列表。 可以看到因为所有度量都低于目标值，HPA 已经成功收缩到单个副本了 。<br>触发一次自动扩容<br>你已经目击了第一个自动伸缩事件 （一个收缩事件）。现在要往 pod 发送请求， 增加它的CPU使用率，随后你应该看到 Autoscaler 检测到这一切并启动更多的 pod。<br>需要通过一个 Service 来暴露 pod， 以便用单一的 URL 访问到所有 pod。你可<br>15.1 pod的横向自动伸缩<br>451<br>能还记得做这件事最简单的方法就是 kubectl expose： </p>
+<p>在向pod发送请求之前，你可能希望在另一个终端里运行以下命令，来观察HPA与De ployme nt上发生了什么，如以下代码清单所示。<br>代码清单15.4并行观察多个资源<br>$ watch -nl kubectl get hpa,deploynent<br>Everyl.0s:kubectlgethpa,deployment<br>NAME<br>REFERENCE<br>TARGETS<br>MINPODS<br>MAXPODS<br>REPLICAS<br>AGE<br>hpa/kubia<br>Deployment/kubia 0号/30号<br>工<br>5<br>1<br>45m<br>NAME<br>DESIRED<br>CURRENT<br>UP-TO-DATE<br>AVAI LABLE<br>AGE<br>deploy/kubia<br>1<br>1<br>1<br>1<br>56m<br>提示用逗号分隔资源类型可以让kubectlget一次列举多个资源类型。<br>如果你在使用macOS系统，需要将watch命令替换为一个循环，手动定期调用kubectl get，或者使用kubectl的—watch选项。需要注意的是，尽管 kubectlget一次可以显示多个资源，带上前述的—watch选项之后就不能了， 因此这种情况下你需要使用两个终端来同时观察HPA与De plarye nt对象。<br>在你运行产生负载的pod的同时，注意观察这两个对象的状态。在另一个终端里运行以下命令：<br>$ kubectl run -it —rm —reatart=Never loadgenerator —image=busybox<br>-sh-c”whiletrue;dowget-o—q<a href="http://kubia.default;done" target="_blank" rel="noopener">http://kubia.default;done</a><br>这会运行一个pod重复请求kubia服务。你在运行kubectlexec命令时见过几次-it选项了。如你所见，它对kubectlrun也适用。它允许你将控制台附加到被观察的进程，不仅允许你直接观察进程的输出，而且在你按下CTRL+C组合键时还会直接终止进程。—rm选项使得pod在退出之后自动被删除；—restart=Never选项则使kubectlrun命令直接创建一个非托管的pod，而不是通过一个你用不着的Deployme nt对象间接创建。对于需要在集群中执行命令，又不想在已有的pod之上运行的情形，这组选项很实用。它们不仅与本地运行的效果相同，甚至在运行结束之后还会把现场清理干净！<br>观察Autoscaler扩容Deployment<br>随着负载生成pod的运行，可以观察到它一开始都在请求目前唯一的pod。与此前一样，度量更新需要一些时间，但等到它们更新的时候你就可以看到Autoscaler</p>
+<p>增加副本数了。在笔者的环境中，pod 的 CPU 使用率一开始升高到了 108%，使得  Autoscaler 增加 pod 数量到 4。于是单个 pod 的 CPU 使用率降低到了74%，并最终  稳定在26%左右。<br>注意如果你的 CPU使用率一直不超过30%， 可以试试多运行几个负载生成pod。<br>可以再次用 kubectl describe 检查 Autoscaler 事件， 看看它都在干嘛（以下代码清单仅仅展示了最关键的部分信息 ）。<br>代码清单 15.5一个HPA的事件列表<br>From<br>Reason<br>Message<br>h-p-a<br>SuccessfulRescale<br>New size: 1; reason: All metrics below target<br>h-p-a<br>SuccessfulRescale<br>New size: 4; reason: cpu resource utilization  (percentage of request) above target<br>一开始只有一个 pod 时， 平均CPU使用率达到了 108%，超过了 100%，不知你有没有感觉奇怪？记着，容器的 CPU 使用率是它实际的 CPU 使用除以它的 CPU请求。CPU 请求定义了容器可用的最少而非最多 CPU 资源数量，因此一个容器可能使用的 CPU 比请求的还要多， 从而使百分比超过100%。<br>在我们进入下一个话题之前， 先做一些简单的计算，看看 Autoscaler 是如何得出需要 4 个副本的结论的。最开始只有1 个副本处理请求，它的 CPU 使用率飙升到 了108%。 用目标 CPU 使用率百分比 30 去除 108，得到了 3.6；Autoscaler将它向上取整，得到了 4。如果你用4去除108， 你会得到27%；如果Autoscaler 扩容到4个 pod， 它们的平均 CPU 使用率预期应该在27%左右， 这很接近目标值 30%，也跟实际观察到的 CPU 使用率几乎吻合。<br>了解伸缩操作的最大速率<br>在笔者的实验中，CPU 使用率飙升到了 108%，但通常来讲，初始的 CPU 使用 率尖峰可能更高。然而即使初始平均 CPU 使用率确实更高（比方说150%）， 需要 5个副本才能达到 30% 的目标， Autoscaler 在第一步仍然只会扩容到4个 pod。 这是因为 Autoscaler 在单次扩容操作中 可增加的副本数受到限制。 如果当前副本数大于2， Autoscaler 单次操作至多使副本数翻倍； 如果副本数只有1或2，Autoscaler 最多扩  容到4个副本。<br>另外，Autoscaler两次扩容操作之间的时间间隔也有限制。 目前，只有当3分钟内没有任何伸缩操作时才会触发扩容， 缩容操作频率更低一  —5分钟。记住这一点， 这样你再看到度量数据很明显应该触发伸缩却没有触发的时候， 就不会感到奇怪了。</p>
+<p>修改一个已有HPA对象的目标度量值<br>作为这一节的结束， 我们再来做最后一个练习。 可能你一开始设置的目标值 30% 有点太低了，我们把它提高到60%。 你将使用 kubectl edit 命令来完成这 项工作。文本编辑器打开之后，把 targetAverageUtilization 字段改为60，如以下代码清单所示。<br>代码清单 15.6 通过编辑 HPA 资源来提高目标 CPU 使用率<br>…<br>spec:<br>maxReplicas: 5<br>metrics:</p>
+<ul>
+<li>resource:<br>将这里的30改成60<br>name: cpu<br>targetAverageUtilization: 60 type: Resource<br>正如大多数其他资源一样， 在你修改资源之后， Autoscaler 控制器会检测到这一变更，并执行相应动作。 也可以先删除HPA资源再用新的值创建一个，因为删除 HPA 资源只会禁用目标资源的自动伸缩 （本例中为一个 Deployment），而它的伸 缩规模会保持在删除资源的时刻。在你为 Deployment 创建一个新的 HPA 资源之后， 自动伸缩过程就会继续进行。<br>15.1.3<br>基于内存使用进行自动伸缩<br>你已经看到了配置横向 Autoscaler 让 CPU 使用率保持在设定水平有多么容易。 但基于 pod 的内存使用来自动伸缩呢？<br>基于内存的自动伸缩比基于 CPU 的困难很多。主要原因在于， 扩容之后原有的pod 需要有办法释放内存。 这只能由应用完成，系统无法代劳。 系统所能做的只有杀死并重启应用， 希望它能比之前少占用一些内存； 但如果应用使用了跟之前一样多的内存，Autoscaler 就会扩容、扩容， 再扩容，直到达到 HPA 资源上配置的最大  pod 数量。显然没有人想要这种行为。 基于内存使用的自动伸缩在 Kubernetes 1.8 中  得到支持，配置方法与基于 CPU 的自动伸缩完全相同。 具体使用方式留作读者练习。<br>15.1.4 基于其他自定义度量进行自动伸缩<br>你看到了基于 CPU 使用率伸缩 pod有多简单； 最早的时候只有这一种可用的自动伸缩方案。要使 Autoscaler 使用应用自定义的度量来进行自动伸缩决策，这一过程十分复杂。最早的 Autoscaler 设计并不能轻易支持单纯基于 CPU 伸缩以外的场景，</li>
+</ul>
+<p>这驱使Kubernetes自动伸缩特别小组（SIG） 完全重新设计了Autoscaler。<br>如果你好奇最初的Autoscaler 使用自定义度量究竟有多难，邀你阅读笔者的博文“Kubernetes autoscaling based on custom metrics without using a host port”，可登录<a href="http://medium.com/@marko.luksa在线浏览。你会了解到笔者在尝试配置基于自定义度量自动伸缩的过程中遇到的千辛万苦。幸运的是新版Kubernetes没有这些问题，笔者会在一篇新的博文中讲述该主题。" target="_blank" rel="noopener">http://medium.com/@marko.luksa在线浏览。你会了解到笔者在尝试配置基于自定义度量自动伸缩的过程中遇到的千辛万苦。幸运的是新版Kubernetes没有这些问题，笔者会在一篇新的博文中讲述该主题。</a><br>我们在此不用完整例子展开说明，而是快速过一下如何配置Autoscaler使用不同的度量源。我们先观察一下 在前一个例子中我们是如何定义要使用的度量的。以下代码清单展示了你之前的HPA对象是怎么被配置为使用CPU使用率度量的。<br>代码清单15.7配置为基于 CPU自动伸缩的HorizontalpodAutoscaler定义</p>
+<p>如你所见，metrics字段允许你定义多个度量供使用。在代码清单中使用了单个度量。每个条目都指定相应度量的类型一本例中为一个Resource度量。可以在HPA对象中使用三种度量：<br>·定义metric类型<br>。使用情况会被监控的资源<br>·资源的目标使用量<br>了解Resource度量类型<br>Resource类型使Autoscaler基于一个资源度量做出自动伸缩决策，在容器的资源请求中指定的那些度量即为一例。这一类型的使用方式我们已经看过了，所以重点关注另外两种类型。<br>了解Pods度量类型<br>Pods类型用来引用任何其他种类的（包括自定义的）与pod直接相关的度量。上文提过的每秒查询次数（QPS），或者消息队列中的消息数量（当消息队列服务运行在pod之中）都属于这种度量。要配置Autoscaler使用pod的QPS度量，HPA对象的metrics字段中就需要包含以下代码清单所示的条目。</p>
+<p>代码清单中的示例配置 Autoscaler， 使该 HPA 控制的 ReplicaSet（或其他）控 制器下所辖 pod 的平均 QPS 维持 100 的水平。<br>了解 Object 度量类型<br>0bject 度量类型被用来让 Autoscaler 基于并非直接与 pod 关联的度量来进行伸缩。比方说， 你可能希望基于另一个集群对象， 比如Ingress 对象，来伸缩你的pod。这度量可能是代码清单 15.8 中的 QPS，可能是平均请求延迟， 或者完全是不相干的其他东西。<br>与此前的例子不同，使用 0bject 度量类型时， Autoscaler 只会从这单个对象中获取单个度量数据；在此前的例子中， Autoscaler 需要从所有下属 pod 中获取度量， 并使用它们的平均值。 你需要在 HPA 对象的定义中指定目标对象与 目标值。以下代码清单即为一例。<br>代码清单 15.9在HPA中引用其他对象的度量</p>
+<p>该例中HPA被配置为使用Ingress对象frontend的latencyMillis度量，目标值为20。HPA会监控该Ingress对象的度量，如果该度量超过了目标值太多，</p>
+<p>autoscaler便会对kubia Deployment资源进行扩容了。<br>15.1.5确定哪些度量适合用于自动伸缩<br>你要明白，不是所有度量都适合作为自动伸缩的基础。正如之前提到的，pod中容器的内存占用并不是自动伸缩的一个好度量。如果增加副本数不能导致被观测度量平均值的线性（或者至少接近线性）下降，那么autoscaler就不能正常工作。<br>比方说，如果你只有一个pod实例，度量数值为X，这时autoscaler扩容到了2个副本，度量数值就需要落在接近X/2的位置。每秒查询次数（QPS）就是这么一种自定义度量，对web应用而言即为应用每秒接收的请求数。增大副本数总会导致QPS成比例下降，因为同样多的请求数现在被更多数量的pod处理了。<br>在你决定基于应用自有的自定义度量来伸缩它之前，一定要思考pod数量增加或减少时，它的值会如何变化。<br>15.1.6 缩容到0个副本<br>HPA目前不允许设置minReplicas字段为0，所以autoscaler永远不会缩容到0个副本，即便pod什么都没做也不会。允许pod数量缩容到0可以大幅提升硬件利用率：如果你运行的服务几个小时甚至几天才会收到一次请求，就没有道理留着它们一直运行，占用本来可以给其他服务利用的资源；然而一旦客户端请求进来了，你仍然还想让这些服务马上可用。<br>这叫空载（idling）与解除空载（un-idling），即允许提供特定服务的pod被缩容到0副本。在新的请求到来时，请求会先被阻塞，直到pod被启动，从而请求被转发到新的pod为止。<br>Kubernetes目前暂时没有提供这个特性，但在未来会实现。可以检查Kubernetes 文档来看看空载特性有没有被实现。<br>15.2pod的纵向自动伸缩<br>横向伸缩很棒，但并不是所有应用都能被横向伸缩。对这些应用而言，唯一的选项是纵向伸缩一给它们更多CPU和（或）内存。因为一个节点所拥有的资源通常都比单个pod请求的要多，我们应该几乎总能纵向扩容一个pod，对不对？<br>因为pod的资源请求是通过pod manifest的字段配置的，纵向伸缩pod将会通过改变这些字段来实现。笔者这里说的是“将会”，因为目前还不可能改变已有pod的资源请求和限制。在笔者动笔之前（已经是一年多之前了），笔者确信等到写到这一章的时候，Kubernetes应该已经支持靠谱的纵向pod自动伸缩了，因此笔者在</p>
+<p>目录计划中包含了这部分内容。不幸的是， 笔者等了一辈子，纵向 pod 自动伸缩还 没得用。<br>15.2.1 自动配置资源请求<br>这是一个实验性的特性，如果新创建的 pod 的容器没有明确设置 CPU 与内 存请求，该特性即会代为设置。 这一特性由一个叫作 InitialResources 的准入控制（Admission Control）插件提供。 当一个没有资源请求的 pod 被创建时， 该插件会根据 pod 容器的历史资源使用数据（随容器镜像、 tag 而变）来设置资源请求。<br>可以不用指定资源请求就部署 pod， 而靠 Kubernetes 来最终得出每个容器的资 源需求有多少。实质上， Kubernetes 是在纵向他缩这些 pod。比方说， 如果一个容器总是内存不足， 下次创建一个包含该容器镜像的 pod 的时候， 它的内存资源请求就会被自动调高了。<br>15.2.2 修改运行中 pod 的资源请求<br>有朝一日， 同样的机制也会用于修改已有 pod 的资源请求，这意味着在 pod 运行的同时也可以被该机制纵向伸缩。 在笔者写作此节之时，一份新的纵向 pod 自动伸缩提案正在定稿中。请参考Kubernetes 文档来检查纵向 pod 自动伸缩实现了没有 。<br>15.3<br>集群节点的横向伸缩<br>HPA 在需要的时候会创建更多的 pod 实例。 但万一所有的节点都满了，放不下 更多 pod 了，怎么办？ 显然这个问题并不局限于 Autoscaler 创建新 pod 实例的场景。即便是手动创建 pod， 也可能碰到因为资源被已有 pod 使用殆尽，以至于没有节点能接收新 pod 的情况。<br>在这种情况下，你需要删除一些已有的 pod，或者纵向缩容它们，抑或向集群 中添加更多节点。如果你的Kubernetes 集群运行在自建（on premise） 基础架构上，你得添加一台物理机，并将其加入集群。 但如果你的集群运行于云端基础架构之上 ，添加新的节点通常就是点击几下鼠标， 或者向云端做 API 调用。 这可以自动化的，对吧？<br>Kubernetes 支持在需要时立即自动从云服务提供者请求更多节点。 该特性由Cluster Autoscaler 执行。<br>15.3.1 Cluster Autoscaler 介绍<br>Cluster Autoscaler 负责在由于节点资源不足，而无法调度某 pod 到已有节点时，</p>
+<p>自动部署新节点。它也会在节点长时间使用率低下的情况下下线节点。<br>从云端基础架构请求新节点<br>如果在一个pod被创建之后，Scheduler 无法将其调度到任何一个已有节点，一个新节点就会被创建。ClusterAutoscaler会注意此类pod，并请求云服务提供者启动一个新节点。但在这么做之前，它会检查新节点有没有可能容纳这个（些） pod，毕竟如果新节点本来就不可能容纳它们，就没必要启动这么一个节点了。<br>云服务提供者通常把相同规格（或者有相同特性）的节点聚合成组。因此Cluster Autoscaler不能单纯地说“给我多一个节点”，它还需要指明节点类型。<br>Cluster Autoscaler通过检查可用的节点分组来确定是否有至少一种节点类型能容纳未被调度的pod.如果只存在唯一 -个此种节点分组，Cluster Autoscaler就可以增加节点分组的大小，让云服务提供商给分组中增加一个节点。但如果存在多个满足条件的节点分组，Cluster Autoscaler就必须挑一个 最合适的。这里“最合适”的精确含义显然必须是可配置的。在最坏的情况下，它会随机挑选一个。图15.5简单描述了ClusterAutoscaler面对一个不可调度pod时是如何反应的。<br>新节点启动后，其上运行的Kubelet会联系API服务器，创建一个Node资源以注册该节点。从这一刻起，该节点即成为Kubemetes集群的一部分，可以调度pod于其上了。<br>简单吧？那么缩容呢？</p>
+<p>图15.5 Cluster Autoscaler发现不可调度到已有节点的pod时会触发集群扩容</p>
+<p>归还节点<br>当节点利用率不足时，Cluster Autoscaler 也需要能够减少节点的数目。 ClusterAutoscaler 通过监控所有节点上请求的 CPU与内存来实现这一点。如果某个节点 上所有 pod 请求的 CPU、内存都不到 50%， 该节点即被认定为不再需要。<br>这并不是决定是否要归还某一节点的唯一因素。Cluster Autoscaler 也会检查是否有系统 pod（仅仅）运行在该节点上 （这并不包括每个节点上都运行的服务， 比如DaemonSet 所部署的服务）。 如果节点上有系统pod 在运行， 该节点就不会被归还。对非托管 pod，以及有本地存储的 pod 也是如此，否则就会造成这些 pod 提供的服务中断。换句话说，只有当 Cluster Autoscaler 知道节点上运行的 pod 能够重新调度到其他节点，该节点才会被归还。<br>当一个节点被选中下线， 它首先会被标记为不可调度， 随后运行其上的 pod 将被疏散至其他节点。因为所有这些 pod 都属于 ReplicaSet或者其他控制器， 它们的替代pod 会被创建并调度到其他剩下的节点 （这就是为何正被下线的节点要先标记为不可调度的原因）。<br>手动标记节点为不可调度、排空节点<br>节点也可以手动被标记为不可调度并排空。 不涉及细节，这些工作可用以 下 kubectl命令完成：<br>kubectl cordon <node>标记节点为不可调度（但对其上的 pod 不做任何事）。<br>kubectl drain <node>标记节点为不可调度， 随后疏散其上所有pod。<br>两种情形下，在你用kubectl uncordon<node>解除节点的不可调度状态之前，不会有新 pod 被调度到该节点。<br>15.3.2 启用 Cluster Autoscaler<br>集群自动伸缩在以下云服务提供商可用：● Google Kubernetes Engine (GKE)<br>Google Compute Engine (GCE)<br>● Amazon Web Services (AWS)<br>Microsoft Azure</node></node></node></p>
+<p>启动Cluster Autoscaler的方式取决于你的Kubernetes集群运行在哪。如果你的kubia集群运行在GKE上，可以这样启用Cluster Autoscaler：<br>$ gcloud container clusters update kubia —enable-autoscaling\<br>—min-nodes=3—max-nodes=5<br>如果你的集群运行在GCE上，需要在运行kube-up.sh前设置以下环境变量：●KUBE ENABLE CLUSTER AUTOSCALER=true<br>● KUBE AUTOSCALER MIN NODES=3<br>● KUBE AUTOSCALER MAX NODES=5<br>可以参考<a href="https://github.com/kubemetes/auto-scaler/tree/master/cluster-autoscaler上的Cluster" target="_blank" rel="noopener">https://github.com/kubemetes/auto-scaler/tree/master/cluster-autoscaler上的Cluster</a> Autoscaler GitHub版本库，来了解在其他平台上如何启用它。<br>注意Cluster Autoscaler将它的状态发布到kube-system命名空间的cluster-autoscaler-status ConfigMap上。<br>15.3.3限制集群缩容时的服务干扰<br>如果一个节点发生非预期故障，你不可能阻止其上的pod变为不可用；但如果一个节点被Cluster Autoscaler或者人类操作员主动下线，可以用一个新特性来确保下线操作不会干扰到这个节点上pod所提供的服务。<br>一些服务要求至少保持一定数量的pod持续运行，对基于quorum的集群应用而言尤其如此。为此，Kubernetes可以指定下线等操作时需要保持的最少pod数量，我们通过创建一个podDisruptionBudget资源的方式来利用这一特性。<br>尽管这个资源的名称听起来挺复杂的，实际上它是最简单的Kubernetes资源之一。它只包含一个pod标签选择器和一个数字，指定最少需要维持运行的pod数量，从Kubernetes 1.7开始，还有最大可以接收的不可用pod数量。我们会看看PodDisruptionBudget （PDB）资源长什么样，但不会通过YAML文件来创建它。你将用kubectl create poddisruptionbudget命令创建它，然后再查看一下YAML文件。<br>如果想确保你的kubia pod总有3个实例在运行（它们有app=kubia这个标签），像这样创建PodDisruptionBudget资源：<br>$ kubectl create pdb kubia-pdb —selector=app=kubia —min-available=3<br>poddisruptionbudget “kubia-pdb” created<br>简单吧？现在获取这个PDB的YAML文件，如以下代码清单所示。</p>
+<p>也可以用一个百分比而非绝对数值来写minAvailable字段。比方说，可以指定60%带app=kubia标签的pod应当时刻保持运行。<br>注意从Kubernetes 1.7开始，podDisnuptionBudget资源也支持maxUnavailable。如果当很多pod不可用而想要阻止pod被剔除时，就可以用maxUnavailable字段而不是minAvailable。<br>关于这个资源，没有更多要讲的了。只要它存在，Cluster Autoscaler 与kubectl drain命令都会遵守它：如果疏散一个带有app=kubia标签的pod会导致它们的总数小于3，那这个操作就永远不会被执行。<br>比方说，如果总共有4个pod，minAvailable像例子中一样被设为3，pod疏散过程就会挨个进行，待ReplicaSet控制器把被疏散的pod换成新的，才继续下一个。<br>15.4本章小结<br>本章向你展示了Kubermetes能够如何伸缩你的pod以及节点。你学到了<br>·配置pod的自动横向伸缩很简单，只要创建一个HorizontalpodAutoscaler对象，将它指向一个Deployment、ReplicaSet、ReplicationController，并设置pod的目标CPU使用率即可。<br>除了让HPA基于pod的CPU使用率进行伸缩操作，还可以配置它基于应用自身提供的自定义度量，或者在集群中部署的其他对象的度量来自动伸缩。目前还不能进行纵向pod自动伸缩。<br>如果你的Kubernetes集群运行在支持的云服务提供者之上，甚至集群节点也可以自动伸缩。</p>
+<p>· 可以用带有 -it 和 —rm 选项的 kubectl run 命令在 pod 中运行一次性的进程，并在按下 CTRL+C 组合键时 自动停止并删除该临时 pod。<br>在下一章中，你将探索一些高级调度特性。 例如，不让某些 pod 运行在特定节 点上、将一些pod 紧密或者分开调度。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Kubernetes-in-Action/" rel="tag"># Kubernetes in Action</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/10/01/14-计算资源管理/" rel="next" title="14-计算资源管理">
+                <i class="fa fa-chevron-left"></i> 14-计算资源管理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/10/01/16-高级调度/" rel="prev" title="16-高级调度">
+                16-高级调度 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">687</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">56</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2022/10/06/第15章-Helm程序包管理器/" title="第15章 Helm程序包管理器" target="_blank">第15章 Helm程序包管理器</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第14章-资源指标及HPA控制器/" title="第14章 资源指标及HPA控制器" target="_blank">第14章 资源指标及HPA控制器</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第13章-Kubernetes系统扩展/" title="第13章 Kubernetes系统扩展" target="_blank">第13章 Kubernetes系统扩展</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第12章-Pod资源调度/" title="第12章 Pod资源调度" target="_blank">第12章 Pod资源调度</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第11章-网络模型与网络策略/" title="第11章 网络模型与网络策略" target="_blank">第11章 网络模型与网络策略</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">6.2m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">93:28</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

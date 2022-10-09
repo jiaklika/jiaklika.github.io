@@ -116,7 +116,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/09/09/22-MySQL有哪些“饮鸩止渴”提高性能的方法？/3.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/09/22-MySQL有哪些“饮鸩止渴”提高性能的方法？/4.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/09/22-MySQL有哪些“饮鸩止渴”提高性能的方法？/5.webp">
-<meta property="og:updated_time" content="2022-09-16T08:29:06.312Z">
+<meta property="og:updated_time" content="2022-09-30T08:07:28.199Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="22 | MySQL有哪些“饮鸩止渴”提高性能的方法？">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -449,7 +449,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-16 16:29:06" itemprop="dateModified" datetime="2022-09-16T16:29:06+08:00">2022-09-16</time>
+                <time title="修改时间：2022-09-30 16:07:28" itemprop="dateModified" datetime="2022-09-30T16:07:28+08:00">2022-09-30</time>
               
             
           </span>
@@ -495,7 +495,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">5.8k</span>
+                <span title="本文字数">6.1k</span>
               
 
               
@@ -509,7 +509,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">5 分钟</span>
+                <span title="阅读时长">6 分钟</span>
               
             </div>
           
@@ -535,23 +535,23 @@
 <p>我以前做业务护航的时候，就偶尔会碰上这种场景。用户的开发负责人说，不管你用什么方案，让业务先跑起来再说。</p>
 <p>但，如果是无损方案的话，肯定不需要等到这个时候才上场。今天我们就来聊聊这些临时方案，并着重说一说它们可能存在的风险。</p>
 <h1 id="短连接风暴"><a href="#短连接风暴" class="headerlink" title="短连接风暴"></a><span style="color:#339AFF;">短连接风暴</span></h1><p>正常的短连接模式就是连接到数据库后，执行很少的SQL语句就断开，下次需要的时候再重连。如果使用的是短连接，在业务高峰期的时候，就可能出现连接数突然暴涨的情况。</p>
-<p>我在第1篇文章《基础架构：一条SQL查询语句是如何执行的？》中说过，MySQL建立连接的过程，成本是很高的。除了正常的网络连接三次握手外，还需要做登录权限判断和获得这个连接的数据读写权限。</p>
+<p>我在第1篇文章<a href="/2022/08/01/01-基础架构：一条SQL查询语句是如何执行的？/" title="《基础架构：一条SQL查询语句是如何执行的？》">《基础架构：一条SQL查询语句是如何执行的？》</a>中说过，MySQL建立连接的过程，成本是很高的。除了正常的网络连接三次握手外，还需要做登录权限判断和获得这个连接的数据读写权限。</p>
 <p>在数据库压力比较小的时候，这些额外的成本并不明显。</p>
 <p>但是，短连接模型存在一个风险，就是一旦数据库处理得慢一些，连接数就会暴涨。max_connections参数，用来控制一个MySQL实例同时存在的连接数的上限，超过这个值，系统就会拒绝接下来的连接请求，并报错提示<code>“Too many connections”</code>。对于被拒绝连接的请求来说，从业务角度看就是数据库不可用。</p>
 <p>在机器负载比较高的时候，处理现有请求的时间变长，每个连接保持的时间也更长。这时，再有新建连接的话，就可能会超过max_connections的限制。</p>
 <p>碰到这种情况时，一个比较自然的想法，就是调高max_connections的值。但这样做是有风险的。因为设计max_connections这个参数的目的是想保护MySQL，如果我们把它改得太大，让更多的连接都可以进来，那么系统的负载可能会进一步加大，大量的资源耗费在权限验证等逻辑上，结果可能是适得其反，已经连接的线程拿不到CPU资源去执行业务的SQL请求。</p>
 <p>那么这种情况下，你还有没有别的建议呢？我这里还有两种方法，但要注意，这些方法都是有损的。</p>
-<p>第一种方法：先处理掉那些占着连接但是不工作的线程。</p>
-<p>max_connections的计算，不是看谁在running，是只要连着就占用一个计数位置。对于那些不需要保持的连接，我们可以通过killconnection主动踢掉。这个行为跟事先设置wait_timeout的效果是一样的。设置wait_timeout参数表示的是，一个线程空闲wait_timeout这么多秒之后，就会被MySQL直接断开连接。</p>
-<p>但是需要注意，在showprocesslist的结果里，踢掉显示为sleep的线程，可能是有损的。我们来看下面这个例子。</p>
+<p><strong>第一种方法：先处理掉那些占着连接但是不工作的线程。</strong></p>
+<p>max_connections的计算，不是看谁在running，是只要连着就占用一个计数位置。对于那些不需要保持的连接，我们可以通过<code>kill connection</code>主动踢掉。这个行为跟事先设置wait_timeout的效果是一样的。设置wait_timeout参数表示的是，一个线程空闲wait_timeout这么多秒之后，就会被MySQL直接断开连接。</p>
+<p>但是需要注意，在<code>show processlist</code>的结果里，踢掉显示为sleep的线程，可能是有损的。我们来看下面这个例子。</p>
 <blockquote>
 <p>图1 sleep线程的两种状态</p>
 </blockquote>
 <img src="/2022/09/09/22-MySQL有哪些“饮鸩止渴”提高性能的方法？/1.webp">
-<p>在上面这个例子里，如果断开sessionA的连接，因为这时候sessionA还没有提交，所以MySQL只能按照回滚事务来处理；而断开sessionB的连接，就没什么大影响。所以，如果按照优先级来说，你应该优先断开像sessionB这样的事务外空闲的连接。</p>
-<p>但是，怎么判断哪些是事务外空闲的呢？sessionC在T时刻之后的30秒执行showprocesslist，看到的结果是这样的。</p>
+<p>在上面这个例子里，如果断开session A的连接，因为这时候session A还没有提交，所以MySQL只能按照回滚事务来处理；而断开session B的连接，就没什么大影响。所以，如果按照优先级来说，你应该优先断开像session B这样的事务外空闲的连接。</p>
+<p>但是，怎么判断哪些是事务外空闲的呢？session C在T时刻之后的30秒执行<code>show processlist</code>，看到的结果是这样的。</p>
 <blockquote>
-<p>图2 sleep线程的两种状态，showprocesslist结果</p>
+<p>图2 sleep线程的两种状态，<code>showp rocesslist</code>结果</p>
 </blockquote>
 <img src="/2022/09/09/22-MySQL有哪些“饮鸩止渴”提高性能的方法？/2.webp">
 <p>图中id=4和id=5的两个会话都是Sleep状态。而要看事务具体状态的话，你可以查information_schema库的innodb_trx表。</p>
@@ -565,34 +565,34 @@
 <p>从数据库端主动断开连接可能是有损的，尤其是有的应用端收到这个错误后，不重新连接，而是直接用这个已经不能用的句柄重试查询。这会导致从应用端看上去，“MySQL一直没恢复”。</p>
 <p>你可能觉得这是一个冷笑话，但实际上我碰到过不下10次。</p>
 <p>所以，如果你是一个支持业务的DBA，不要假设所有的应用代码都会被正确地处理。即使只是一个断开连接的操作，也要确保通知到业务开发团队。</p>
-<p>第二种方法：减少连接过程的消耗。</p>
+<p><strong>第二种方法：减少连接过程的消耗。</strong></p>
 <p>有的业务代码会在短时间内先大量申请数据库连接做备用，如果现在数据库确认是被连接行为打挂了，那么一种可能的做法，是让数据库跳过权限验证阶段。</p>
-<p>跳过权限验证的方法是：重启数据库，并使用–skip-grant-tables参数启动。这样，整个MySQL会跳过所有的权限验证阶段，包括连接过程和语句执行过程在内。</p>
+<p>跳过权限验证的方法是：重启数据库，并使用<code>–skip-grant-tables</code>参数启动。这样，整个MySQL会跳过所有的权限验证阶段，包括连接过程和语句执行过程在内。</p>
 <p>但是，这种方法特别符合我们标题里说的“饮鸩止渴”，风险极高，是我特别不建议使用的方案。尤其你的库外网可访问的话，就更不能这么做了。</p>
-<p>在MySQL8.0版本里，如果你启用–skip-grant-tables参数，MySQL会默认把—skip-networking参数打开，表示这时候数据库只能被本地的客户端连接。可见，MySQL官方对skip-grant-tables这个参数的安全问题也很重视。</p>
+<p>在MySQL 8.0版本里，如果你启用<code>–skip-grant-tables</code>参数，MySQL会默认把<code>--skip-networking</code>参数打开，表示这时候数据库只能被本地的客户端连接。可见，MySQL官方对<code>skip-grant-tables</code>这个参数的安全问题也很重视。</p>
 <p>除了短连接数暴增可能会带来性能问题外，实际上，我们在线上碰到更多的是查询或者更新语句导致的性能问题。其中，查询问题比较典型的有两类，一类是由新出现的慢查询导致的，一类是由QPS（每秒查询数）突增导致的。而关于更新语句导致的性能问题，我会在下一篇文章和你展开说明。</p>
 <h1 id="慢查询性能问题"><a href="#慢查询性能问题" class="headerlink" title="慢查询性能问题"></a><span style="color:#339AFF;">慢查询性能问题</span></h1><p>在MySQL中，会引发性能问题的慢查询，大体有以下三种可能：</p>
 <p>1，索引没有设计好；</p>
 <p>2，SQL语句没写好；</p>
 <p>3，MySQL选错了索引。</p>
 <p>接下来，我们就具体分析一下这三种可能，以及对应的解决方案。</p>
-<p>导致慢查询的第一种可能是，索引没有设计好。</p>
+<p><strong>导致慢查询的第一种可能是，索引没有设计好。</strong></p>
 <p>这种场景一般就是通过紧急创建索引来解决。MySQL5.6版本以后，创建索引都支持OnlineDDL了，对于那种高峰期数据库已经被这个语句打挂了的情况，最高效的做法就是直接执行altertable语句。</p>
 <p>比较理想的是能够在备库先执行。假设你现在的服务是一主一备，主库A、备库B，这个方案的大致流程是这样的：</p>
 <p>1，在备库B上执行setsql_log_bin=off，也就是不写binlog，然后执行altertable语句加上索引；</p>
 <p>2，执行主备切换；</p>
 <p>3，这时候主库是B，备库是A。在A上执行setsql_log_bin=off，然后执行altertable语句加上索引。</p>
 <p>这是一个“古老”的DDL方案。平时在做变更的时候，你应该考虑类似gh-ost这样的方案，更加稳妥。但是在需要紧急处理时，上面这个方案的效率是最高的。</p>
-<p>导致慢查询的第二种可能是，语句没写好。</p>
-<p>比如，我们犯了在第18篇文章《为什么这些SQL语句逻辑相同，性能却差异巨大？》中提到的那些错误，导致语句没有使用上索引。</p>
-<p>这时，我们可以通过改写SQL语句来处理。MySQL5.7提供了query_rewrite功能，可以把输入的一种语句改写成另外一种模式。</p>
-<p>比如，语句被错误地写成了<code>select*fromtwhereid+1=10000</code>，你可以通过下面的方式，增加一个语句改写规则。</p>
+<p><strong>导致慢查询的第二种可能是，语句没写好。</strong></p>
+<p>比如，我们犯了在第18篇文章<a href="/2022/09/09/18-为什么这些SQL语句逻辑相同，性能却差异巨大？/" title="为什么这些SQL语句逻辑相同，性能却差异巨大？》">为什么这些SQL语句逻辑相同，性能却差异巨大？》</a>《中提到的那些错误，导致语句没有使用上索引。</p>
+<p>这时，我们可以通过改写SQL语句来处理。MySQL 5.7提供了query_rewrite功能，可以把输入的一种语句改写成另外一种模式。</p>
+<p>比如，语句被错误地写成了<code>select * from t where id+1=10000</code>，你可以通过下面的方式，增加一个语句改写规则。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_database) values ("select * from t where id + 1 = ?", "select * from t where id = ? - 1", "db1");</span><br><span class="line"></span><br><span class="line"><span class="keyword">call</span> query_rewrite.flush_rewrite_rules();</span><br></pre></td></tr></table></figure></p>
 <p>这里，callquery_rewrite.flush_rewrite_rules()这个存储过程，是让插入的新规则生效，也就是我们说的“查询重写”。你可以用图4中的方法来确认改写规则是否生效。</p>
 <blockquote>
 <p>图4 查询重写效果</p>
 </blockquote>
 <img src="/2022/09/09/22-MySQL有哪些“饮鸩止渴”提高性能的方法？/4.webp">
-<p>导致慢查询的第三种可能，就是碰上了我们在第10篇文章《MySQL为什么有时候会选错索引？》中提到的情况，MySQL选错了索引。</p>
+<p><strong>导</strong>致慢查询的第三种可能，就是碰上了我们在第10篇文章<a href="/2022/08/24/10-MySQL为什么有时候会选错索引？/" title="《MySQL为什么有时候会选错索引？》">《MySQL为什么有时候会选错索引？》</a>中提到的情况，MySQL选错了索引。**</p>
 <p>这时候，应急方案就是给这个语句加上forceindex。</p>
 <p>同样地，使用查询重写功能，给原来的语句加上forceindex，也可以解决这个问题。</p>
 <p>上面我和你讨论的由慢查询导致性能问题的三种可能情况，实际上出现最多的是前两种，即：索引没设计好和语句没写好。而这两种情况，恰恰是完全可以避免的。比如，通过下面这个过程，我们就可以预先发现问题。</p>
@@ -619,13 +619,13 @@
 <p>其实，你可以看得出来，在这篇文章中我提到的解决方法主要集中在server层。在下一篇文章中，我会继续和你讨论一些跟InnoDB有关的处理方法。</p>
 <p>最后，又到了我们的思考题时间了。</p>
 <p>今天，我留给你的课后问题是，你是否碰到过，在业务高峰期需要临时救火的场景？你又是怎么处理的呢？</p>
-<h1 id="上期问题时间"><a href="#上期问题时间" class="headerlink" title="上期问题时间"></a><span style="color:#339AFF;">上期问题时间</span></h1><p>前两期我给你留的问题是，下面这个图的执行序列中，为什么sessionB的insert语句会被堵住。</p>
+<h1 id="上期问题时间"><a href="#上期问题时间" class="headerlink" title="上期问题时间"></a><span style="color:#339AFF;">上期问题时间</span></h1><p>前两期我给你留的问题是，下面这个图的执行序列中，为什么session B的insert语句会被堵住。</p>
 <img src="/2022/09/09/22-MySQL有哪些“饮鸩止渴”提高性能的方法？/5.webp">
-<p>我们用上一篇的加锁规则来分析一下，看看sessionA的select语句加了哪些锁：</p>
+<p>我们用上一篇的加锁规则来分析一下，看看session A的select语句加了哪些锁：</p>
 <p>1，由于是orderbycdesc，第一个要定位的是索引c上“最右边的”c=20的行，所以会加上间隙锁(20,25)和next-keylock(15,20]。</p>
-<p>2，在索引c上向左遍历，要扫描到c=10才停下来，所以next-keylock会加到(5,10]，这正是阻塞sessionB的insert语句的原因。</p>
+<p>2，在索引c上向左遍历，要扫描到c=10才停下来，所以next-keylock会加到(5,10]，这正是阻塞session B的insert语句的原因。</p>
 <p>3，在扫描过程中，c=20、c=15、c=10这三行都存在值，由于是<code>select*</code>，所以会在主键id上加三个行锁。</p>
-<p>因此，sessionA的select语句锁的范围就是：</p>
+<p>因此，session A的select语句锁的范围就是：</p>
 <p>1，索引c上(5,25)；</p>
 <p>2，主键索引上id=15、20两个行锁。</p>
 <p>这里，我再啰嗦下，你会发现我在文章中，每次加锁都会说明是加在“哪个索引上”的。因为，锁就是加在索引上的，这是InnoDB的一个基础设定，需要你在分析问题的时候要一直记得。</p>
@@ -754,7 +754,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">638</span>
+                    <span class="site-state-item-count">687</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1036,7 +1036,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">55</span>
+                      
+                    
+                    <span class="site-state-item-count">56</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1067,23 +1069,23 @@
                 
                 
                   <li>
-                    <a href="/2022/09/27/第1章-Kubernetes系统基础/" title="第1章 Kubernetes系统基础" target="_blank">第1章 Kubernetes系统基础</a>
+                    <a href="/2022/10/06/第15章-Helm程序包管理器/" title="第15章 Helm程序包管理器" target="_blank">第15章 Helm程序包管理器</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/26/33-临时对象池sync-Pool/" title="33 | 临时对象池sync.Pool" target="_blank">33 | 临时对象池sync.Pool</a>
+                    <a href="/2022/10/06/第14章-资源指标及HPA控制器/" title="第14章 资源指标及HPA控制器" target="_blank">第14章 资源指标及HPA控制器</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/26/32-context-Context类型/" title="32 | context.Context类型" target="_blank">32 | context.Context类型</a>
+                    <a href="/2022/10/06/第13章-Kubernetes系统扩展/" title="第13章 Kubernetes系统扩展" target="_blank">第13章 Kubernetes系统扩展</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/26/31-sync-WaitGroup和sync-Once/" title="31 | sync.WaitGroup和sync.Once" target="_blank">31 | sync.WaitGroup和sync.Once</a>
+                    <a href="/2022/10/06/第12章-Pod资源调度/" title="第12章 Pod资源调度" target="_blank">第12章 Pod资源调度</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/26/30-原子操作（下）/" title="30 | 原子操作（下）" target="_blank">30 | 原子操作（下）</a>
+                    <a href="/2022/10/06/第11章-网络模型与网络策略/" title="第11章 网络模型与网络策略" target="_blank">第11章 网络模型与网络策略</a>
                   </li>
                 
               </ul>
@@ -1144,7 +1146,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">5.6m</span>
+    <span title="站点总字数">6.2m</span>
   
 
   
@@ -1155,7 +1157,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">85:25</span>
+    <span title="站点阅读时长">93:28</span>
   
 </div>
 

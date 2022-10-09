@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="Kubernetes in Action">
+<meta property="og:type" content="article">
+<meta property="og:title" content="5-服务：让客户端发现pod并与之通信">
+<meta property="og:url" content="http://yoursite.com/2022/10/01/5-服务：让客户端发现pod并与之通信/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-10-08T09:54:15.580Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="5-服务：让客户端发现pod并与之通信">
+<meta name="twitter:description" content="思考并回答以下问题：">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/10/01/5-服务：让客户端发现pod并与之通信/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>5-服务：让客户端发现pod并与之通信 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/10/01/5-服务：让客户端发现pod并与之通信/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="强迫自己去看，去做。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">5-服务：让客户端发现pod并与之通信
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-10-01 09:40:47" itemprop="dateCreated datePublished" datetime="2022-10-01T09:40:47+08:00">2022-10-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-10-08 17:54:15" itemprop="dateModified" datetime="2022-10-08T17:54:15+08:00">2022-10-08</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">28k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">25 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<p>【本章内容涵盖】</p>
+<ul>
+<li>创建服务资源，利用单个地址访问一组pod</li>
+<li>发现集群中的服务</li>
+<li>将服务公开给外部客户端</li>
+<li>从集群内部连接外部服务</li>
+<li>控制pod是与服务关联</li>
+<li>排除服务故障</li>
+</ul>
+<p>现在已经学习过了pod，以及如何通过ReplicaSet和类似资源部署运行。尽管特定的pod可以独立地应对外部刺激，现在大多数应用都需要根据外部请求做出响应。例如，就微服务而言，pod通常需要对来自集群内部其他pod，以及来自集群外部的客户端的HTTP请求做出响应。</p>
+<p>pod需要一种寻找其他pod的方法来使用其他pod提供的服务，不像在没有Kubermetes的世界，系统管理员要在用户端配置文件中明确指出服务的精确的IP地址或者主机名来配置每个客户端应用，但是同样的方式在Kubernetes中并不适用，因为</p>
+<ul>
+<li>pod是短暂的——它们随时会启动或者关闭，无论是为了给其他pod提供空间而从节点中被移除，或者是减少了pod的数量，又或者是因为集群中存在节点异常。</li>
+<li>Kubernetes在pod启动前会给已经调度到节点上的pod分配IP地址——因此客户端不能提前知道提供服务的pod的IP地址。</li>
+<li>水平伸缩意味着多个pod可能会提供相同的服务每个pod都有自己的IP地址，客户端无须关心后端提供服务pod的数量，以及各自对应的IP地址。它们无须记录每个pod的IP地址。相反，所有的pod可以通过一个单一的IP地址进行访问。</li>
+</ul>
+<p>为了解决上述问题，Kubemetes提供了一种资源类型——服务（service），在本章中将对其进行介绍。</p>
+<h1 id="介绍服务"><a href="#介绍服务" class="headerlink" title="介绍服务"></a>介绍服务</h1><p>Kubemetes服务是一种为一组功能相同的pod提供单一不变的接入点的资源。当服务存在时，它的IP地址和端口不会改变。客户端通过IP地址和端口号建立连接，这些连接会被路由到提供该服务的任意一个pod上。通过这种方式，客户端不需要知道每个单独的提供服务的pod的地址，这样这些pod就可以在集群中随时被创建或移除。<br>结合实例解释服务<br>回顾一下有前端web服务器和后端数据库服务器的例子。有很多pod提供前端服务，而只有一个pod提供后台数据库服务。需要解决两个问题才能使系统发挥作用。·外部客户端无须关心服务器数量而连接到前端pod，上。<br>前端的pod需要连接后端的数据库。由于数据库运行在pod中，它可能会在集群中移来移去，导致IP地址变化。当后台数据库被移动时，无须对前端pod重新配置。<br>通过为前端pod创建服务，并且将其配置成可以在集群外部访问，可以暴露一个单一不变的IP地址让外部的客户端连接pod。同理，可以为后台数据库pod创建服务，并为其分配一个固定的IP地址。尽管pod的IP地址会改变，但是服务的IP地址固定不变。另外，通过创建服务，能够让前端的pod通过环境变量或DNS以及服务名来访问后端服务。系统中所有的元素都在图5.1中展示出来（两种服务、支持这些服务的两套pod，以及它们之间的相互依赖关系）。</p>
+<p>图5.1内部和外部客户端通常通过服务连接到pod<br>到目前为止了解了服务背后的基本理念。那么现在，去深入研究如何创建它们。<br>5.1.1创建服务<br>服务的后端可以有不止一个pod。服务的连接对所有的后端pod是负载均衡的。但是要如何准确地定义哪些pod属于服务哪些不属于呢？<br>或许还记得在ReplicationController和其他的pod控制器中使用标签选择器来指定哪些pod属于同一组。服务使用相同的机制，可以参考图5.2。<br>在前面的章节中，通过创建ReplicationController运行了三个包含Node.js应用的pod。再次创建ReplicationController并且确认pod启动运行，在这之后将会为这三个pod创建一个服务。</p>
+<p>图5.2标签选择器决定哪些pod属于服务<br>通过kubectlexpose创建服务<br>创建服务的最简单的方法是通过kubectlexpose，在第2章中曾使用这种方法来暴露创建的ReplicationController.像创建ReplicationController时使用的pod选择器那样，利用expose命令和pod选择器来创建服务资源，从而通过单个的IP和端口来访问所有的pod.<br>现在，除了使用expose命令，可以通过将配置的YAML文件传递到KubemetesAPI服务器来手动创建服务。<br>通过YAML描述文件来创建服务<br>使用以下代码清单中的内容创建一个名为kubia-svc.yaml的文件。<br>代码清单5.1服务的定义：kubia-sVC.yaml<br>apiVersion:v1<br>kind:service<br>该服务的可用端口<br>metadata:<br>name:name3pec:ports:<br>kubia<br>服务将连接转发到的<br>-port:80<br>容器端口<br>taraatpo<br>targetPort:8080<br>selector:<br>具有app=kubia标签<br>app:kubia<br>的pod都属于该服务<br>创建了一个名叫kubia的服务，它将在端口80接收请求并将连接路由到具有标签选择器是app=kubia的pod的8080端口.上。<br>接下来通过使用kubectlcreate发布文件来创建服务。</p>
+<p>检测新的服务<br>在发布完YAML文件后，可以在命名空间下列出来所有的服务资源，并可以发现新的服务已经被分配了一个内部集群IP。<br>$kubectlgetsvc<br>NAMECLUSTER-IPEXTERNAL-IPPORT(S)AGE<br>kubernetes10.111.240.1<br>nonen-443/rcp30d<br>这个是刚刚<br>kubernetes10.111<br>10.111.249.153<none>kubia<br>CLones<br>生7CE3ua<br>创建的服务<br>80/TCPm<br>列表显示分配给服务的IP地址是10.111.29.153。因为只是集群的IP地址，只能在集群内部可以被访问。服务的主要目标就是使集群内部的其他pod可以访问当前这组pod，但通常也希望对外暴露服务。如何实现将在之后讲解。现在，从集群内部使用创建好的服务并了解服务的功能。<br>从内部集群测试服务<br>可以通过以下几种方法向服务发送请求：<br>，显而易见的方法是创建—个pod，它将请求发送到服务的集群IP并记录响应。可以通过查看pod日志检查服务的响应。<br>使用ssh远程登录到其中一个Kubernetes节点上，然后使用curl命令。·可以通过kubectlexec命令在一个已经存在的pod中执行curl命令。我们来学习最后一种方法一如何在己有的pod中运行命令。<br>在运行的容器中远程执行命令<br>可以使用kubectlexec命令远程地在—个已经存在的pod容器上执行任何命令。这样就可以很方便地了解pod的内容、状态及环境。用kubectlgetpod命令列出所有的pod，并且选择其中一个作为exec命令的执行目标（在下述例子中，选择kubia-7nog1pod作为目标）。也可以获得服务的集群IP（比如使用kubectlgetsvc命令），当执行下述命令时，请确保替换对应pod的名称及服务IP地址。<br>$kubectlexeckubia-7nog1—curl-8<a href="http://10.111.249.153" target="_blank" rel="noopener">http://10.111.249.153</a><br>You’vehitkubia-gzwli<br>如果之前使用过ssh命令登录到一个远程系统，会发现kubectlexec没有特别大的不同之处。<br>为什么是双横杠？<br>双横杠（—）代表着kubectl命令项的结束。在两个横杠之后的内容是指在pod内部需要执行的命令。如果需要执行的命令并没有以横杠开始的参数，</none></p>
+<p>横杠也不是必需的。如下情况，如果这里不使用横杠号，-s选项会被解析成kubectlexec选项，会导致结果异常和歧义错误。<br>$kubectlexeckubia-7noglcurl-g<a href="http://10.111.249.153" target="_blank" rel="noopener">http://10.111.249.153</a><br>Theconnectiontotheserverl0.lll.249.l53wasrefused-didyou<br>specifytherighthostorport?<br>服务除拒绝连接外什么都不做。这是因为kubectl并不能连接到位于10.111.249.153的API服务器（-s选项用来告诉kubectl需要连接一个不同的API服务器而不是默认的）。<br>回顾一下在运行命令时发生了什么。图5.3展示了事件发生的顺序。在一个pod容器上，利用Kubemetes去执行curl命令。curl命令向一个后端有三个pod服务的IP发送了HTTP请求，Kubemetes服务代理截取的该连接，在三个pod中任意选择了一个pod，然后将请求转发给它。Nodejs在pod中运行处理请求，并返回带有pod名称的HTTP响应。接着，curl命令向标准输出打印返回值，该返回值被kubectl截取并打印到宕主机的标准输出。</p>
+<p>图5.3使用kubectlexec通过在-个pod中运行curl命令来测试服务是否连通<br>在之前的例子中，在pod主容器中以独立进程的方式执行了curl命令。这与容器真正的主进程和服务通信并没有什么区别。<br>配置服务.上的会话亲和性<br>如果多次执行同样的命令，每次调用执行应该在不同的pod上。因为服务代理<br>5.1介绍服务<br>127<br>通常将每个连接随机指向选中的后端pod中的一个，即使连接来自于同一个客户端。<br>另-方面，如果希望特定客户端产生的所有请求每次都指向同一个pod，可以设置服务的sessionAffinity属性为ClientIP（而不是None，None是默认值），如下面的代码清单所示。<br>代码清单5.2会话亲和性被设置成ClientIP的服务的例子</p>
+<p>这种方式将会使服务代理将来自同一个clientIP的所有请求转发至同一个pod上。作为练习，创建额外的服务并将会话亲和性设置为ClientIP，并尝试向其发送请求。<br>Kubemetes仅仅支持两种形式的会话亲和性服务：None和ClientIP。你或许惊讶竟然不支持基于cookie的会话亲和性的选项，但是你要了解Kubernetes服务不是在HTTP层面上工作。服务处理TCP和UDP包，并不关心其中的载荷内容。因为cookie是HTTP协议中的一部分，服务并不知道它们，这就解释了为什么会话亲和性不能基于cookie.<br>同一个服务暴露多个端口<br>创建的服务可以暴露一个端口，也可以暴露多个端口。比如，你的pod监听两个端口，比如HTTP监听8080端口、HTTPS监听8443端口，可以使用一个服务从端口80和443转发至pod端口8080和8443。在这种情况下，无须创建两个不同的服务。通过一个集群IP，使用一个服务就可以将多个端口全部暴露出来。<br>注意在创建一个有多个端口的服务的时候，必须给每个端口指定名字。<br>以下代码清单中展示了多端口服务的规格。<br>代码清单5.3在服务定义中指定多端口</p>
+<p>注意标签选择器应用于整个服务，不能对每个端口做单独的配置。如果不同的pod有不同的端口映射关系，需要创建两个服务。<br>之前创建的kubiapod不在多个端口.上侦听，因此可以练习创建一个多端口服务和一个多端口pod。<br>使用命名的端口<br>在这些例子中，通过数字来指定端口，但是在服务spec中也可以给不同的端口号命名，通过名称来指定。这样对于一些不是众所周知的端口号，使得服务spec更加清晰。<br>举个例子，假设你的pod端口定义命名如下面的代码清单所示。<br>代码清单5.4在pod的定义中指定port名称<br>kind:Pod<br>spec:<br>containers:<br>.namo<br>name:kubia<br>ports:<br>name:http<br>端口8080被命名<br>containerPort:8080<br>为http<br>containerPort:8443端口8443被命名为ttps<br>name:https<br>可以在服务spec中按名称引用这些端口，如下面的代码清单所示。代码清单5.5在服务中引用命名pod</p>
+<p>为什么要采用命名端口的方式？最大的好处就是即使更换端口号也无须更改服务spec。你的pod现在对http服务用的是8080，但是假设过段时间你决定将端口更换为80呢？<br>如果你采用了命名的端口，仅仅需要做的就是改变specpod中的端口号（当然你的端口号的名称没有改变）。在你的pod向新端口更新时，根据pod收到的连接（8080端口在旧的pod上、80端口在新的pod.上），用户连接将会转发到对应的端口号上。<br>5.1.2服务发现<br>通过创建服务，现在就可以通过一个单一稳定的IP地址访问到pod。在服务整个生命周期内这个地址保持不变。在服务后面的pod可能删除重建，它们的IP地址可能改变，数量也会增减，但是始终可以通过服务的单一不变的IP地址访问到这些pod。<br>但客户端pod如何知道服务的IP和端口？是否需要先创建服务，然后手动查找其IP地址并将IP传递给客户端pod的配置选项？当然不是。Kubernetes还为客户端提供了发现服务的IP和端口的方式。<br>通过环境变量发现服务<br>在pod开始运行的时候，Kubernetes会初始化一系列的环境变量指向现在存在的服务。如果你创建的服务早于客户端pod的创建，pod上的进程可以根据环境变量获得服务的IP地址和端口号。<br>在一个运行pod上检查环境，去了解这些环境变量。现在已经了解了通过kubectlexec命令在pod上运行一个命令，但是由于服务的创建晚于pod的创建，那么关于这个服务的环境变量并没有设置，这个问题也需要解决。<br>在查看服务的环境变量之前，首先需要删除所有的pod使得ReplicationController创建全新的pod。在无须知道pod的名字的情况下就能删除所有的pod，就像这样：$kubectldeletepo—all<br>pod”kubia-7nog1”deleted<br>pod”kubia-bf50t”deleted<br>pod”kubia-gzwli”deleted<br>现在列出所有新的pod，然后选择一个作为kubectlexec命令的执行目标。一旦选择了目标pod，通过在容器中运行env来列出所有的环境变量，如下面的代码清单所示。</p>
+<p>在集群中定义了两个服务：kubernetes和kubia（之前在用kubectlgetsvc命令的时候应该见过）；所以，列表中显示了和这两个服务相关的环境变量。在本章开始部分，创建了kubia服务，在和其有关的环境变量中有KUBIA_SERVICEHOST和KUBIA_SERVICE_PORT，分别代表了kubia服务的IP地址和端口号。<br>回顾本章开始部分的前后端的例子，当前端pod需要后端数据库服务pod时，可以通过名为backend-database的服务将后端pod暴露出来，然后前端pod通过环境变量BACKEND__DATABASE_SERVICE_HOST和BACKEND_DATABASE_SERVICE_PORT去获得IP地址和端口信息。<br>注意服务名称中的横杠被转换为下画线，并且当服务名称用作环境变量名称中的前缀时，所有的字母都是大写的。<br>环境变量是获得服务IP地址和端口号的一种方式，为什么不用DNS域名？为什么Kubernetes中没有DNS服务器，并且允许通过DNS来获得所有服务的IP地址？事实证明，它的确如此！<br>通过DNS发现服务<br>还记得第3章中在kube-system命名空间下列出的所有pod的名称吗？其中一个pod被称作kube-dns，当前的kube-system的命名空间中也包含了一个具有相同名字的响应服务。<br>就像名字的暗示，这个pod运行DNS服务，在集群中的其他pod都被配置成使用其作为dns（Kubernetes通过修改每个容器的/etc/resolv.conf文件实现）。运行在pod.上的进程DNS查询都会被Kubernetes自身的DNS服务器响应，该服务器知道系统中运行的所有服务。<br>注意pod是否使用内部的DNS服务器是根据pod中spec的dnsPolicy属性来决定的。<br>每个服务从内部DNS服务器中获得一个DNS条目，客户端的pod在知道服务</p>
+<p>名称的情况下可以通过全限定域名（FQDN）来访问，而不是诉诸于环境变量。通过FQDN连接服务<br>再次回顾前端-后端的例子，前端pod可以通过打开以下FQDN的连接来访问后端数据库服务：<br>backend-database.default.svc.cluster.local<br>backend-database对应于服务名称，default表示服务在其中定义的名称空间，而svc.cluster.local是在所有集群本地服务名称中使用的可配置集群域后缀。<br>注意客户端仍然必须知道服务的端口号。如果服务使用标准端口号（例如，HttP的80端口或Postgres的5432端口），这样是没问题的。如果并不是标准端口，客户端可以从环境变量中获取端口号。<br>连接一个服务可能比这更简单。如果前端pod和数据库pod在同一个命名空间下，可以省略svc.cluster.local后缀，甚至命名空间。因此可以使用backend-database来指代服务。这简单到不可思议，不是吗？<br>尝试一下。尝试使用FQDN来代替IP去访问kubia服务。另外，必须在一个存在的pod上才能这样做。已经知道如何通过kubectlexec在一个pod的容器上去执行一个简单的命令，但是这一次不是直接运行curl命令，而是运行bashshell，这样可以在容器。上运行多条命令。在第2章中，当想进入容器启动Docker时，调用dockerexec-itbash命令，这与此很相似。<br>在pod容器中运行shell<br>可以通过kubectlexec命令在一个pod容器.上运行bash（或者其他形式的shell）。通过这种方式，可以随意浏览容器，而无须为每个要运行的命令执行kubectlexec。<br>注意shell的二进制可执行文件必须在容器镜像中可用才能使用。<br>为了正常地使用shell，kubectlexec命令需要添加-it选项：<br>$kubectlexec-itkubia-3inlybash<br>root@kubia-3inlv:/#<br>二uuuenuyta-Y”‘“<br>现在进入容器内部，根据下述的任何一种方式使用curl命令来访问kubia服务：<br>root@kubia-3inly:/#curl<a href="http://kubia.default.svc.cluster.1ocalYou&#39;vehitkubia-5asi2" target="_blank" rel="noopener">http://kubia.default.svc.cluster.1ocalYou&#39;vehitkubia-5asi2</a></p>
+<p>在请求的URL中，可以将服务的名称作为主机名来访问服务。因为根据每个pod容器DNS解析器配置的方式，可以将命名空间和svc.cluster.local后缀省略掉。查看一下容器中的/etc/resilv.conf文件就明白了。<br>root@kubia-3inly:/#cat/etc/resolv.conf<br>search<br>lefault.svc.cluster.localsvc.cluuster.localcluster.local…search<br>无法ping通服务IP的原因<br>在继续之前还有最后一问题。了解了如何创建服务，很快地去自己创建一个。但是，不知道什么原因，无法访问创建的服务。<br>大家可能会尝试通过进入现有的pod，并尝试像.上一个示例那样访问该服务来找出问题所在。然后，如果仍然无法使用简单的curl命令访问服务，也许会尝试ping服务IP以查看服务是否已启动。现在来尝试一下：<br>rootubia-3inly:/#pingkubia<br>PINGkubia.default.svc.cluster.local(10.111.249.153):56databytes<br>^C—-kubia.default.sVc.cluster.1ocalpingstatistics—-<br>54packetstransmitted,0packetsreceived,100%packetloss<br>嗯，curl这个服务是工作的，但是却ping不通。这是因为服务的集群IP是一个虚拟IP，并且只有在与服务端口结合时才有意义。将在第11章中解释这意味着什么，以及服务是如何工作的。在这里提到这个问题，因为这是用户在尝试调试异常服务时会做的第一件事（ping服务的IP），而服务的IP无法ping通会让大多数人措手不及。<br>5.2连接集群外部的服务<br>到现在为止，我们已经讨论了后端是集群中运行的一个或多个pod的服务。但也存在希望通过Kubernetes服务特性暴露外部服务的情况。不要让服务将连接重定向到集群中的pod，而是让它重定向到外部IP和端口。<br>这样做可以让你充分利用服务负载平衡和服务发现。在集群中运行的客户端pod可以像连接到内部服务一样连接到外部服务。</p>
+<p>5.2.1介绍服务endpoint<br>在进入如何做到这一点之前，先阐述一下服务。服务并不是和pod直接相连的。相反，有一种资源介于两者之间一它就是Endpoint资源。如果之前在服务上运行过kubectldescribe，可能已经注意到了endpoint，如下面的代码清单所示。<br>代码清单5.7用kubectldescribe展示服务的全部细节<br>skubectldescxibegvckubia<br>Name:<br>kubia<br>用于创建endpoint<br>Namespace:<br>default<br>列表的服务pod选<br>代表服务<br>Labels:</p>
+<p><none><br>择器<br>endpoint的<br>Selector:<br>app=kubia<br>。<br>pod的IP和<br>Type:<br>CluserIP<br>端口列表<br>IP:<br>10.111.249.153<br>Port:</none></p>
+<p><ulset>80/TCP<br>Endpoints:<br>10*108.1.4:8080.10.108.2.5:808010.108.2.6:808<br>Q<br>SessionAffinity:<br>None<br>Noevents.<br>Endpoint资源就是暴露一个服务的IP地址和端口的列表，Endpoint资源和其他Kubernetes资源一样，所以可以使用kubectlinfo来获取它的基本信息。<br>$kubectlgetendpointskubia<br>NAME<br>ENDPOINTS<br>AGE<br>kubia10.108.1.4:8080,10.108.2.5:8080.10.108.2.6:8081h<br>尽管在spec服务中定义了pod选择器，但在重定向传入连接时不会直接使用它。相反，选择器用于构建IP和端口列表，然后存储在Endpoint资源中。当客户端连接到服务时，服务代理选择这些IP和端口对中的一个，并将传入连接重定向到在该位置监听的服务器。<br>5.2.2手动配置服务的endpoint<br>或许已经意识到这一点，服务的endpoint与服务解耦后，可以分别手动配置和更新它们。<br>如果创建了不包含pod选择器的服务，Kubernetes将不会创建Endpoint资源（毕竟，缺少选择器，将不会知道服务中包含哪些pod）。这样就需要创建Endpoint资源来指定该服务的endpoint列表。<br>要使用手动配置endpoint的方式创建服务，需要创建服务和Endpoint资源。创建没有选择器的服务<br>首先为服务创建一个YAML文件，如下面的代码清单所示。</ulset></p>
+<p>定义一个名为external-service的服务，它将接收端口80上的传入连接。并没有为服务定义一个pod选择器。<br>为没有选择器的服务创建Endpoint资源<br>Endpoint是一个单独的资源并不是服务的一个属性。由于创建的资源中并不包含选择器，相关的Endpoints资源并没有自动创建，所以必须手动创建。如下所示的代码清单中列出了YAMLmanifest。<br>代码清单5.9手动创建Endpoint资源：external-serviceendpoints.yamlapiVersion:v1<br>kind:Endpoints<br>Endpoint的名称必须和服务的名称相匹配（见之前的代码清单）<br>metadata:<br>metadata<br>name:external-servicesubsets:<br>.adaresses:<br>，;n.1n1<br>ip:11.11.11.11ip:22.22.22.22ports:<br>服务将连接重定向到endpoint的IP地址<br>-port:80<br>endpoint的目标端口<br>port:<br>Endpoint对象需要与服务具有相同的名称，并包含该服务的目标IP地址和端口列表。服务和Endpoint资源都发布到服务器后，这样服务就可以像具有pod选择器那样的服务正常使用。在服务创建后创建的容器将包含服务的环境变量，并且与其IP：port对的所有连接都将在服务端点之间进行负载均衡。<br>图5.4显示了三个pod连接到具有外部endpoint的服务。<br>如果稍后决定将外部服务迁移到Kubernetes中运行的pod，可以为服务添加选择器，从而对Endpoint进行自动管理。反过来也是一样的一将选择器从服务中移除，Kubernetes将停止更新Endpoints.这意味着服务的IP地址可以保持不变，同时服务的实际实现却发生了改变。</p>
+<p>图5.4pod关联到具有两个外部endpoint的服务上<br>5.2.3<br>为外部服务创建别名<br>除了手动配置服务的Endpoint来代替公开外部服务方法，有一种更简单的方法，就是通过其完全限定域名（FQDN）访问外部服务<br>创建ExtermnalName类型的服务<br>要创建一个具有别名的外部服务的服务时，要将创建服务资源的一个type字段设置为ExternalName。例如，设想一下在api.somecompany.com上有公共可用的API，可以定义一个指向它的服务，如下面的代码清单所示。<br>代码清单5.10.ExternalName类型的服务：extemal-service-extemalname.yaml<br>apiVersion:vl<br>kind:Service<br>代码的type被设置成<br>metadata:<br>ExternalName<br>name:external-service<br>spec:<br>实际服务的完全限<br>type:ExternalName<br>定域名<br>externalName:someapi.somecompany.com<br>口<br>ports:<br>-port:80<br>服务创建完成后，pod可以通过external-service.default.svc.cluster.local域名（甚至是external-service）连接到外部服务，而不是使用服务的实际FQDN。这隐藏了实际的服务名称及其使用该服务的pod的位置，允许修改服务定义，并且在以后如果将其指向不同的服务，只需简单地修改externalName属性，或者将类型重新变回ClusterIP并为服务创建Endpoint-无论是手动创建，还是对服务上指定标签选择器使其自动创建。<br>ExternalName服务仅在DNS级别实施一为服务创建了简单的CNAMEDNS</p>
+<p>记录。因此，连接到服务的客户端将直接连接到外部服务，完全绕过服务代理。出于这个原因，这些类型的服务甚至不会获得集群IP。<br>注意CNAME记录指向完全限定的域名而不是数字IP地址。<br>5.3将服务暴露给外部客户端<br>到目前为止，只讨论了集群内服务如何被pod使用：但是，还需要向外部公开某些服务。例如前端web服务器，以便外部客户端可以访问它们，就像图5.5描述的那样。</p>
+<p>图5.5将服务暴露给外部客户端<br>有几种方式可以在外部访问服务：<br>·将服务的类型设置成NodePort一每个集群节点都会在节点上打开一个端口，对于NodePort服务，每个集群节点在节点本身（因此得名叫NodePort）上打开一个端口，并将在该端口上接收到的流量重定向到基础服务。该服务仅在内部集群IP和端口上才可访问，但也可通过所有节点上的专用端口访问。<br>将服务的类型设置成LoadBalance，NodePort类型的一种扩展一这使得服务可以通过一个专用的负载均衡器来访问，这是由Kubernetes中正在运行的云基础设施提供的。负载均衡器将流量重定向到跨所有节点的节点端口。客户端通过负载均衡器的IP连接到服务。<br>创建一个Ingress资源，这是一个完全不同的机制，通过一个IP地址公开多个服务一它运行在HTTP层（网络协议第7层）上，因此可以提供比工作在第4层的服务更多的功能。我们将在5.4节介绍Ingress资源。</p>
+<p>5.3.1使用NodePort类型的服务<br>将一组pod公开给外部客户端的第一种方法是创建一个服务并将其类型设置为NodePort。通过创建NodePort服务，可以让Kubermetes在其所有节点上保留一个端口（所有节点上都使用相同的端口号），并将传入的连接转发给作为服务部分的pod.<br>这与常规服务类似（它们的实际类型是ClusterIP），但是不仅可以通过服务的内部集群IP访问NodePort服务，还可以通过任何节点的IP和预留节点端口访问NodePort服务。<br>当尝试与NodePort服务交互时，意义更加重大。<br>创建NodePort类型的服务<br>现在将创建一个NodePort服务，以查看如何使用它。下面的代码清单显示了服务的YAML。<br>代码清单5.11NodePort服务定义：kubia-svc-nodeport.yaml</p>
+<p>将类型设置为NodePort并指定该服务应该绑定到的所有集群节点的节点端口。指定端口不是强制性的。如果忽略它，Kubernetes将选择一个随机端口。<br>注意当在GKE中创建服务时，kubectl打印出一个关于必须配置防火墙规则的警告。接下来的章节将讲述如何处理。<br>查看NodePort类型的服务查看该服务的基础信息：</p>
+<p>看看EXTERNAL-IP列。它显示nodes，表明服务可通过任何集群节点的IP地址访问。PORT（S）列显示集群IP（80）的内部端口和节点端口（30123），可以通过以下地址访问该服务：<br>●10.11.254.223:80<br>●&lt;lstnode’sIP&gt;:30123</p>
+<p>&lt;2ndnode’sIP&gt;:30123,等等<br>图5.6显示了服务暴露在两个集群节点的端口30123上（这适用于在GKE.上运行的情况；Minikube只有一个节点，但原理相同）。到达任何一个端口的传入连接将被重定向到一个随机选择的pod，该pod是否位于接收到连接的节点上是不确定的。</p>
+<p>图5.6外部客户端通过节点1或者节点2连接到NodePort服务<br>在第一个节点的端口30123收到的连接，可以被重定向到第一节点个上运行的pod，也可能是第二个节点上运行的pod。<br>更改防火墙规则，让外部客户端访问我们的NodePort服务<br>如前所述，在通过节点端口访问服务之前，需要配置谷歌云平台的防火墙，以允许外部连接到该端口上的节点，如下所示。</p>
+<p>可以通过其中一个节点的IP的端口30123访问服务，但是需要首先找出节点的IP。请参阅补充内容了解如何做到这一点。<br>使用JSONPath获取所有节点的IP<br>可以在节点的JSON或YAML描述符中找到IP。但并不是在很大的JSON中筛选，而是可以利用kubectl只打印出节点IP而不是整个服务的定义。<br>$kubectlgetnodeg-ojsonpath=’{.items[*].status.<br>addresses[?(@.type==”ExternalIP”)].address}1<br>130.211.97.55130.211.99.206<br>通过指定kubectl的JSONPath，使得其只输出需要的信息。你可能已经熟悉XPath，并且知道如何使用XML，JSONPath基本上是JSON的XPath。上例中的JSONPath指示kubectl执行以下操作：<br>·浏览item属性中的所有元素。<br>·对于每个元素，输入status属性。<br>·过滤address属性的元素，仅包含那些具有将type属性设置为ExternalIP的元素。<br>·最后，打印过滤元素的address属性。<br>要了解有关kubectl使用JSONPath的更多信息，请参阅<a href="http://kubernetes.io/docs/user-guide/jsonpath上的文档。" target="_blank" rel="noopener">http://kubernetes.io/docs/user-guide/jsonpath上的文档。</a><br>一旦知道了节点的IP，就可以尝试通过以下方式访问服务：$curl<a href="http://130.211.97.55:30123" target="_blank" rel="noopener">http://130.211.97.55:30123</a><br>You’vehitkubia-ym8or<br>$curl<a href="http://130.211.99.206:30123" target="_blank" rel="noopener">http://130.211.99.206:30123</a><br>You’vehitkubia-xueql<br>提示使用Minikube时可以运行minikubesevrvice<service-name>[-n<namespace>]命令，通过浏览器轻松访问NodePort服务。<br>正如所看到的，现在整个互联网可以通过任何节点上的30123端口访问到你的pod。客户端发送请求的节点并不重要。但是，如果只将客户端指向第一个节点，那么当该节点发生故障时，客户端无法再访问该服务。这就是为什么将负载均衡器放在节点前面以确保发送的请求传播到所有健康节点，并且从不将它们发送到当时处</namespace></service-name></p>
+<p>于脱机状态的节点的原因。<br>如果Kubernetes集群支持它（当Kubemetes部署在云基础设施上时，大多数情况都是如此），那么可以通过创建一个LoadBadancer而不是NodePort服务自动生成负载均衡器。接下来介绍此部分。<br>5.3.2通过负载均衡器将服务暴露出来<br>在云提供商上运行的Kubemetes集群通常支持从云基础架构自动提供负载平衡器。所有需要做的就是设置服务的类型为LoadBadancer而不是NodePort。负载均衡器拥有自己独-无二的可公开访问的IP地址，并将所有连接重定向到服务。可以通过负载均衡器的IP地址访问服务。<br>如果Kubermetes在不支持LoadBadancer服务的环境中运行，则不会调配负载平衡器，但该服务仍将表现得像一个NodePort服务。这是因为LoadBadancer服务是NodePort服务的扩展。可以在支持LoadBadancer服务的GoogleKubermetesEngine.上运行此示例。Minikube没有，至少在写作本书的时候。创建LoadBalance服务<br>要使用服务前面的负载均衡器，请按照以下YAMLmanifest创建服务，代码清单如下所示。<br>代码清单5.12LoadBadancer类型的服务：kubiasvc-oadbalancer.yaml</p>
+<p>服务类型设置为LoadBalancer而不是NodePort。如果没有指定特定的节点端口，Kubernetes将会选择一个端口。<br>通过负载均衡器连接服务<br>创建服务后，云基础架构需要一段时间才能创建负载均衡器并将其IP地址写入服务对象。一旦这样做了，IP地址将被列为服务的外部IP地址：</p>
+<p>在这种情况下，负载均衡器的IP地址为130.211.53.173，因此现在可以通过该IP地址访问该服务：<br>$curl<a href="http://130.211.53.173" target="_blank" rel="noopener">http://130.211.53.173</a><br>You’vehitkubia-xueq1<br>成功了！可能像你已经注意到的那样，这次不需要像以前使用NodePort服务那样来关闭防火墙。<br>会话亲和性和Web浏览器<br>由于服务现在已暴露在外，因此可以尝试使用网络浏览器访问它。但是会看到一些可能觉得奇怪的东西一每次浏览器都会碰到同一个pod。此时服务的会话亲和性是否发生变化？使用kubectlexplain，可以再次检查服务的会话亲缘性是否仍然设置为None，那么为什么不同的浏览器请求不会碰到不同的pod，就像使用curl时那样？<br>现在阐述为什么会这样。浏览器使用keep-alive连接并通过单个连接发送所有请求，而curl每次都会打开一个新连接。服务在连接级别工作，所以当首次打开与服务的连接时，会选择一个随机集群，然后将属于该连接的所有网络数据包全部发送到单个集群。即使会话亲和性设置为None，用户也会始终使用相同的pod（直到连接关闭）。<br>请参阅图5.7，了解HTTP请求如何传递到该pod。外部客户端（可以使用curl）连接到负载均衡器的80端口，并路由到其中一个节点上的隐式分配节点端口。之后该连接被转发到一个pod实例。<br>如前所述，LoadBalancer类型的服务是一个具有额外的基础设施提供的负载平衡器NodePort服务。如果使用kubectldescribe来显示有关该服务的其他信息，则会看到为该服务选择了一个节点端口。如果要为此端口打开防火墙，就像在上一节中对NodePort服务所做的那样，也可以通过节点IP访问服务。<br>提示如果使用的是Minikube，尽管负载平衡器不会被分配，仍然可以通过节点端口（位于MinikubeVM的IP地址）访问该服务。</p>
+<p>图5.7外部客户端连接一个LoadBalancer服务<br>5.3.3<br>了解外部连接的特性<br>你必须了解与服务的外部发起的连接有关的几件事情。<br>了解并防止不必要的网络跳数<br>当外部客户端通过节点端口连接到服务时（这也包括先通过负载均衡器时的情况），随机选择的pod并不一定在接收连接的同一节点上运行。可能需要额外的网络跳转才能到达pod，但这种行为并不符合期望。<br>可以通过将服务配置为仅将外部通信重定向到接收连接的节点上运行的pod来阻止此额外跳数。这是通过在服务的spec部分中设置externalTrafficPolicy字段来完成的：</p>
+<p>如果服务定义包含此设置，并且通过服务的节点端口打开外部连接，则服务代理将选择本地运行的pod。如果没有本地pod存在，则连接将挂起（它不会像不使用注解那样，将其转发到随机的全局pod）。因此，需要确保负载平衡器将连接转发给至少具有一个pod的节点。<br>使用这个注解还有其他缺点。通常情况下，连接均匀分布在所有的pod上，但使用此注解时，情况就不再一样了。<br>想象一下两个节点有三个pod。假设节点A运行一个pod，节点B运行另外两个pod。如果负载平衡器在两个节点间均匀分布连接，则节点A上的pod将接收所有连接的50%，但节点B上的两个pod每个只能接收25%，如图5.8所示。</p>
+<p>图5.8使用local外部流量策略的服务可能会导致跨pod的负载分布不均衡<br>记住客户端IP是不记录的<br>通常，当集群内的客户端连接到服务时，支持服务的pod可以获取客户端的IP地址。但是，当通过节点端口接收到连接时，由于对数据包执行了源网络地址转换（SNAT），因此数据包的源IP将发生更改。<br>后端的pod无法看到实际的客户端IP，这对于某些需要了解客户端IP的应用程序来说可能是个问题。例如，对于Web服务器，这意味着访问日志无法显示浏览器的IP。<br>上一节中描述的local外部流量策略会影响客户端IP的保留，因为在接收连接的节点和托管目标pod的节点之间没有额外的跳跃（不执行SNAT）。<br>5.4通过Ingress暴露服务<br>现在已经介绍了向集群外部的客户端公开服务的两种方法，还有另一种方法创建Ingress资源。</p>
+<p>定义Ingress（名词）进入或进入的行为；进入的权利；进入的手段或地点；入口。<br>接下来解释为什么需要另一种方式从外部访问Kubernetes服务。<br>为什么需要Ingress<br>一个重要的原因是每个LoadBalancer服务都需要自己的负载均衡器，以及独有的公有IP地址，而Ingress只需要一个公网IP就能为许多服务提供访问。当客户端向Ingress发送HTTP请求时，Ingress会根据请求的主机名和路径决定请求转发到的服务，如图5.9所示</p>
+<p>图5.9通过一个Ingress暴露多个服务<br>Ingress在网络栈（HTTP）的应用层操作，并且可以提供一些服务不能实现的功能，诸如基于cookie的会话亲和性（sessionaffnity）等功能。<br>Ingress控制器是必不可少的<br>在介绍Ingress对象提供的功能之前，必须强调只有Ingress控制器在集群中运行，Ingress资源才能正常工作。不同的Kubemetes环境使用不同的控制器实现，但有些并不提供默认控制器。<br>例如，GoogleKubernetesEngine使用GoogleCloudPlatform带有的HTTP负载平衡模块来提供Ingress功能。最初，Minikube没有提供可以立即使用的控制器，但它现在包含一个可以启用的附加组件，可以试用Ingress功能。请根据下面的补充信息里的说明确保Ingress功能已启用。<br>在minikube上启动Ingress的扩展功能<br>如果使用Minikube运行本书中的示例，则需要确保已启用Ingress附加组件。可以通过列出所有附件来检查Ingress是否已启动：<br>$minikubeaddons1igt<br>default-storageclass:enabled</p>
+<p>通过本书可以了解这些附加组件，但应该对dashboard和kube-dns附件的用途十分清楚。启用Ingress附加组件，并查看正在运行的Ingress：<br>$minikubeaddonsenableingress<br>ingresswassuccessfullyenabled<br>这应该会在另一个pod上运行一个Ingress控制器。控制器pod很可能位于kube-system命名空间中，但也不一定是这样，所以使用—all-namespaces选项列出所有命名空间中正在运行的pod：<br>$kubect1getpo—all-namespaces<br>NAMESPACE<br>NAME<br>READYSTATUS<br>RESTARTSAGE<br>default<br>kubia-rsv5m<br>1/1<br>Running<br>0<br>13h<br>default<br>kubia-fe4ad<br>1/1<br>Running<br>0<br>13h<br>default<br>kubia-ke823<br>1/1<br>Running<br>0<br>13h<br>kube-system<br>default-http-backend-5wb0h<br>1/1<br>Running<br>0<br>18m<br>kube-system<br>kube-addon-manager-minikube<br>1/1<br>Running<br>3<br>6d<br>kube-system<br>kube-dns-v20-101vq<br>3/3<br>Running<br>9<br>6d<br>kube-systemkubernetes-dashboard-jxd91<br>1/1<br>Running<br>3<br>6d<br>kube-systemnginx-ingress-controller-gdts01/1<br>Running<br>0<br>18m<br>在输出的底部，会看到Ingress控制器pod。该名称暗示Nginx（一种开源HTTP服务器并可以做反向代理）用于提供Ingress功能。<br>提示当不知道pod（或其他类型的资源）所在的命名空间，或者是否希望跨所有命名空间列出资源时，利用补充说明中提到的—all-namespaces选项非常方便。<br>5.4.1创建Ingress资源<br>已经确认集群中正在运行Ingress控制器，因此现在可以创建一个Ingress资源。下面的代码清单显示了Ingress的示例YAML：<br>代码清单5.13<br>Ingress资源的定义：kubia-ingress.yaml50000000</p>
+<p>定义了一个单一规则的Ingress，确保Ingress控制器收到的所有请求主机kubia.example.com的HTTP请求，将被发送到端口80上的kubia-nodeport服务。<br>注意云供应商的Ingress控制器（例如GKE）要求Ingress指向一个NodePort服务。但Kubernetes并没有这样的要求。<br>5.4.2通过Ingress访问服务<br>要通过<a href="http://kubia.example.com访问服务，需要确保域名解析为Ingress控制器的IP。" target="_blank" rel="noopener">http://kubia.example.com访问服务，需要确保域名解析为Ingress控制器的IP。</a><br>获取Ingress的IP地址<br>要查找IP，需要列出Ingress：<br>$kubectlgetingressesNAME<br>HOSTS<br>ADDRESS<br>PORTS80<br>AGE<br>kubia<br>kubia.example.com<br>192.168.99.100<br>29m<br>注意在云提供商的环境上运行时，地址可能需要一段时间才能显示，因为Ingress控制器在幕后调配负载均衡器。<br>IP在ADDRESS列中显示出来。<br>确保在Ingress中配置的Host指向Ingress的IP地址<br>一旦知道IP地址，通过配置DNS服务器将kubia.example.com解析为此IP地址，或者在/ect/hosts文件（Windows系统为C：\windows\system32\drivers\etc\hosts）中添加下面一行内容：<br>192.168.99.100kubia.example.com</p>
+<p>通过Ingress访问pod<br>环境都已经建立完毕，可以通过ttp://kubia.example.com地址访问服务（使用浏览器或者curl命令）：<br>$curl<a href="http://kubia.example.com" target="_blank" rel="noopener">http://kubia.example.com</a><br>You’vehitkubia-ke823<br>现在已经通过Ingress成功访问了该服务，接下来对其展开深层次的研究。了解Ingress的工作原理<br>图5.10显示了客户端如何通过Ingress控制器连接到其中一个pod。客户端首先对kubia.example.com执行DNS查找，DNS服务器（或本地操作系统）返回了Ingress控制器的IP。客户端然后向Ingress控制器发送HTTP请求，并在Host头中指定kubia.example.com。控制器从该头部确定客户端尝试访问哪个服务，通过与该服务关联的Endpoint对象查看podIP，并将客户端的请求转发给其中一个pod。<br>如你所见，Ingress控制器不会将请求转发给该服务，只用它来选择一个pod。大多数（即使不是全部）控制器都是这样工作的。</p>
+<p>图5.10通过Ingress访问pod<br>5.4.3通过相同的Ingress暴露多个服务<br>如果仔细查看Ingress规范，则会看到rules和paths都是数组，因此它们可以包含多个条目。一个Ingress可以将多个主机和路径映射到多个服务，我们先来看看paths字段。<br>148<br>5服务：让客户端发现pod并与之通信<br>将不同的服务映射到相同主机的不同路径<br>将不同的服务映射到相同主机的不同paths，以下面的代码清单为例。<br>he<br>代码清单5.14在同一个主机、不同的路径上，Ingress暴露出多个服务</p>
+<p>在这种情况下，根据请求的URL中的路径，请求将发送到两个不同的服务。因此，客户端可以通过一个IP地址（Ingress控制器的IP地址）访问两种不同的服务。将不同的服务映射到不同的主机，上<br>同样，可以使用Ingress根据HTTP请求中的主机而不是（仅）路径映射到不同的服务，如下面的代码清单所示。<br>代码清单5.15Ingress根据不同的主机（host）暴露出多种服务</p>
+<p>根据请求中的Host头（虚拟主机在网络服务器中处理的方式），控制器收到的请求将被转发到foo服务或bar服务。DNS需要将foo.example.com和bar.example.com域名都指向Ingress控制器的IP地址。</p>
+<p>5.4.4配置Ingress处理TLS传输<br>我们已经知道Ingress如何转发HTTP流量。但是HTTPS呢？接下来了解一下如何配置Ingress以支持TLS。<br>为Ingress创建TLS认证<br>当客户端创建到Ingress控制器的TLS连接时，控制器将终止TLS连接。客户端和控制器之间的通信是加密的，而控制器和后端pod之间的通信则不是。运行在pod上的应用程序不需要支持TLS。例如，如果pod运行web服务器，则它只能接收HTTP通信，并让Ingress控制器负责处理与TLS相关的所有内容。要使控制器能够这样做，需要将证书和私钥附加到Ingress。这两个必需资源存储在称为Secret的Kubernetes资源中，然后在Ingressmanifest中引用它。我们将在第7章中详细介绍Secret。现在，只需创建Secret，而不必太在意。<br>首先，需要创建私钥和证书：<br>$opensslgenrsa-outtls.key2048<br>$opensslreq-new-x509-keytls.key-outtls.cert-days360-subj<br>/CN=kubia.example.com<br>像下述两个文件一样创建Secret：<br>$kubectlcreatesecrettlstls-secret—cert=tls.cert—key=tls.key<br>secret”tls-secret”created<br>通过CertificateSigningRequest资源签署证书<br>可以不通过自己签署证书，而是通过创建CertificateSigningRequest（CSR）资源来签署。用户或他们的应用程序可以创建一个常规证书请求，将其放入CSR中，然后由人工操作员或自动化程序批准请求，像这样：<br>$kubectlcertificateapprove<nameofthecsr><br>然后可以从CSR的status.certificate字段中检索签名的证书。<br>请注意，证书签署者组件必须在集群中运行，否则创建Certifica-teSigningRequest以及批准或拒绝将不起作用。<br>私钥和证书现在存储在名为tls-secret的Secret中。现在，可以更新Ingress对象，以便它也接收kubia.example.com的HTTPS请求。Ingress现在看起来应该像下面的代码清单。</nameofthecsr></p>
+<p>提示可以调用kubectlapply-fkubia-ingress-tls.yaml使用文件中指定的内容来更新Ingress资源，而不是通过删除并从新文件重新创建的方式。现在可以使用HTTPS通过Ingress访问服务：<br>$curl-k-v<a href="https://kubia.example.com/kubia" target="_blank" rel="noopener">https://kubia.example.com/kubia</a><br><em>Abouttoconnect()tokubia.example.comport443(#0)
+</em>Servercertificate:<br>*subject:cN=kubia.example.com</p>
+<blockquote>
+<p>GET/kubiaHTTP/1.1<br>You’vehitkubia-xueql<br>该命令的输出显示应用程序的响应，以及配置的Ingress的证书服务器的响应。注意对Ingress功能的支持因不同的Ingress控制器实现而异，因此请检查特定实现的文档以确定支持的内容。<br>Ingress是一个相对较新的Kubernetes功能，因此可以预期将来会看到许多改进和新功能。虽然目前仅支持L7（网络第7层）（HTTP/HTTPS）负载平衡，但也计划支持L4（网络第4层）负载平衡。<br>5.5<br>pod就绪后发出信号<br>还有一件关于Service和Ingress的事情需要考虑。已经了解到，如果pod的标</p>
+</blockquote>
+<p>签与服务的pod选择器相匹配，那么pod就将作为服务的后端。只要创建了具有适当标签的新pod，它就成为服务的一部分，并且请求开始被重定向到pod。但是，如果pod没有准备好，如何处理服务请求呢？<br>该pod可能需要时间来加载配置或数据，或者可能需要执行预热过程以防止第一个用户请求时间太长影响了用户体验。在这种情况下，不希望该pod立即开始接收请求，尤其是在运行的实例可以正确快速地处理请求的情况下。不要将请求转发到正在启动的pod中，直到完全准备就绪。<br>介绍就绪探针<br>在之前的章节中，了解了存活探针，以及它们如何通过确保异常容器自动重启来保持应用程序的正常运行。与存活探针类似，Kubernetes还允许为容器定义准备就绪探针。<br>就绪深测器会定期调用，并确定特定的pod是否接收客户端请求。当容器的准备就绪探测返回成功时，表示容器已准备好接收请求。<br>这个准备就绪的概念显然是每个容器特有的东西。Kubernetes只能检查在容器中运行的应用程序是否响应一个简单的GET/请求，或者它可以响应特定的URL路径（该URL导致应用程序执行一系列检查以确定它是否准备就绪）。考虑到应用程序的具体情况，这种确切的准备就绪的判定是应用程序开发人员的责任。<br>就绪探针的类型<br>像存活探针一样，就绪探针有三种类型：<br>Exec探针，执行进程的地方。容器的状态由进程的退出状态代码确定。<br>HTTPGET探针，向容器发送HTTPGET请求，通过响应的HTTP状态代码判断容器是否准备好。<br>TCPsocket探针，它打开一个TCP连接到容器的指定端口。如果连接已建立，则认为容器已准备就绪。<br>了解就绪探针的操作<br>启动容器时，可以为Kubernetes配置一个等待时间，经过等待时间后才可以执行第一次准备就绪检查。之后，它会周期性地调用探针，并根据就绪探针的结果采取行动。如果某个pod报告它尚未准备就绪，则会从该服务中删除该pod。如果pod再次准备就绪，则重新添加pod。<br>与存活探针不同，如果容器未通过准备检查，则不会被终止或重新启动。这是存活探针与就绪探针之间的重要区别。存活探针通过杀死异常的容器并用新的正常容器替代它们来保持pod正常工作，而就绪探针确保只有准备好处理请求的pod才</p>
+<p>可以接收它们（请求）。这在容器启动时最为必要，当然在容器运行一段时间后也是有用的。<br>如图5.11所示，如果一个容器的就绪探测失败，则将该容器从端点对象中移除。连接到该服务的客户端不会被重定向到pod。这和pod与服务的标签选择器完全不匹配的效果相同。</p>
+<p>图5.11就绪探针失败的pod从服务的endpoint中移除<br>了解就绪探针的重要性<br>设想一组pod（例如，运行应用程序服务器的pod）取决于另一个pod（例如，后端数据库）提供的服务。如果任何一个前端连接点出现连接问题并且无法再访问数据库，那么就绪探针可能会告知Kubernetes该pod没有准备好处理任何请求。如果其他pod实例没有遇到类似的连接问题，则它们可以正常处理请求。就绪探针确保客户端只与正常的pod交互，并且永远不会知道系统存在问题。<br>5.5.2向pod添加就绪探针<br>接下来，将通过修改ReplicationController的pod模板来为现有的pod添加就绪探针。<br>向podtemplate添加就绪探针<br>可以通过kubectledit命令来向已存在的ReplicationController中的pod模板添加探针。<br>$kubectleditrckubia<br>当在文本编辑器中打开ReplicationController的YAML时，在pod模板中查找容器规格，并将以下就绪探针定义添加到spec.template.spec.containers下的第一个容器。YAML看起来应该就像下面的代码清单。</p>
+<p>就绪探针将定期在容器内执行ls/var/ready命令。如果文件存在，则ls命令返回退出码0，否则返回非零的退出码。如果文件存在，则就绪探针将成功；否则，它会失败。<br>定义这样一个奇怪的就绪探针的原因是，可以通过创建或删除有问题的文件来触发结果。该文件尚不存在，所以所有的pod现在应该报告没有准备好，是这样的吗？其实并不完全是，正如在前面章节中了解的那样，更改ReplicationController的pod模板对现有的pod没有影响。<br>换句话说，现有的所有pod仍没有定义准备就绪探针。可以通过使用kubectlgetpods列出pod并查看READY列。需要删除pod并让它们通过ReplicationController重新创建。新的pod将进行就绪检查会一直失败，并且不会将其作为服务的端点，直到在每个pod中创建/var/ready文件。<br>观察并修改pod就绪状态<br>再次列出pod并检查它们是否准备好：<br>$kubectlgetpo<br>NAME<br>READY<br>STATUS<br>RESTARTS<br>AGE<br>kubia-2r1qb<br>0/1<br>Running<br>0<br>1m<br>kubia-3rax1<br>0/1<br>Running<br>0<br>1m<br>kubia-3yw4s<br>0/1<br>Running<br>0<br>1m<br>READY列显示出没有一个容器准备好。现在通过创建/var/ready文件使其中一个文件的就绪探针返回成功，该文件的存在可以模拟就绪探针成功：<br>$kubectlexeckubia-2r1qb—touch/var/ready</p>
+<p>使用kubectlexec命令在kubia-2r1qb的pod容器内执行touch命令。如果文件尚不存在，touch命令会创建该文件。就绪探针命令现在应该返回退出码0，这意味着探测成功，并且现在应该显示pod已准备就绪。现在去查看其状态：<br>$kubectlgetPOkubia-2r1qb<br>NAMEREADYSTATUSRESTARTSAGE<br>kubia-2r1gb0/1Running<br>该pod还没有准备好。有什么不对或者这是预期的结果吗？用kubectldescr，ibe来获得更详细的关于pod的信息。输出应该包含以下内容：<br>Readiness:exec[ls/var/ready]delay=0stimeout=lsperiod=10s#success=1</p>
+<h1 id="£ailure-3"><a href="#£ailure-3" class="headerlink" title="£ailure=3"></a>£ailure=3</h1><h1 id="1alLures"><a href="#1alLures" class="headerlink" title="1alLures"></a>1alLures</h1><p>准备就绪探针会定期检查一默认情况下每10秒检查一次。由于尚未调用就绪探针，因此容器未准备好。但是最晚10秒钟内，该pod应该已经准备就绪，其IP应该列为service的endpoint（运行kubectlgetendpointkubia-loadbalancer来确认）。<br>服务打向单独的pod<br>现在可以点击几次服务网址，查看每个请求都被重定向到这个pod：<br>$curl<a href="http://130.211.53.173" target="_blank" rel="noopener">http://130.211.53.173</a><br>You’vehitkubia-2r1qb<br>scurl<a href="http://130.211.53。173" target="_blank" rel="noopener">http://130.211.53。173</a><br>You’vehitkubia-2r1qb<br>$curl<a href="http://130.211.53.173" target="_blank" rel="noopener">http://130.211.53.173</a><br>You’vehitkubia-2rlqb<br>即使有三个pod正在运行，但只有一个pod报告已准备好，因此是唯-的pod接收请求。如果现在删除该文件，则将再次从该服务中删除该容器。<br>5.5.3了解就绪探针的实际作用<br>此模拟就绪探针仅用于演示就绪探针的功能。在实际应用中，应用程序是否可以（并且希望）接收客户端请求，决定了就绪探测应该返回成功或失败。<br>应该通过删除pod或更改pod标签而不是手动更改探针来从服务中手动移除pod.<br>提示如果想要从某个服务中手动添加或删除pod，请将enabled=true作为标签添加到pod，以及服务的标签选择器中。当想要从服务中移除pod时，删除标签。</p>
+<p>务必定义就绪探针<br>在总结本节之前，有两个关于就绪探针的要点，需要强调。首先，如果没有将就绪探针添加到pod中，它们几乎会立即成为服务端点。如果应用程序需要很长时间才能开始监听传入连接，则在服务启动但尚未准备好接收传入连接时，客户端请求将被转发到该pod。因此，客户端会看到“连接被拒绝”类型的错误。<br>提示应该始终定义一个就绪探针，即使它只是向基准URL发送HTTP请求一样简单。<br>不要将停止pod的逻辑纳入就绪探针中<br>需要提及的另一件事情涉及pod生命周期结束（pod关闭），并且也与客户端出现连接错误相关。<br>当一个容器关闭时，运行在其中的应用程序通常会在收到终止信号后立即停止接收连接。因此，可能认为只要启动关机程序，就需要让就绪探针返回失败，以确保从所有服务中删除该pod。但这不是必需的，因为只要删除该容器，Kubemetes就会从所有服务中移除该容器。<br>5.6使用headless服务来发现独立的pod<br>已经看到如何使用服务来提供稳定的IP地址，从而允许客户端连接到支持服务的每个pod（或其他端点）。到服务的每个连接都被转发到一个随机选择的pod.上。但是如果客户端需要链接到所有的pod呢？如果后端的pod都需要连接到所有其他pod呢？通过服务连接显然不是这样的，那是怎样的呢？<br>要让客户端连接到所有pod，需要找出每个pod的IP。一种选择是让客户端调用KubernetesAPI服务器并通过API调用获取pod及其IP地址列表，但由于应始终努力保持应用程序与Kubermetes无关，因此使用API服务器并不理想。<br>幸运的是，Kubermetes允许客户通过DNS查找发现podIP。通常，当执行服务的DNS查找时，DNS服务器会返回单个IP一服务的集群IP。但是，如果告诉Kubermetes，不需要为服务提供集群IP（通过在服务spec中将clusterIP字段设置为None来完成此操作），则DNS服务器将返回podIP而不是单个服务IP。<br>DNS服务器不会返回单个DNSA记录，而是会为该服务返回多个A记录，每个记录指向当时支持该服务的单个pod的IP。客户端因此可以做一个简单的DNSA记录查找并获取属于该服务一部分的所有pod的IP。客户端可以使用该信息连接到其中的一个、多个或全部。</p>
+<p>5.6.1创建headless服务<br>将服务spec中的clusterIP字段设置为None会使服务成为headless服务，因为Kubernetes不会为其分配集群IP，客户端可通过该IP将其连接到支持它的pod。<br>现在将创建一个名为kubia-headless的headless服务。以下代码清单显示了它的定义。<br>代码清单5.18一个headless服务：kubia-svc-headless.yaml<br>apiversion:v1<br>kind:Service<br>metadata:<br>name:kubia-headlessspec:<br>这使得服务成为headless的<br>clusterIP:Noneports:<br>-port:80<br>targetPort:808cselector:<br>app:kubia<br>在使用kubectlcreate创建服务之后，可以通过kubectlget和kubectldescribe来查看服务，你会发现它没有集群IP，并且它的后端包含与pod选择器匹配的（部分）pod。“部分”是因为pod包含就绪探针，所以只有准备就绪的pod会被列出作为服务的后端文件来确保至少有两个pod报告已准备就绪，如上例所示：$kubectlexec<podname>—touch/var/ready<br>5.6.2通过DNS发现pod<br>准备好pod后，现在可以尝试执行DNS查找以查看是否获得了实际的podIP。需要从其中一个pod中执行查找。不幸的是，kubia容器镜像不包含nslookup（或dig）二进制文件，因此无法使它执行DNS查找。<br>所要做的就是在集群中运行的一个pod中执行DNS查询。为什么不寻找一个包含所需二进制文件的镜像来运行新的容器？要执行与DNS相关的操作，可以使用DockerHub上提供的tutum/dnsutils容器镜像，它包含nslookup和dig二进制文件。要运行pod，可以完成创建YAML清单并将其传给kubectlcreate的整个过程。但是太烦琐了，对吗？幸运的是，有一个更快的方法。</podname></p>
+<p>不通过YAML文件运行pod<br>在第1章中，已经使用kubectlrun命令在没有YAML清单的情况下创建了pod。但是这次只想创建一个pod，不需要创建一个ReplicationController来管理pod。可以这样做：<br>$kubectlrundnsutils—image=tutum/dnsutils—gene:erator=run-pod/v1<br>runansuc.<br>”.—command—sleepinfinity<br>pod”dnsutils”created<br>诀窍在—generator=run-pod/v1选项中，该选项让kubectl直接创建pod，而不需要通过ReplicationController之类的资源来创建。<br>理解headless服务的DNSA记录解析<br>使用新创建的pod执行DNS查找：<br>$kubect1execdnsutilsnslookupkubia-headless<br>Name<br>Name:kubia-headless.default.svc.cluster.1ocal<br>Address:10.108.1.4<br>Name:kubia-headless.default.svc.cluster.1ocal<br>Address:10.108.2.5<br>DNS服务器为kubia-headless.default.svc.cluster.localFQDN返回两个不同的IP。这些是报告准备就绪的两个pod的IP。可以通过使用kubectlgetpods-owide列出pod来确认此问题，该清单显示了pod的IP<br>这与常规（非headless服务）服务返回的DNS不同，比如kubia服务，返回的IP是服务的集群IP：<br>$kubectlexecdnsutilsnslookupkubia<br>Name:kubia.default.svc.cluster.local<br>Address:10.1.249.153<br>尽管headless服务看起来可能与常规服务不同，但在客户的视角上它们并无不司。即使使用headless服务，客户也可以通过连接到服务的DNS名称来连接到pod上，就像使用常规服务一样。但是对于headless服务，由于DNS返回了pod的IP，客户端直接连接到该pod，而不是通过服务代理。<br>注意headless服务仍然提供跨pod的负载平衡，但是通过DNS轮询机制不是通过服务代理。<br>5.6.3发现所有的pod一包括未就绪的pod<br>只有准备就绪的pod能够作为服务的后端。但有时希望即使pod没有准备就绪，</p>
+<p>服务发现机制也能够发现所有匹配服务标签选择器的pod。<br>幸运的是，不必通过查询KubemetesAPI服务器，可以使用DNS查找机制来查找那些未准备好的pod.要告诉Kubemetes无论pod的准备状态如何，希望将所有pod添加到服务中。必须将以下注解添加到服务中：<br>kind:Service<br>metadata:<br>annotations:<br>service.alpha.kubernetes.io/tolerate-unready-endpoints:”true”<br>警告就像说的那样，注解名称表明了这是一个alpha功能.KubernetesServiceAPI已经支持一个名为publishNotReadyAddresses的新服务规范字段，它将替换tolerate-unready-endpoints注解。在Kubernetes1.9.0版本中，这个字段还没有实现（这个注解决定了未准备好的endpoints是否在DNS的记录中）。检查文档以查看是否已更改。<br>5.7排除服务故障<br>服务是Kubernetes的一个重要概念，也是让许多开发人员感到困扰的根源。许多开发人员为了弄清楚无法通过服务IP或FQDN连接到他们的pod的原因花费了大量时间。出于这个原因，了解一下如何排除服务故障是很有必要的：<br>如果无法通过服务访问pod，应该根据下面的列表进行排查：<br>首先，确保从集群内连接到服务的集群IP，而不是从外部。<br>·不要通过ping服务IP来判断服务是否可访问（请记住，服务的集群IP是虚拟IP，是无法ping通的）。<br>如果已经定义了就绪探针，请确保它返回成功；否则该pod不会成为服务的一部分。<br>·要确认某个容器是服务的一部分，请使用kubectlgetendpoints来检查相应的端点对象。<br>，如果尝试通过FQDN或其中一部分来访问服务（例如，myservice.mynamespace.svc.cluster.local或myservice.mynamespace），但并不起作用，请查看是否可以使用其集群IP而不是FQDN来访问服务。<br>检查是否连接到服务公开的端口，而不是目标端口<br>，尝试直接连接到podIP以确认pod正在接收正确端口上的连接。<br>·如果甚至无法通过pod的IP访问应用，请确保应用不是仅绑定到本地主机。这应该可以帮助解决大部分与服务相关的问题。将在第1l章中了解更多有关服务如何工作的内容。通过了解它们的实现方式，应该可以更轻松地对它们进行故障</p>
+<p>排除<br>除。<br>5.8本章小结<br>在本章中，已经学习了如何创建Kubemetes服务资源来暴露应用程序中可用的服务，无论每个服务后端有多少pod实例。你已经学会了Kubemetes关于服务的用法：·在一个固定的IP地址和端口下暴露匹配到某个标签选择器的多个pod<br>·服务在集群内默认是可访问的，通过将服务的类型设置为NodePort或LoadBalancer，使得服务也可以从集群外部访问<br>·让pod能够通过查找环境变量发现服务的IP地址和端口<br>允许通过创建服务资源而不指定选择器来发现驻留在集群外部的服务并与之通信，方法是创建关联的Endpoint资源<br>为具有ExternalName服务类型的外部服务提供DNSCNAME别名<br>，通过单个Ingress公开多个HTTP服务（使用单个IP）<br>使用pod容器的就绪探针来确定是否应该将pod包含在服务endpoints内通过创建headless服务让DNS发现podIP<br>随着对服务的深入理解，也学习到了下面的内容：<br>故障排查<br>修改GoogleKubernetes/ComputEngine中的防火墙规则<br>通过kubectlexec在pod容器中执行命令<br>在现有容器的容器中运行一个bashshell<br>·通过kubectlapply命令修改Kubernetes资源<br>使用kubectlrun—generator=run-pod/v1运行临时的pod</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Kubernetes-in-Action/" rel="tag"># Kubernetes in Action</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/10/01/4-副本机制和其他控制器：部署托管的pod/" rel="next" title="4-副本机制和其他控制器：部署托管的pod">
+                <i class="fa fa-chevron-left"></i> 4-副本机制和其他控制器：部署托管的pod
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/10/01/6-卷：将磁盘挂载到容器/" rel="prev" title="6-卷：将磁盘挂载到容器">
+                6-卷：将磁盘挂载到容器 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">687</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">56</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2022/10/06/第15章-Helm程序包管理器/" title="第15章 Helm程序包管理器" target="_blank">第15章 Helm程序包管理器</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第14章-资源指标及HPA控制器/" title="第14章 资源指标及HPA控制器" target="_blank">第14章 资源指标及HPA控制器</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第13章-Kubernetes系统扩展/" title="第13章 Kubernetes系统扩展" target="_blank">第13章 Kubernetes系统扩展</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第12章-Pod资源调度/" title="第12章 Pod资源调度" target="_blank">第12章 Pod资源调度</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第11章-网络模型与网络策略/" title="第11章 网络模型与网络策略" target="_blank">第11章 网络模型与网络策略</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#介绍服务"><span class="nav-number">1.</span> <span class="nav-text">介绍服务</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#£ailure-3"><span class="nav-number">2.</span> <span class="nav-text">£ailure=3</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1alLures"><span class="nav-number">3.</span> <span class="nav-text">1alLures</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">6.2m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">93:28</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

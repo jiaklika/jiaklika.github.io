@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="Kubernetes in Action">
+<meta property="og:type" content="article">
+<meta property="og:title" content="4-副本机制和其他控制器：部署托管的pod">
+<meta property="og:url" content="http://yoursite.com/2022/10/01/4-副本机制和其他控制器：部署托管的pod/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-10-08T03:13:38.777Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="4-副本机制和其他控制器：部署托管的pod">
+<meta name="twitter:description" content="思考并回答以下问题：">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/10/01/4-副本机制和其他控制器：部署托管的pod/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>4-副本机制和其他控制器：部署托管的pod | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/10/01/4-副本机制和其他控制器：部署托管的pod/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="强迫自己去看，去做。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">4-副本机制和其他控制器：部署托管的pod
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-10-01 09:38:56" itemprop="dateCreated datePublished" datetime="2022-10-01T09:38:56+08:00">2022-10-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-10-08 11:13:38" itemprop="dateModified" datetime="2022-10-08T11:13:38+08:00">2022-10-08</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">26k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">24 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<p>【本章内容涵盖】</p>
+<ul>
+<li>保持pod的健康</li>
+<li>运行同一个pod的多个实例</li>
+<li>在节点异常之后自动重新调度pod</li>
+<li>水平缩放pod</li>
+<li>在集群节点上运行系统级的pod</li>
+<li>运行批量任务</li>
+<li>调度任务定时执行或者在未来执行一次</li>
+</ul>
+<p>正如你前面所学到的，pod代表了Kubernetes中的基本部署单元，而且你已知道如何手动创建、监督和管理它们。但是在实际的用例里，你希望你的部署能自动保持运行，并且保持健康，无须任何手动干预。要做到这一点，你几乎不会直接创建pod，而是创建ReplicationControlle或Deployment这样的资源，接着由它们来创建并管理实际的pod。</p>
+<p>当你创建未托管的pod（就像你在前一章中创建的那些）时，会选择一个集群节点来运行pod，然后在该节点上运行容器。在本章中你将了解到，Kubernetes接下来会监控这些容器，并且在它们失败的时候自动重新启动它们。但是如果整个节点失败，那么节点上的pod会丢失，并且不会被新节点替换，除非这些pod由前面提到的ReplicationController或类似资源来管理。在本章中，你将了解Kubernetes如何检查容器是否仍然存在，如果不存在则重新启动容器。你还将学到如何运行托管的pod—既可以无限期运行，也可以执行单个任务，然后终止运行。</p>
+<h1 id="保持pod健康"><a href="#保持pod健康" class="headerlink" title="保持pod健康"></a>保持pod健康</h1><p>使用Kubermetes的一个主要好处是，可以给Kubernetes一个容器列表来由其保持容器在集群中的运行。可以通过让Kubermetes创建pod资源，为其选择一个工作节点并在该节点上运行该pod的容器来完成此操作。但是，如果其中一个容器终止，或一个pod的所有容器都终止，怎么办？</p>
+<p>只要将pod调度到某个节点，该节点上的Kubelet就会运行pod的容器，从此只要该pod存在，就会保持运行。如果容器的主进程崩溃，Kubelet将重启容器。如果应用程序中有一个导致它每隔一段时间就会崩溃的bug，Kubermetes会自动重启应用程序，所以即使应用程序本身没有做任何特殊的事，在Kubernetes中运行也能自动获得自我修复的能力。</p>
+<p>即使进程没有崩溃，有时应用程序也会停止正常工作。例如，具有内存泄漏的Java应用程序将开始抛出OutOfMemoryErrors，但JVM进程会一直运行。如果有一种方法，能让应用程序向Kubernetes发出信号，告诉Kubermetes它运行异常并让Kubernetes重新启动，那就很棒了。<br>我们已经说过，一个崩溃的容器会自动重启，所以也许你会想到，可以在应用中捕获这类错误，并在错误发生时退出该进程。当然可以这样做，但这仍然不能解决所有的问题。<br>例如，你的应用因为无限循环或死锁而停止响应。为确保应用程序在这种情况下可以重新启动，必须从外部检查应用程序的运行状况，而不是依赖于应用的内部检测。</p>
+<h2 id="介绍存活探针"><a href="#介绍存活探针" class="headerlink" title="介绍存活探针"></a>介绍存活探针</h2><p>Kubermetes可以通过存活探针（livenessprobe）检查容器是否还在运行。可以为pod中的每个容器单独指定存活探针。如果探测失败，Kubernetes将定期执行探针并重新启动容器。</p>
+<p>注意我们将在下一章中学习到Kubernetes还支持就绪探针（readinessprobe），一定不要混淆两者。它们适用于两种不同的场景。</p>
+<p>Kubernetes有以下三种探测容器的机制：</p>
+<p>·HTTPGET探针对容器的IP地址（你指定的端口和路径）执行HTTPGET请求。</p>
+<p>如果探测器收到响应，并且响应状态码不代表错误（换句话说，如果HTTP响应状态码是2xx或3xx），则认为探测成功。如果服务器返回错误响应状态码或者根本没有响应，那么探测就被认为是失败的，容器将被重新启动。<br>·TCP套接字探针尝试与容器指定端口建立TCP连接。如果连接成功建立，则探测成功。否则，容器重新启动。<br>Exec探针在容器内执行任意命令，并检查命令的退出状态码。如果状态码是0，则探测成功。所有其他状态码都被认为失败。</p>
+<h2 id="创建基于HTTP的存活探针"><a href="#创建基于HTTP的存活探针" class="headerlink" title="创建基于HTTP的存活探针"></a>创建基于HTTP的存活探针</h2><p>我们来看看如何为你的Node.js应用添加一个存活探针。因为它是一个Web应用程序，所以添加一个存活探针来检查其Web服务器是否提供请求是有意义的。但是因为这个Node.js应用程序太简单了，所以不得不人为地让它失败。</p>
+<p>要正确演示存活探针，需要你稍微修改应用程序。在第五个请求之后，给每个请求返回HTTP状态码500（InternalServerError）你的应用程序将正确处理前五个客户端请求，之后每个请求都会返回错误。多亏了存活探针，应用在这个时候会重启，使其能够再次正确处理客户端请求。</p>
+<p>可以在本书的代码档案中找到新应用程序的代码（在Chapter04/kubia-unhealthy文件夹中）。笔者已经将容器镜像推送到DockerHub，因此你不需要自己构建它了。</p>
+<p>你将创建一个包含HTTPGET存活探针的新pod，下面的代码清单显示了pod的yaml。</p>
+<blockquote>
+<p>代码清单4.1 将存活探针添加到pod：kubia-Iiveness-probe.yaml</p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>该pod的描述文件定义了一个httpGet存活探针，该探针告诉Kubernetes定期在端口8080路径上执行HTTPGET请求，以确定该容器是否健康。这些请求在容器运行后立即开始。</p>
+<p>经过五次这样的请求（或实际的客户端请求）后，你的应用程序开始返回HTTP状态码500，Kubernetes会认为探测失败并重启容器。</p>
+<h2 id="使用存活探针"><a href="#使用存活探针" class="headerlink" title="使用存活探针"></a>使用存活探针</h2><p>要查看存活探针是如何工作的，请尝试立即创建该pod。大约一分半钟后，容器将重启。可以通过运行kubectlget看到：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$kubectlgetpokubia</span>-liveness</span><br><span class="line">在文稿和文件名中搜索文本</span><br><span class="line">NAME</span><br><span class="line">READY</span><br><span class="line">STATUS</span><br><span class="line">RESTARTS</span><br><span class="line">AGE</span><br><span class="line">kubia-liveness</span><br><span class="line">1/1</span><br><span class="line">Running</span><br><span class="line">1</span><br><span class="line">2m</span><br></pre></td></tr></table></figure></p>
+<p>RESTARTS列显示pod的容器已被重启一次（如果你再等一分半钟，它会再次重启，然后无限循环下去）。</p>
+<p>获取崩溃容器的应用日志</p>
+<p>在前一章中，你学习了如何使用kubectllogs打印应用程序的日志。如果你的容器重启，kubectllogs命令将显示当前容器的日志。当你想知道为什么前一个容器终止时，你想看到的是前一个容器的日志，而不是当前容器的。可以通过添加—previous选项来完成：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$kubectllogsmypod</span>--previous</span><br></pre></td></tr></table></figure></p>
+<p>可以通过查看kubectldescribe的内容来了解为什么必须重启容器，如下面的代码清单所示。</p>
+<blockquote>
+<p>代码清单4.2 重启容器后的pod描述</p>
+</blockquote>
+<p>可以看到容器现在正在运行，但之前由于错误而终止。退出代码为137，这有特殊的含义一表示该进程由外部信号终止。数字137是两个数字的总和：128+x，其中x是终止进程的信号编号。在这个例子中，x等于9，这是SIGKILL的信号编号，意味着这个进程被强行终止。</p>
+<p>在底部列出的事件显示了容器为什么终止—Kubernetes发现容器不健康，所以终止并重新创建。</p>
+<blockquote>
+<p>注意 当容器被强行终止时，会创建一个全新的容器一而不是重启原来的容器。</p>
+</blockquote>
+<h2 id="配置存活探针的附加属性"><a href="#配置存活探针的附加属性" class="headerlink" title="配置存活探针的附加属性"></a>配置存活探针的附加属性</h2><p>你可能已经注意到，kubectldescribe还显示关于存活探针的附加信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Liveness:http-gethttp://:8080/delay=0stimeout=1speriod=10s<span class="comment">#success=l</span></span><br><span class="line"><span class="comment">#failure=3</span></span><br></pre></td></tr></table></figure></p>
+<p>除了明确指定的存活探针选项，还可以看到其他属性，例如delay（延迟）、timeout（超时）、period（周期）等。delay=0s部分显示在容器启动后立即开始探测。timeout仅设置为1秒，因此容器必须在1秒内进行响应，不然这次探测记作失败。每10秒探测一次容器（period=10s），并在探测连续三次失败（#failure=3）后重启容器。</p>
+<p>定义探针时可以自定义这些附加参数。例如，要设置初始延迟，请将initialDelaySeconds属性添加到存活探针的配置中，如下面的代码清单所示。</p>
+<blockquote>
+<p>代码清单4.3 具有初始延迟的存活探针：kubialivenessprobeinitialdelayaml</p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>如果没有设置初始延迟，探针将在启动时立即开始探测容器，这通常会导致探测失败，因为应用程序还没准备好开始接收请求。如果失败次数超过阈值，在应用程序能正确响应请求之前，容器就会重启。</p>
+<blockquote>
+<p>提示 务必记得设置一个初始延迟来说明应用程序的启动时间。</p>
+</blockquote>
+<p>很多场合都会看到这种情况，用户很困惑为什么他们的容器正在重启。但是如果使用kubectldescribe，他们会看到容器以退出码137或143结束，并告诉他们该pod是被迫终止的。此外，pod事件的列表将显示容器因liveness探测失败而被终止。如果你在pod启动时看到这种情况，那是因为未能适当设置initialDelaySeconds。</p>
+<blockquote>
+<p>注意 退出代码137表示进程被外部信号终止，退出代码为128+9（SIGKILL）。同样，退出代码143对应于128+15（SIGTERM）。</p>
+</blockquote>
+<h2 id="创建有效的存活探针"><a href="#创建有效的存活探针" class="headerlink" title="创建有效的存活探针"></a>创建有效的存活探针</h2><p>对于在生产中运行的pod，一定要定义一个存活探针。没有探针的话，Kubernetes无法知道你的应用是否还活着。只要进程还在运行，Kubernetes会认为容器是健康的。</p>
+<p>存活探针应该检查什么</p>
+<p>简易的存活探针仅仅检查了服务器是否响应。虽然这看起来可能过于简单，但即使是这样的存活探针也可以创造奇迹，因为如果容器内运行的web服务器停止响应HTTP请求，它将重启容器。与没有存活探针相比，这是一项重大改进，而且在大多数情况下可能已足够。</p>
+<p>但为了更好地进行存活检查，需要将探针配置为请求特定的URL路径（例如/health），并让应用从内部对内部运行的所有重要组件执行状态检查，以确保它们都没有终止或停止响应。</p>
+<blockquote>
+<p>提示 请确保/healthHTTP端点不需要认证，否则探测会一直失败，导致你的容器无限重启。</p>
+</blockquote>
+<p>一定要检查应用程序的内部，而没有任何外部因素的影响。例如，当服务器无法连接到后端数据库时，前端Web服务器的存活探针不应该返回失败。如果问题的底层原因在数据库中，重启Web服务器容器不会解决问题。由于存活探测将再次失败，你将反复重启容器直到数据库恢复。</p>
+<p>保持探针轻量</p>
+<p>存活探针不应消耗太多的计算资源，并且运行不应该花太长时间。默认情况下，探测器执行的频率相对较高，必须在一秒之内执行完毕。一个过重的探针会大大减慢你的容器运行。在本书的后面，还将学习如何限制容器可用的CPU时间。探针的CPU时间计入容器的CPU时间配额，因此使用重量级的存活探针将减少主应用程序进程可用的CPU时间。<br>提示如果你在容器中运行Java应用程序，请确保使用HTTPGET存活探针，而不是启动全新JVM以获取存活信息的Exec探针。任何基于JVM或类似的应用程序也是如此，它们的启动过程需要大量的计算资源。<br>无须在探针中实现重试循环<br>你已经看到，探针的失败阈值是可配置的，并且通常在容器被终止之前探针必须失败多次。但即使你将失败阈值设置为1，Kubernetes为了确认一次探测的失败，会尝试若干次。因此在探针中自己实现重试循环是浪费精力。<br>存活探针小结<br>你现在知道Kubernetes会在你的容器崩溃或其存活探针失败时，通过重启容器来保持运行。这项任务由承载pod的节点上的Kubelet执行一在主服务器上运行的KubernetesControlPlane组件不会参与此过程。<br>但如果节点本身崩溃，那么ControlPlane必须为所有随节点停止运行的pod创建替代品。它不会为你直接创建的pod执行此操作。这些pod只被Kubelet管理，但由于Kubelet本身运行在节点上，所以如果节点异常终止，它将无法执行任何操作。<br>为了确保你的应用程序在另一个节点上重新启动，需要使用ReplicationController或类似机制管理pod，我们将在本章其余部分讨论该机制。</p>
+<h1 id="了解ReplicationController"><a href="#了解ReplicationController" class="headerlink" title="了解ReplicationController"></a>了解ReplicationController</h1><p>ReplicationController是一种Kubernetes资源，可确保它的pod始终保持运行状态。如果pod因任何原因消失（例如节点从集群中消失或由于该pod已从节点中逐出），则ReplicationController会注意到缺少了pod并创建替代pod。</p>
+<p>图4.1显示了当一个节点下线且带有两个pod时会发生什么。podA是被直接创建的，因此是非托管的pod，而podB由ReplicationController管理。节点异常退出后，</p>
+<p>ReplicationController会创建一个新的pod（podB2）来替换缺少的podB，而podA完全丢失没有东西负责重建它。<br>图中的ReplicationController只管理一个pod，但一般而言，ReplicationController旨在创建和管理一个pod的多个副本（replicas）。这就是ReplicationController名字的由来。</p>
+<blockquote>
+<p>图4.1 节点故障时，只有ReplicationController管理的pod被重新创建</p>
+</blockquote>
+<h2 id="ReplicationController的操作"><a href="#ReplicationController的操作" class="headerlink" title="ReplicationController的操作"></a>ReplicationController的操作</h2><p>ReplicationController会持续监控正在运行的pod列表，并保证相应“类型”的pod的数目与期望相符。如正在运行的pod太少，它会根据pod模板创建新的副本。如正在运行的pod太多，它将删除多余的副本。你可能会对有多余的副本感到奇怪。这可能有几个原因：<br>·有人会手动创建相同类型的pod。<br>，有人更改现有的pod的“类型”。<br>，有人减少了所需的pod的数量，等等。</p>
+<p>笔者已经使用过几次pod“类型”这种说法，但这是不存在的。ReplicationController不是根据pod类型来执行操作的，而是根据pod是否匹配某个标签选择器（前一章中了解了它们）。<br>介绍控制器的协调流程13826478639<br>ReplicationController的工作是确保pod的数量始终与其标签选择器匹配。如果不匹配，则ReplicationController将根据所需，采取适当的操作来协调pod的数量。图4.2显示了ReplicationController的操作。</p>
+<p>图4.2一个ReplicationController的协调流程<br>了解ReplicationController的三部分<br>一个ReplicationController有三个主要部分（如图4.3所示）：<br>labelselector（标签选择器），用于确定ReplicationController作用域中有哪些pod<br>replicacount（副本个数），指定应运行的pod数量<br>podtemplate（pod模板），用于创建新的pod副本</p>
+<p>ReplicationController的副本个数、标签选择器，甚至是pod模板都可以随时修改，但只有副本数目的变更会影响现有的pod。<br>更改控制器的标签选择器或pod模板的效果<br>更改标签选择器和pod模板对现有pod没有影响。更改标签选择器会使现有的pod脱离ReplicationController的范围，因此控制器会停止关注它们。在创建pod后，ReplicationController也不关心其pod的实际“内容”（容器镜像、环境变量及其他）。因此，该模板仅影响由此ReplicationController创建的新pod。可以将其视为创建新pod的曲奇切模（cookiecutter）.<br>使用ReplicationController的好处<br>像Kubernetes中的许多事物一样，ReplicationController尽管是一个令人难以置信的简单概念，却提供或启用了以下强大功能：<br>·确保一个pod（或多个pod副本）持续运行，方法是在现有pod丢失时启动一个新pod.<br>集群节点发生故障时，它将为故障节点上运行的所有pod（即受ReplicationController控制的节点上的那些pod）创建替代副本。<br>·它能轻松实现pod的水平伸缩一手动和自动都可以（参见第15章中的pod的水平自动伸缩）。<br>注意pod实例永远不会重新安置到另一个节点。相反，ReplicationController会创建一个全新的pod实例，它与正在替换的实例无关。<br>4.2.2创建-个ReplicationController<br>让我们了解一下如何创建一个ReplicationController，然后看看它如何让你的pod运行。就像pod和其他Kubemetes资源，可以通过上传JSON或YAML描述文件到KubemetesAPI服务器来创建ReplicationController.</p>
+<p>你将为你的ReplicationController创建名为kubia-rc.yaml的YAML文件，如下面的代码清单所示。<br>代码清单4.4ReplicationController的YAML定义：kubia-rc.yaml</p>
+<p>上传文件到API服务器时，Kubernetes会创建一个名为kubia的新ReplicationController，它确保符合标签选择器app=kubia的pod实例始终是三个。当没有足够的pod时，根据提供的pod模板创建新的pod。模板的内容与前一章中创建的pod定义几乎相同。<br>模板中的pod标签显然必须和ReplicationController的标签选择器匹配，否则控制器将无休止地创建新的容器。因为启动新pod不会使实际的副本数量接近期望的副本数量。为了防止出现这种情况，API服务会校验ReplicationController的定义，不会接收错误配置。<br>根本不指定选择器也是一种选择。在这种情况下，它会自动根据pod模板中的标签自动配置。<br>提示定义ReplicationController时不要指定pod选择器，让Kubernetes从pod模板中提取它。这样YAML更简短。<br>要创建ReplicationController，请使用已知的kubectlcreate命令：</p>
+<p>一旦创建了ReplicationController，它就开始工作。让我们看看它都会做什么。<br>4.2.3使用ReplicationController<br>由于没有任何pod有app=kubia标签，ReplicationController会根据pod模板启动三个新的pod。列出pod以查看ReplicationController是否完成了它应该做的事情：<br>$kubectlgetpodsNAME<br>READY<br>STATUS<br>RESTARTS0<br>AGE<br>kubia-53thy<br>0/1<br>ContainerCreatingcontainerCreatingContainerCreating<br>2s<br>kubia-k0xz6<br>0/1<br>口0<br>2s<br>kubia-q3vkg<br>0/1<br>。<br>2s<br>它确实创建了三个pod。现在ReplicationController正在管理这三个pod。接下来，你将通过稍稍破坏它们来观察ReplicationController如何响应。<br>查看ReplicationController对已删除的pod的响应<br>首先，你将手动删除其中一个pod，以查看ReplicationController如何立即启动新容器，从而将匹配容器的数量恢复为三：<br>$kubectldeletepodkubia-53thypod”kubia-53thy”deleted<br>重新列出pod会显示四个，因为你删除的pod已终止，并且已创建一个新的<br>pod:<br>$kubectlgetpodsNAME<br>READY<br>STATUS<br>RESTARTS<br>AGE<br>kubia-53thy<br>1/1<br>Terminating<br>3m<br>kubia-oini2<br>0/1<br>ContainerCreatingRunning<br>0<br>2s<br>kubia-k0xz6<br>1/1<br>0<br>3m<br>kubia-q3vkg<br>1/1<br>Running<br>3m<br>ReplicationController再次完成了它的工作。这是非常有用的。获取有关ReplicationController的信息<br>通过kubectlget命令显示的关于ReplicationController的信息：$kubectlgetrc<br>NAME<br>DESIRED<br>CURRENT<br>READY<br>AGE<br>kubia<br>3<br>3<br>2<br>3m<br>注意使用rc作为replicationcontroller的简写。</p>
+<p>你会看到三列显示了所需的pod数量，实际的pod数量，以及其中有多少pod已准备就绪（当我们在下一章谈论准备就绪探针时，你将了解这些含义）。可以通过kubectldescribe命令看到ReplicationController的附加信息。<br>代码清单4.5显示使用kubectldescribe的ReplicationController的详细信息</p>
+<p>当前的副本数与所需的数量相符，因为控制器已经创建了一个新的pod。它显示了四个正在运行的pod，因为被终止的pod仍在运行中，尽管它并未计入当前的<br>副本个数中。底部的事件列表显示了ReplicationCantroller的行为一它到目前为止创建了四个pod。<br>一<br>控制器如何创建新的pod<br>控制器通过创建一个新的替代pod来响应pod的删除操作（见图4.4）。从技术上讲，它并没有对删除本身做出反应，而是针对由此产生的状态一pod数量不足。<br>虽然ReplicationCantroller会立即收到删除pod的通知（API服务器允许客户端监听资源和资源列表的更改），但这不是它创建替代pod的原因。该通知会触发控制器检查实际的pod数量并采取适当的措施。</p>
+<p>图4.4如果一个pod消失，ReplicationController将发现pod数目更少井创建一个新的替代pod应对节点故障<br>看着ReplicationController对手动删除pod做出响应没什么意思，所以我们来看一个更好的示例。如果使用GoogleKubemetesEngine来运行这些示例，那么己经有一个三节点Kubemetes集群。你将从网络中断开其中一个节点来模拟节点故障。<br>注意如果使用Minikube，则无法做这个练习，因为只有一个节点同时充当主节点和工作节点。<br>如果节点在没有Kubemetes的场景中发生故障，运维人员需要手动将节点上运行的应用程序迁移到其他机器。而现在，Kubemetes会自动执行此操作。在ReplicationController检测到它的pod已关闭后不久，它将启动新的pod以替换它们。<br>让我们在实践中看看这个行为。需要使用gcloudcomputessh命令ssh进入其中一个节点，然后使用sudoifconfigeth0down关闭其网络接口，如下面的代码清单所示。<br>注意通过使用-owide选项列出pod，选择至少运行一个pod的节点。代码清单4.6通过关闭网络接口来模拟节点故障</p>
+<p>当你关闭网络接口时，ssh会话将停止响应，所以需要打开另一个终端或强行退出ssh会话。在新终端中，可以列出节点以查看Kubernetes是否检测到节点下线。这需要一分钟左右的时间。然后，该节点的状态显示为NotReady：<br>$kubectlgetnode<br>NAME<br>STATUS<br>AGE<br>节点没有就绪，因为它与网络断开<br>gke-kubia-default-pool-b46381f1-opc5gke-kubia-default-pool-b46381f1-s8gjgke-kubia-default-pool-b46381f1-zwko<br>Ready<br>5h<br>ReadyNotReady<br>5h<br>5h<br>如果你现在列出pod，那么你仍然会看到三个与之前相同的pod，因为Kubernetes在重新调度pod之前会等待一段时间（如果节点因临时网络故障或Kubelet重新启动而无法访问）。如果节点在几分钟内无法访问，则调度到该节点的pod的状态将变为Unknown。此时，ReplicationController将立即启动一个新的pod。可以通过再次列出pod来看到这一点：<br>$kubectlgetpods<br>此you的状态未知，<br>NAME<br>READY<br>STATUS<br>RESTARTS<br>AGE<br>因为其节点无法访问<br>kubia-oini2<br>1/1<br>Running<br>0<br>10m<br>kubia-k0xz6<br>1/1<br>Running<br>0<br>10m<br>kubia-q3vkg<br>1/1<br>Unknown<br>0<br>10m<br>&lt;<br>这个pod是五秒钟前<br>kubia-dmdck<br>1/1<br>Running<br>0<br>5s<br>创建的<br>注意pod的存活时间，你会发现kubia-dmdckpod是新的。你再次拥有三个运行的pod实例，这意味着ReplicationController再次开始它的工作，将系统的实际状态置于所需状态。<br>如果一个节点不可用（发生故障或无法访问），会发生同样的情况。立即进行人为干预就没有必要了。系统会自我修复。要恢复节点，需要使用以下命令重置它：$gcloudcomputeinstancesresetgke-kubia-default-pool-b46381f1-zwko<br>当节点再次启动时，其状态应该返回到Ready，并且状态为Unknown的pod将被删除。<br>4.2.4将pod移入或移出ReplicationController的作用域<br>由ReplicationController创建的pod并不是绑定到ReplicationController。在任何时刻，ReplicationController管理与标签选择器匹配的pod。通过更改pod的标签，可以将它从ReplicationController的作用域中添加或删除。它甚至可以从一个</p>
+<p>ReplicationController移动到另一个。<br>提示尽管一个pod没有绑定到一个ReplicationController，但该pod在metadata.ownerReferences字段中引用它，可以轻松使用它来找到一个pod属于哪个ReplicationController<br>如果你更改了一个pod的标签，使它不再与ReplicationController的标签选择器相匹配，那么该pod就变得和其他手动创建的pod一样了。它不再被任何东西管理。如果运行该节点的pod异常终止，它显然不会被重新调度。但请记住，当你更改pod的标签时，ReplicationController发现一个pod丢失了，并启动一个新的pod替换它。<br>让我们通过你的pod试试看。由于你的ReplicationController管理具有app=kubia标签的pod，因此需要删除这个标签或修改其值以将该pod移出ReplicationController的管理范围。添加另一个标签并没有用，因为ReplicationController不关心该pod是否有任何附加标签，它只关心该pod是否具有标签选择器中引用的所有标签。<br>给ReplicationController管理的pod加标签<br>需要确认的是，如果你向ReplicationController管理的pod添加其他标签，它并不关心：<br>$kubectllabelpodkubia-dmdcktype=special<br>pod”kubia-dmdckmlabeled<br>$kubectlgetpods—show-labels<br>NAME<br>READY<br>STATUS<br>RESTARTS<br>AGE<br>LABELS<br>kubia-oini2<br>1/1<br>Running<br>O<br>11m<br>app=kubia<br>kubia-k0xz6<br>1/1<br>Running<br>。<br>11m<br>app=kubia<br>kubia-dmdck<br>1/1<br>Running<br>1m<br>app=kubia,type=special<br>给其中一个pod添加了type=special标签，再次列出所有pod会显示和以前一样的三个pod。因为从ReplicationController角度而言，没发生任何更改。<br>更改已托管的pod的标签<br>现在，更改app=kubia标签。这将使该pod不再与ReplicationCotrollr的标签选择器相匹配，只剩下两个匹配的pod。因此，ReplicationController会启动一个新的pod，将数目恢复为三：<br>$kubectllabelpodkubia-dmdckapp=foo—-overwrite<br>pod”kubia-dmdck”labeled<br>-overwrite参数是必要的，否则kubectl将只打印出警告，并不会更改标签。这样是为了防止你想要添加新标签时无意中更改现有标签的值。再次列出所</p>
+<p>注意使用-Lapp选项在列中显示app标签。<br>你现在有四个pod：一个不是由你的ReplicationController管理的，其他三个是。其中包括新建的pod。<br>图4.5说明了当你更改pod的标签，使得它们不再与ReplicationController的pod选择器匹配时，发生的事情。可以看到三个pod和ReplicationController.在将pod的标签从app=kubia更改为app=foo之后，ReplicationController就不管这个pod了。由于控制器的副本个数设置为3，并且只有两个pod与标签选择器匹配，所以ReplicationController启动kubia-2qnehpod，使总数回到了三。kubia-dmdckpod现在是完全独立的，并且会一直运行直到你手动删除它（现在可以这样做，因为你不再需要它）。</p>
+<p>从控制器删除pod<br>当你想操作特定的pod时，从ReplicationController管理范围中移除pod的操作很管用。例如，你可能有一个bug导致你的pod在特定时间或特定事件后开始出问题。如果你知道某个pod发生了故障，就可以将它从Replication-Controller的管理范围中移除，让控制器将它替换为新pod，接着这个pod就任你处置了。完成后删除该pod即可。<br>更改ReplicationContoller的标签选择器<br>这里有个练习，看看你是否完全理解了ReplicationController：如果不是更改某个pod的标签而是修改了ReplicationController的标签选择器，你认为会发生什么？<br>如果你的答案是“它会让所有的pod脱离ReplicationController的管理，导致它创建三个新的pod”，那么恭喜你，答对了。这表明你了解了ReplicationController的工作方式。Kubemetes确实允许你更改ReplicationController的标签选择器，但这不适用于本章后半部分中介绍的其他资源（也是用来管理pod的）。<br>你永远不会修改控制器的标签选择器，但你会时不时会更改它的pod模板。就让我们来了解一下吧。<br>4.2.5修改pod模板<br>ReplicationController的pod模板可以随时修改。更改pod模板就像用一个曲奇刀替换另一个。它只会影响你之后切出的曲奇，并且不会影响你已经剪切的曲奇（见图4.6）。要修改旧的pod，你需要删除它们，并让ReplicationController根据新模板将其替换为新的pod。</p>
+<p>图4.6更改ReplicationController的pod模板只影响之后创建的pod，并且不会影响现有的pod<br>可以试着编辑ReplicationController并向pod模板添加标签。使用以下命令编辑ReplicationController:</p>
+<p>这将在你的默认文本编辑器中打开ReplicationController的YAML配置。找到pod模板部分并向元数据添加一个新的标签。保存更改并退出编辑器后，kubectl将更新ReplicationController并打印以下消息：<br>replicationcontroller”kubia”edited<br>现在可以再次列出pod及其标签，并确认它们末发生变化。但是如果你删除了这个pod并等待其替代pod创建，你会看到新的标签。<br>像这样编辑一个ReplicationController，来更改容器模板中的容器图像，删除现有的容器，并让它们替换为新模板中的新容器，可以用于升级pod，但你将在第9章学到更好的方法。<br>配置kubectledit使用不同的文本编辑器<br>可以通过设置KUBEEDITOR环境变量来告诉kubectl使用你期望的文本编辑器。例如，如果你想使用nano编辑Kubemetes资源，请执行以下命令（或将其放入~/.bashrc或等效文件中）：<br>exportKUBBBDITOR=”/usr/bin/nano”<br>如果未设置KUBEEDITOR环境变量，则kubectledit会回退到使用默认编辑器（通常通过EDITOR环境变量进行配置）。<br>4.2.6水平缩放pod<br>你已经看到了ReplicationController如何确保持续运行的pod实例数量保持不变。因为改变副本的所需数量非常简单，所以这也意味着水平缩放pod很简单。<br>放大或者缩小pod的数量规模就和在ReplicationController资源中更改Replicas字段的值一样简单。更改之后，ReplicationController将会看到存在太多的pod并删除其中的一部分（缩容时），或者看到它们数目太少并创建pod（扩容时）。<br>ReplicationController扩容<br>ReplicationController-直保持三个pod实例在运行的状态。现在要把这个数字提高到10。你可能还记得，已经在第2章中扩容了ReplicationController。可以使用和之前相同的命令：</p>
+<p>但这次你的做法会不一样。<br>通过编辑定义来缩放ReplicationController<br>不使用kubectlscale命令，而是通过以声明的形式编辑ReplicationController的定义对其进行缩放：<br>$kubectleditrckubia<br>当文本编辑器打开时，找到spec.replicas字段并将其值更改为10，如下面的代码清单所示。<br>器代码清单47运行Kubectaredie在文本编辑器中编辑RC；</p>
+<p>保存该文件并关闭编辑器，ReplicationController会更新并立即将pod的数量增加到10：<br>$kubectlgetrc<br>NAME<br>DESIRED<br>CURRENT<br>READY<br>AGE<br>kubia<br>10<br>10<br>4<br>21m<br>就是这样。如果kubectlscale命令看起来好像是你在告诉Kubernetes要做什么，现在就更清晰了，你是在声明对ReplicationController的目标状态的更改，而不是告诉Kubernetes它要做的事情。<br>用kubectlscale命令缩容<br>现在将副本数目减小到3。可以使用kubectlscale命令：<br>$kubectlscalerckubia—replicas=3<br>所有这些命令都会修改ReplicationController定义的spec.replicas字段，就像通过kubectledit进行更改一样。</p>
+<p>伸缩集群的声明式方法<br>在Kubernetes中水平伸缩pod是陈述式的：“我想要运行x个实例。”你不是告诉Kubernetes做什么或如何去做，只是指定了期望的状态。<br>这种声明式的方法使得与Kubemetes集群的交互变得容易。设想一下，如果你必须手动确定当前运行的实例数量，然后明确告诉Kubernetes需要再多运行多少个实例的话，工作更多且更容易出错，改变一个简单的数字要容易得多。在第15章中，你会发现如果启用pod水平自动缩放，那么即使是Kubernetes本身也可以完成。<br>4.2.7删除一个ReplicationController<br>当你通过kubectldelete删除ReplicationController时，pod也会被删除。但是由于由ReplicationController创建的pod不是ReplicationController的组成部分，只是由其进行管理，因此可以只删除ReplicationController并保持pod运行，如图4.7所示。<br>当你最初拥有一组由ReplicationController管理的pod，然后决定用ReplicaSet（你接下来会知道）替换ReplicationController时，这就很有用。可以在不影响pod的情况下执行此操作，并在替换管理它们的ReplicationController时保持pod不中断运行。</p>
+<p>图4.7使用—cascade=false删除ReplicationController使托架不受管理<br>当使用kubectldelete删除ReplicationController时，可以通过给命令增加—cascade=false选项来保持pod的运行。马上试试看：</p>
+<p>你已经删除了ReplicationController，所以这些pod独立了，它们不再被管理。但是你始终可以使用适当的标签选择器创建新的ReplicationController，并再次将它们管理起来。<br>4.3使用ReplicaSet而不是ReplicationController<br>最初，ReplicationController是用于复制和在异常时重新调度节点的唯一Kubermetes组件，后来又引入了一个名为ReplicaSet的类似资源。它是新一代的ReplicationController，并且将其完全替换掉（ReplicationController最终将被弃用）。<br>你本可以通过创建一个ReplicaSet而不是一个ReplicationController来开始本章，但是笔者觉得从Kubernetes最初提供的组件开始是个好主意。另外，你仍然可以看到使用中的ReplicationController，所以你最好知道它们。也就是说从现在起，你应该始终创建ReplicaSet而不是ReplicationControllero它们几乎完全相同，所以你不会碰到任何麻烦。<br>你通常不会直接创建它们，而是在创建更高层级的Deployment资源时（在第9章中会学到）自动创建它们。无论如何，你应该了解ReplicaSet，所以让我们看看它们与ReplicationController的区别。<br>4.3.1比较ReplicaSet和ReplicationController<br>ReplicaSet的行为与ReplicationController完全相同，但pod选择器的表达能力更强。虽然ReplicationController的标签选择器只允许包含某个标签的匹配pod，但ReplicaSet的选择器还允许匹配缺少某个标签的pod，或包含特定标签名的pod，不管其值如何。<br>另外，举个例子，单个ReplcaionControlle无法将pod与标签env=production和env=devel同时匹配。它只能匹配带有env=devel标签的pod或带有env=devel标签的pod.但是一个ReplicaSet可以匹配两组pod并将它们视为一个大组。<br>同样，无论ReplicationController的值如何，ReplicationController都无法仅基于标签名的存在来匹配pod，而ReplicaSet则可以。例如，ReplicaSet可匹配所有包含名为env的标签的pod，无论ReplicaSet的实际值是什么（可以理解为env=*）。</p>
+<p>4.3.2定义ReplicaSet<br>现在要创建一个ReplicaSet，并看看先前由ReplicationController创建稍后又被抛弃的无主pod，现在如何被ReplicaSet管理。首先，创建一个名为kubia-replicaset.yaml的新文件将你的ReplicationController改写为ReplicaSet，其中包含以下代码清单中的内容。<br>代码清单4.8ReplicaSet的YAML定义：kubia-replicasetyaml</p>
+<p>首先要注意的是ReplicaSet不是vlAPI的一部分，因此你需要确保在创建资源时指定正确的apiVersion。你正在创建一个类型为ReplicaSet的资源，它的内容与你之前创建的ReplicationController的内容大致相同。<br>唯一的区别在选择器中。不必在selector属性中直接列出pod需要的标签，而是在selector.matchLabels下指定它们。这是在ReplicaSet中定义标签选择器的更简单（也更不具表达力）的方式。之后，你会看到表达力更强的选项。<br>关于API版本的属性<br>这是你第一次有机会看到apiVersion属性指定的两件事情：<br>API组（在这种情况下是apps）<br>实际的API版本（v1beta2）<br>你将在整本书中看到某些Kubemetes资源位于所谓的核心API组中，该组并不需要在apiVersion字段中指定（只需指定版本一例如，你已经在定义pod资源时使用过apiversion：v1）。在后续的Kubermetes版本中引入其他资源，被分为几个API组。</p>
+<p>因为你仍然有三个pod匹配从最初运行的app=kubia选择器，所以创建此ReplicaSet不会触发创建任何新的pod。ReplicaSet将把它现有的三个pod归为自己的管辖范围。<br>4.3.3创建和检查ReplicaSet<br>使用kubectlcreate命令根据YAML文件创建ReplicaSet。之后，可以使用kubectlget和kubectldescribe来检查ReplicaSet：<br>$kubectlgetrsNAME<br>DESIRED<br>CURRENTREADY3<br>AGE<br>kubia<br>3<br>3<br>3s<br>提示rs是replicaset的简写。</p>
+<p>如你所见，ReplicaSet与ReplicationController没有任何区别。显示有三个与选择器匹配的副本。如果列出所有pod，你会发现它们仍然是你以前的三个pod。ReplicaSet没有创建任何新的pod。<br>4.3.4使用ReplicaSet的更富表达力的标签选择器<br>ReplicaSet相对于ReplicationController的主要改进是它更具表达力的标签选择器。之前我们故意在第一个ReplicaSet示例中，用较简单的matchLabels选择器来确认ReplicaSet与ReplicationController没有区别。现在，你将用更强大的matchExpressions属性来重写选择器，如下面的代码清单所示。<br>4.4使用DaemonSet在每个节点上运行一个pod<br>107<br>代码清单4.9一个matchExpressions选择器：kubia-replicaset-matchexpressions.yaml</p>
+<p>注意仅显示了选择器。你会在本书的代码档案中找到整个ReplicaSet定义。可以给选择器添加额外的表达式。如示例，每个表达式都必须包含一个key、一个operator（运算符），并且可能还有一个values的列表（取决于运算符）。你会看到四个有效的运算符：<br>·In：Label的值必须与其中一个指定的values匹配。<br>NotIn：Label的值与任何指定的values不匹配。<br>Exists：pod必须包含一个指定名称的标签（值不重要）。使用此运算符时，不应指定values字段。<br>DoesNotExist：pod不得包含有指定名称的标签。values属性不得指定。如果你指定了多个表达式，则所有这些表达式都必须为true才能使选择器与pod匹配。如果同时指定matchLabels和matchExpressions，则所有标签都必须匹配，并且所有表达式必须计算为true以使该pod与选择器匹配。<br>4.3.5ReplicaSet小结<br>这是对ReplicaSet的快速介绍，将其作为ReplicationController的替代。请记住，始终使用它而不是ReplicationController，但你仍可以在其他人的部署中找到ReplicationController。<br>现在，删除ReplicaSet以清理你的集群。可以像删除ReplicationController一样删除ReplicaSet：<br>$kubectldeletergkubia<br>replicaset”kubia”deleted<br>删除ReplicaSet会删除所有的pod。这种情况下是需要列出pod来确认的。<br>4.4使用DaemonSet在每个节点上运行一个pod<br>Replicationcontroller和ReplicaSet都用于在Kubemetes集群上运行部署特定数量的pod。但是，当你希望pod在集群中的每个节点上运行时（并且每个节点都需</p>
+<p>要正好一个运行的pod实例，如图4.8所示），就会出现某些情况。<br>这些情况包括pod执行系统级别的与基础结构相关的操作。例如，希望在每个节点上运行日志收集器和资源监控器。另一个典型的例子是Kubernetes自己的kube-proxy进程，它需要运行在所有节点上才能使服务工作。</p>
+<p>图4.8DaemonSet在每个节点上只运行一个pod副本，而副本则将它们随机地分布在整个集群中<br>在Kubenetes之外，此类进程通常在节点启动期间通过系统初始化脚本或systemd守护进程启动。在Kubermetes节点上，仍然可以使用systemd运行系统进程，但这样就不能利用所有的Kubernetes特性了。<br>4.4.1使用DaemonSet在每个节点上运行一个pod<br>要在所有集群节点上运行一个pod，需要创建一个DaemonSet对象，这很像一个ReplicationController或ReplicaSet，除了由DaemonSet创建的pod，已经有一个指定的目标节点并跳过Kubernetes调度程序。它们不是随机分布在集群上的。<br>DaemonSet确保创建足够的pod，并在自己的节点上部署每个pod，如图4.8所示。尽管ReplicaSet（或ReplicationController）确保集群中存在期望数量的pod副本，但DaemonSet并没有期望的副本数的概念。它不需要，因为它的工作是确保一个pod匹配它的选择器并在每个节点上运行。<br>如果节点下线，DaemonSet不会在其他地方重新创建pod。但是，当将一个新节点添加到集群中时，DaemonSet会立刻部署一个新的pod实例。如果有人</p>
+<p>无意中删除了一个pod，那么它也会重新创建一个新的pod。与ReplicaSet一样，DaemonSet从配置的pod模板创建pod。<br>4.4.2使用DaemonSet只在特定的节点上运行pod<br>DaemonSet将pod部署到集群中的所有节点上，除非指定这些pod只在部分节点上运行。这是通过pod模板中的nodeSelector属性指定的，这是DaemonSet定义的一部分（类似于ReplicaSet或ReplicationController中的pod模板）。<br>在第3章中，已经使用了节点选择器将pod部署到特定的节点上。DaemonSet中的节点选择器与之相似一它定义了DaemonSet必须将其pod部署到的节点。<br>注意在本书的后面，你将了解到节点可以被设置为不可调度的，防止pod被部署到节点上。DaemonSet甚至会将pod部署到这些节点上，因为无法调度的属性只会被调度器使用，而DaemonSet管理的pod则完全绕过调度器。这是预期的，因为DaemonSet的目的是运行系统服务，即使是在不可调度的节点上，系统服务通常也需要运行。<br>用一个例子来解释DaemonSet<br>让我们假设有一个名为ssd-monitor的守护进程，它需要在包含固态驱动器（SSD）的所有节点上运行。你将创建一个DaemonSet，它在标记为具有SSD的所有节点上运行这个守护进程。集群管理员已经向所有此类节点添加了disk=ssd的标签，因此你将使用节点选择器创建DaemonSet，该选择器只选择具有该标签的节点，如图4.9所示。</p>
+<p>图4.9使用含有节点选择器的DaemonSet在特定的节点上部署pod<br>110<br>4副本机制和其他控制器部署托管的pod<br>创建一个DaemonSetYAML定义文件<br>你将创建一个运行模拟的ssd-monitor监控器进程的DaemonSet，该进程每5秒会将“SSDOK”打印到标准输出。笔者已经准备了模拟容器镜像并将它推到DockerHub，因此无须构建而直接使用。为DaemonSet创建一个YAML文件，如下面的代码清单所示。<br>代码清单4.10<br>一个DaemonSet的YAML：ssd-monitor-daemonset.vaml</p>
+<p>你正在定义一个DaemonSet，它将运行一个基于luksa/ssd-monitor容器镜像的单容器pod。该pod的实例将在每个具有disk=ssd标签的节点上创建。<br>创建DaemonSet<br>创建一个DaemonSet就像从YAML文件创建资源那样：<br>$kubectlcreate-f88d-monitor-daemonset.yaml<br>daemonset”ssd-monitor”created<br>我们来看一下创建的DaemonSet：<br>$kubectlgetds<br>NAME<br>DESIREDcURRENTREADYUP-TO-DATEAVAILABLENODE-SELECTOR<br>ssd-monitor<br>disk=Ssd<br>这些0看起来很奇怪。DaemonSet不应该部署pod吗？现在列出pod：<br>$kubectlgetpo<br>Noresourcesfound.</p>
+<p>pod在哪里呢？知道发生了什么吗？是的，忘记给节点打上disk=ssd标签了。打上标签之后，DaemonSet将检测到节点的标签已经更改，并将pod部署到有匹配标签的所有节点。让我们来看一下。<br>向节点上添加所需的标签<br>无论你使用的是Minikube、GKE或其他多节点集群，都需要首先列出节点，因为在标记时需要知道节点的名称：<br>$kubectlgetnode<br>NAME<br>STATUS<br>AGE<br>VERSION<br>minikubeReady<br>4d<br>v1.6.0<br>现在像这样给节点添加disk=ssd标签：<br>$kubectllabelnodeminikubedisk=ssd<br>node”minikube”labeled<br>注意如果你没有使用Minikube，用你的节点名替换minikube。<br>DaemonSet现在应该已经创建pod了，让我们来看一下：<br>$kubectlgetpo<br>NAME<br>READY<br>STATUSRESTARTSAGE<br>ssd-monitor-hgxwq<br>1/1<br>Running0<br>35s<br>现在看起来一切正常。如果你有多个节点并且其他的节点也加上了同样的标签，将会看到DaemonSet在每个节点上都启动pod。<br>从节点上删除所需的标签<br>现在假设你给其中一个节点打错了标签。它的硬盘是磁盘而不是SSD。这时你修改了标签会发生什么呢？<br>$kubectllabelnodeminikubedisk=hdd—overwrite<br>node”minikube”labeled<br>看一下更改是否影响了运行在节点上的pod：<br>$kubectlgetpo<br>NAME<br>READY<br>STATUS<br>RESTARTS<br>AGE<br>ssd-monitor-hgxwq<br>1/1<br>Terminating<br>0<br>4m<br>pod如预期中正在被终止。这里对DaemonSet的探索就要结束了，因此可能想要删除ssd-monitorDaemonSet。如果还有其他的pod在运行，删除DaemonSet也会一起删除这些pod。</p>
+<h1 id="运行执行单个任务的pod"><a href="#运行执行单个任务的pod" class="headerlink" title="运行执行单个任务的pod"></a>运行执行单个任务的pod</h1><p>到目前为止，我们只谈论了需要持续运行的pod。你会遇到只想运行完成工作后就终止任务的情况。ReplicationController、ReplicaSet和DaemonSet会持续运行任务，永远达不到完成态。这些pod中的进程在退出时会重新启动。但是在一个可完成的任务中，其进程终后，不应该再重新启动。</p>
+<h2 id="介绍Job资源"><a href="#介绍Job资源" class="headerlink" title="介绍Job资源"></a>介绍Job资源</h2><p>Kubernetes通过Job资源提供了对此的支持，这与我们在本章中讨论的其他资源类似，但它允许你运行一种pod，该pod在内部进程成功结束时，不重启容器。一旦任务完成，pod就被认为处于完成状态。</p>
+<p>在发生节点故障时，该节点上由Job管理的pod将按照ReplicaSet的pod的方式，重新安排到其他节点。如果进程本身异常退出（进程返回错误退出代码时），可以将Job配置为重新启动容器。</p>
+<p>图4.10显示了如果一个Job所创建的pod，在最初被调度节点上异常退出后，被重新安排到一个新节点上的情况。该图还显示了托管的pod（未重新安排）和由ReplicaSet管理的pod（被重新安排）。<br>例如，Job对于临时任务很有用，关键是任务要以正确的方式结束。可以在未托管的pod中运行任务并等待它完成，但是如果发生节点异常或pod在执行任务时被从节点中逐出，则需要手动重新创建该任务。手动做这件事并不合理一特别是如果任务需要几个小时才能完成。<br>这样的任务的一个例子是，如果有数据存储在某个地方，需要转换并将其导出到某个地方。你将通过运行构建在busybox镜像上的容器镜像来模拟此操作，该容器将调用sleep命令两分钟。笔者已经构建了镜像并将其推送到DockerHub，但你可以在本书的代码档案中查看它的Dockerfile。</p>
+<blockquote>
+<p>图4.10 由Job管理的pod会一直被重新安排，直到它们成功完成任务</p>
+</blockquote>
+<h2 id="定义Job资源"><a href="#定义Job资源" class="headerlink" title="定义Job资源"></a>定义Job资源</h2><p>按照下面的代码清单创建Jobmanifest。<br>代码清单4.11Job的YAML定义：exporter.yaml</p>
+<p>Job是batchAPI组v1API版本的一部分。YAML定义了一个Job类型的资源，它将运行luksa/batch-job镜像，该镜像调用一个运行120秒的进程，然后退出。<br>在一个pod的定义中，可以指定在容器中运行的进程结束时，Kubernetes会做什么。这是通过pod配置的属性restartPolicy完成的，默认为Always。Jobpod不能使用默认策略，因为它们不是要无限期地运行。因此，需要明确地将重启策略设置为OnFailure或Never。此设置防止容器在完成任务时重新启动（pod被Job管理时并不是这样的）。</p>
+<h2 id="看Job运行一个pod"><a href="#看Job运行一个pod" class="headerlink" title="看Job运行一个pod"></a>看Job运行一个pod</h2><p>在使用kubectlcreate命令创建此作业后，应该看到它立即启动一个pod：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$kubectl</span></span><br><span class="line">etjobs</span><br><span class="line">KuDe</span><br><span class="line">ectgetsons.</span><br><span class="line">NAMEDESIREDsUcCESSFULAGE</span><br><span class="line">batch-job1</span><br><span class="line">2s</span><br><span class="line"><span class="variable">$kubectlgetpoREADYSTATUSRESTARTSAG</span></span><br><span class="line">NAME</span><br><span class="line">batch-job-28qf41/1</span><br><span class="line">Running</span><br><span class="line">as</span><br></pre></td></tr></table></figure></p>
+<p>两分钟过后，pod将不再出现在pod列表中，工作将被标记为已完成。默认情况下，除非使用—show-all（或-a）开关，否则在列出pod时不显示己完成的pod：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$kubectlgetpo</span>-a</span><br><span class="line">NAME</span><br><span class="line">READYSTATUS</span><br><span class="line">RESTARTSRBADY2ALUS,</span><br><span class="line">AGE</span><br><span class="line">batch-job-28qf40/1Completed0</span><br><span class="line">BSLAKLEAGE</span><br><span class="line">m</span><br></pre></td></tr></table></figure></p>
+<p>完成后pod未被删除的原因是允许你查阅其日志。例如：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$kubectllogsbatch</span>-job-28qf4</span><br><span class="line">FriApr2909:58:22UTC2016Batchjobstarting</span><br><span class="line">PriApr2910:00:22UTC2016Finishedsuccesfully</span><br></pre></td></tr></table></figure></p>
+<p>pod可以被直接删除，或者在删除创建它的Job时被删除。在你删除它之前，让我们再看一下Job资源：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Skubectlgetjob.,</span><br><span class="line">NAMEDESIREDsuCCESSFULAGE</span><br><span class="line">batch-job1</span><br></pre></td></tr></table></figure></p>
+<p>作业显示已成功完成。但为什么这样的信息显示为一个数字而不是yes或true？DESIRED列表示什么意思？</p>
+<h2 id="在Job中运行多个pod实例"><a href="#在Job中运行多个pod实例" class="headerlink" title="在Job中运行多个pod实例"></a>在Job中运行多个pod实例</h2><p>作业可以配置为创建多个pod实例，并以并行或串行方式运行它们。这是通过在Job配置中设置completions和parallelism属性来完成的。</p>
+<p>顺序运行Jobpod</p>
+<p>如果你需要一个Job运行多次，则可以将completions设为你希望作业的pod运行多少次。下面的代码清单显示了一个例子。</p>
+<blockquote>
+<p>代码清单4.12 需要多次完成的Job：mult-completion-batch-job.yaml<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span><span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span><span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">name:</span><span class="string">multi-completion-batch-job将completions设置</span></span><br><span class="line"><span class="string">为5.将使此作业顺</span></span><br><span class="line"><span class="attr">completions:</span><span class="number">5</span></span><br><span class="line"><span class="string">序运行五个pod</span></span><br><span class="line"><span class="attr">template:</span></span><br><span class="line"><span class="string">&lt;模板与代码清单4.11相同&gt;</span></span><br></pre></td></tr></table></figure></p>
+</blockquote>
+<p>Job将一个接一个地运行五个pod。它最初创建一个pod，当pod的容器运行完成时，它创建第二个pod，以此类推，直到五个pod成功完成。如果其中一个pod发生故障，工作会创建一个新的pod，所以Job总共可以创建五个以上的pod。<br>并行运行Jobpod<br>不必一个接一个地运行单个Jobpod，也可以让该Job并行运行多个pod。可以通过parallelismJob配置属性，指定允许多少个pod并行执行，如下面的代码清单所示。</p>
+<blockquote>
+<p>代码清单4.13 并行运行Jobpod：multi-completion-parallel-bachjob.yaml</p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span><span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span><span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="string">这项任务必须确保五</span></span><br><span class="line"><span class="attr">name:</span><span class="string">multi-completion-batch-job</span></span><br><span class="line"><span class="string">个pod成功完成</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">completions:</span><span class="number">5</span></span><br><span class="line"><span class="string">maraileliem.;</span></span><br><span class="line"><span class="attr">parallelism:</span><span class="number">2</span></span><br><span class="line"><span class="string">最多两个pod可以并</span></span><br><span class="line"><span class="attr">template:</span></span><br><span class="line"><span class="string">行运行</span></span><br><span class="line"><span class="string">&lt;与代码清单4.11相同&gt;</span></span><br></pre></td></tr></table></figure>
+<p>通过将parallelism设置为2，Job创建两个pod并行运行它们：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$kubectlgetPO</span></span><br><span class="line">READYSTATUSRESTARTSAG</span><br><span class="line">multi-completion-batch-job-lmmnk1/1Running021s</span><br><span class="line">multi-completion-batch-job-qx4nq1/1Running</span><br><span class="line">21s</span><br></pre></td></tr></table></figure></p>
+<p>只要其中一个pod完成任务，工作将运行下一个pod，直到五个pod都成功完成任务。</p>
+<p>Job的缩放<br>你甚至可以在Job运行时更改Job的parallelism属性。这与缩放ReplicaSet或ReplicationController类似，可以使用kubectlscale命令完成：<br>$kubectlscalejobmulti-completion-batch-job—replicas3<br>job”multi-completion-batch-jobuscaled<br>由于你将parallelism从2增加到3，另一个pod立即启动，因此现在有三个pod在运行。</p>
+<h2 id="限制Jobpod完成任务的时间"><a href="#限制Jobpod完成任务的时间" class="headerlink" title="限制Jobpod完成任务的时间"></a>限制Jobpod完成任务的时间</h2><p>关于Job我们需要讨论最后一件事。Job要等待一个pod多久来完成任务？如果pod卡住并且根本无法完成（或者无法足够快完成），该怎么办？<br>通过在pod配置中设置activeDeadlineSeconds属性，可以限制pod的时间。如果pod运行时间超过此时间，系统将尝试终止pod，并将Job标记为失败。<br>注意通过指定Jobmanifest中的spec.backoffLimit字段，可以配置Job在被标记为失败之前可以重试的次数。如果你没有明确指定它，则默认为6。</p>
+<h1 id="安排Job定期运行或在将来运行一次。"><a href="#安排Job定期运行或在将来运行一次。" class="headerlink" title="安排Job定期运行或在将来运行一次。"></a>安排Job定期运行或在将来运行一次。</h1><p>Job资源在创建时会立即运行pod。但是许多批处理任务需要在特定的时间运行，或者在指定的时间间隔内重复运行。在Linux和类UNIX操作系统中，这些任务通常被称为cron任务。Kubernetes也支持这种任务。<br>Kubernetes中的cron任务通过创建CronJob资源进行配置。运行任务的时间表以知名的cron格式指定，所以如果你熟悉常规cron任务，你将在几秒钟内了解Kubernetes的CronJob。<br>在配置的时间，Kubernetes将根据在CronJob对象中配置的Job模板创建Job资源。创建Job资源时，将根据任务的pod模板创建并启动一个或多个pod副本，如你在前一部分中所了解的那样。<br>让我们来看看如何创建CronJob。</p>
+<h2 id="创建一个CronJob"><a href="#创建一个CronJob" class="headerlink" title="创建一个CronJob"></a>创建一个CronJob</h2><p>想象一下，你需要每15分钟运行一次前一个示例中的批处理任务。为此，请使用以下规范创建一个CronJob资源。</p>
+<p>正如你所看到的，它不是太复杂。你已经指定了创建Job对象的时间表和模板。配置时间表安排<br>如果你不熟悉cron时间表格式，你会在网上找到很棒的教程和解释，但作为一个快速介绍，时间表从左到右包含以下五个条目：<br>分钟<br>小时<br>每月中的第几天<br>·月<br>·星期几<br>在该示例中，你希望每15分钟运行一次任务因此schedule字段的值应该是<code>&quot;0，15，30，45*****</code>这意味着每小时的0、15、30和45分钟（第一个星号），每月的每一天（第二个星号），每月第三个星号）和每周的每一天（第四个星号）。<br>相反，如果你希望每隔30分钟运行一次，但仅在每月的第一天运行，则应将计划设置为<code>&quot;0，30*1**&quot;</code>，并且如果你希望它每个星期天的3AM运行，将它设置为<code>&quot;03**0&quot;</code>（最后一个零代表星期天）。<br>配置Job模板<br>CronJob通过CronJob规范中配置的jobTemplate属性创建任务资源，更多有关如何配置它的信息，请参阅4.5节。</p>
+<h2 id="了解计划任务的运行方式"><a href="#了解计划任务的运行方式" class="headerlink" title="了解计划任务的运行方式"></a>了解计划任务的运行方式</h2><p>在计划的时间内，CronJob资源会创建Job资源，然后Job创建pod。<br>可能发生Job或pod创建并运行得相对较晚的情况。你可能对这项工作有很高的要求，任务开始不能落后于预定的时间过多。在这种情况下，可以通过指定CronJob规范中的startingDeadlineSeconds字段来指定截止日期，如下面的代码清单所示。<br>代码清单4.15为CronJob指定一个startingDeadlineSeconds<br>apiversion:batch/v1beta1<br>kind:CronJob<br>pod最迟必须在预定时间后15秒开始运行<br>spec:<br>schedule:”0,15,30,45<em>**</em>startingDeadlineSeconds:15<br>在代码清单4.15的例子中，工作运行的时间应该是10:30:00。如果因为任何原因10:30:15不启动，任务将不会运行，并将显示为Failed。<br>在正常情况下，CronJob总是为计划中配置的每个执行创建一个Job，但可能会同时创建两个Job，或者根本没有创建。为了解决第一个问题，你的任务应该是幂等的（多次而不是一次运行不会得到不希望的结果）。对于第二个问题，请确保下一个任务运行完成本应该由上一次的（错过的）运行完成的任何工作。</p>
+<h1 id="本章小结"><a href="#本章小结" class="headerlink" title="本章小结"></a>本章小结</h1><p>你现在已经学会了如何让pod保持运行，并在发生节点故障时重新安排它们。你现在应该知道：<br>使用存活探针，让Kubernetes在容器不再健康的情况下立即重启它（应用程序定义了健康的条件）。<br>·不应该直接创建pod，因为如果它们被错误地删除，它们正在运行的节点异常，或者它们从节点中被逐出时，它们将不会被重新创建。<br>ReplicationController始终保持所需数量的pod副本正在运行。<br>水平缩放pod与在ReplicationController上更改所需的副本个数一样简单。pod不属于ReplicationController，如有必要可以在它们之间移动。<br>ReplicationController将从pod模板创建新的pod。更改模板对现有的pod没有影响。<br>ReplicationController应该替换为ReplicaSet和Deployment，它们提供相同的能力，但具有额外的强大功能。<br>·ReplicationController和ReplicaSet将pod安排到随机集群节点，而DaemonSet确保每个节点都运行一个DaemonSet中定义的pod实例。<br>·执行批处理任务的pod应通过KubernetesJob资源创建，而不是直接或通过ReplicationController或类似对象创建。<br>需要在未来某个时候运行的Job可以通过CronJob资源创建。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Kubernetes-in-Action/" rel="tag"># Kubernetes in Action</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/09/30/Mysteel节后预测：华北地区玉米价格先跌后涨/" rel="next" title="Mysteel节后预测：华北地区玉米价格先跌后涨">
+                <i class="fa fa-chevron-left"></i> Mysteel节后预测：华北地区玉米价格先跌后涨
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/10/01/5-服务：让客户端发现pod并与之通信/" rel="prev" title="5-服务：让客户端发现pod并与之通信">
+                5-服务：让客户端发现pod并与之通信 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">687</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">56</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2022/10/06/第15章-Helm程序包管理器/" title="第15章 Helm程序包管理器" target="_blank">第15章 Helm程序包管理器</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第14章-资源指标及HPA控制器/" title="第14章 资源指标及HPA控制器" target="_blank">第14章 资源指标及HPA控制器</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第13章-Kubernetes系统扩展/" title="第13章 Kubernetes系统扩展" target="_blank">第13章 Kubernetes系统扩展</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第12章-Pod资源调度/" title="第12章 Pod资源调度" target="_blank">第12章 Pod资源调度</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第11章-网络模型与网络策略/" title="第11章 网络模型与网络策略" target="_blank">第11章 网络模型与网络策略</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#保持pod健康"><span class="nav-number">1.</span> <span class="nav-text">保持pod健康</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#介绍存活探针"><span class="nav-number">1.1.</span> <span class="nav-text">介绍存活探针</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#创建基于HTTP的存活探针"><span class="nav-number">1.2.</span> <span class="nav-text">创建基于HTTP的存活探针</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用存活探针"><span class="nav-number">1.3.</span> <span class="nav-text">使用存活探针</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置存活探针的附加属性"><span class="nav-number">1.4.</span> <span class="nav-text">配置存活探针的附加属性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#创建有效的存活探针"><span class="nav-number">1.5.</span> <span class="nav-text">创建有效的存活探针</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#了解ReplicationController"><span class="nav-number">2.</span> <span class="nav-text">了解ReplicationController</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#ReplicationController的操作"><span class="nav-number">2.1.</span> <span class="nav-text">ReplicationController的操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#运行执行单个任务的pod"><span class="nav-number">3.</span> <span class="nav-text">运行执行单个任务的pod</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#介绍Job资源"><span class="nav-number">3.1.</span> <span class="nav-text">介绍Job资源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#定义Job资源"><span class="nav-number">3.2.</span> <span class="nav-text">定义Job资源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#看Job运行一个pod"><span class="nav-number">3.3.</span> <span class="nav-text">看Job运行一个pod</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#在Job中运行多个pod实例"><span class="nav-number">3.4.</span> <span class="nav-text">在Job中运行多个pod实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#限制Jobpod完成任务的时间"><span class="nav-number">3.5.</span> <span class="nav-text">限制Jobpod完成任务的时间</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安排Job定期运行或在将来运行一次。"><span class="nav-number">4.</span> <span class="nav-text">安排Job定期运行或在将来运行一次。</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#创建一个CronJob"><span class="nav-number">4.1.</span> <span class="nav-text">创建一个CronJob</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#了解计划任务的运行方式"><span class="nav-number">4.2.</span> <span class="nav-text">了解计划任务的运行方式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#本章小结"><span class="nav-number">5.</span> <span class="nav-text">本章小结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">6.2m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">93:28</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="keywords" content="Kubernetes in Action">
+<meta property="og:type" content="article">
+<meta property="og:title" content="6-卷：将磁盘挂载到容器">
+<meta property="og:url" content="http://yoursite.com/2022/10/01/6-卷：将磁盘挂载到容器/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-10-02T10:23:40.184Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="6-卷：将磁盘挂载到容器">
+<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/10/01/6-卷：将磁盘挂载到容器/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>6-卷：将磁盘挂载到容器 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/10/01/6-卷：将磁盘挂载到容器/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="强迫自己去看，去做。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">6-卷：将磁盘挂载到容器
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-10-01 09:58:35" itemprop="dateCreated datePublished" datetime="2022-10-01T09:58:35+08:00">2022-10-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-10-02 18:23:40" itemprop="dateModified" datetime="2022-10-02T18:23:40+08:00">2022-10-02</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">23k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">21 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>总结一下，这章作者最主要想表达什么观点？</li>
+</ul>
+<a id="more"></a>
+<p>本章内容包括<br>创建多容器pod<br>■创建一个可在容 器间共享磁盘存储的卷<br>■在pod中使用git仓库<br>■将持久性存储（如GCE持久磁盘）挂载到pod<br>■使用预先配置的持久性 存储<br>■动态调配持久存储<br>在前面三个章节中，我们介绍了pod和与之交互的其他Kubemetes资源，即：ReplicationController（复制控制器）、ReplicaSet（ 副本服务器）、DaemonSet（ 守护进程集）、作业和服务。现在，我们回到pod中，来了解容器是如何访问外部磁盘存储的，以及如何在它们之间共享存储空间。<br>我们之前说过，pod类似逻辑主机，在逻辑主机中运行的进程共享诸如CPU、RAM、网络接口等资源。人们会期望进程也能共享磁盘，但事实并非如此。需要谨记一点，pod 中的每个容器都有自己独立的文件系统，因为文件系统来自容器镜像。<br>每个新容器都是通过在构建镜像时加入的详细配置文件来启动的。将此与pod中容器重新启动的现象结合起来（也许是因为进程崩溃，也许是存活探针向Kubemetes发送了容器状态异常的信号），你就会意识到新容器并不会识别前一个容</p>
+<p>器写入文件系统内的任何内容，即使新启动的容器运行在同一个pod中。<br>在某些场景下，我们可能希望新的容器可以在之前容器结束的位置继续运行，比如在物理机上重启进程。可能不需要（或者不想要）整个文件系统被持久化，但又希望能保存实际数据的目录。<br>Kubernetes通过定义存储卷来满足这个需求，它们不像pod这样的顶级资源，而是被定义为pod的一部分，并和pod共享相同的生命周期。这意味着在pod启动时创建卷，并在删除pod时销毁卷。因此，在容器重新启动期间，卷的内容将保持不变，在重新启动容器之后，新容器可以识别前一个容器写入卷的所有文件。另外，如果一个pod包含多个容器，那这个卷可以同时被所有的容器使用。<br>6.1 介绍卷<br>Kubernetes的卷是pod的一个组成部分，因此像容器一样在pod的规范中就定义了。它们不是独立的Kubernetes对象，也不能单独创建或删除。pod中的所有容器都可以使用卷，但必须先将它挂载在每个需要访问它的容器中。在每个容器中，都可以在其文件系统的任意位置挂载卷。<br>6.1.1卷的应用示例<br>假设有一个带有三个容器的pod（如图6.1所示），一个容器运行了一个web服务器，该web服务器的HTML页面目录位于/var/htdocs，并将站点访问日志存储到/var/logs目录中。第二个容器运行了一个代理来创建HTML文件，并将它们存放在/var/html中，第三个容器处理在/var/logs目录中找到的日志（转换、压缩、分析它们或者做其他处理）。<br>每个容器都有一个很明确的用途，但是每个容器单独使用就没有多大用处了。在没有共享磁盘存储的情况下，用这三个容器创建一个pod没有任何意义。因为内容生成器（content generator）会在自己的容器中存放生成的HTML文件，而web服务器无法访问这些文件，因为它运行在一个隔离的独立容器内。正好相反，它会托管放置在容器镜像的/var/htdocs目录下的任意内容，或者是放置在容器镜像中/var/ htdocs路径下的任意内容。同样，日志转换器（logrotator）也无事可做，因为它的/ var/logs目录始终是空的，并没有日志写入。一个有这三个容器而没有挂载卷的pod 基本上什么也做不了。<br>但是，如果将两个卷添加到pod中，并在三个容器的适当路径上挂载它们，如图6.2所示，就已经创建出一个比其各个部分之和更完善的系统。Linux允许在文件树中的任意位置挂载文件系统，当这样做的时候，挂载的文件系统内容在目录中是</p>
+<p>可以访问的。通过将相同的卷挂载到两个容器中，它们可以对相同的文件进行操作。在这个例子中，只需要在三个容器中挂载两个卷，这样三个容器将可以一起工作，并发挥作用。下面解释一下：<br>首先，pod有一个名为publicHtml的卷，这个卷被挂载在WebServer容器的/var/htdocs中，因为这是web服务器的服务目录。在ContentAgent容器中也挂载了相同的卷，但在/var/html中，因为代理将文件写入/var/html中。通过这种方式挂载这个卷，web服务器现在将为content agent生成的内容提供服务。<br>同样，pod还拥有一个名为logVol的卷，用于存放日志，此卷在WebServer和LogRotator容器中的/var/log中挂载，注意，它没有挂载在ContentAgent容器中，这个容器不能访问它的文件，即使容器和卷是同一个pod的一部分，在pod的规范中定义卷是不够的。如果我们希望容器能够访问它，还需要在容器的规范中定义一个VolumeMount。</p>
+<p>图6.1同一个 pod 的三个容器没有共享存储<br>在本例中，两个卷最初都是空的， 因此可以使用一种名为 emptyDir 的卷。Kubernetes 还支持其他类型的卷， 这些卷要么是在从外部源初始化卷时填充的，要么是在卷内挂载现有目录。 这个填充或装入卷的过程是在 pod 内的容器启动之前执<br>CC<br>164<br>6 卷：将磁盘挂载到容器<br>行的。<br>卷被绑定到 pod 的 lifecycle（生命周期）中， 只有在 pod 存在时才会存在，但取 决于卷的类型，即使在 pod 和卷消失之后， 卷的文件也可能保持原样，并可以挂载 到新的卷中。让我们来看看卷有哪些类型。 。 </p>
+<p>图6.2三个容器共享挂载在不同安装路径的两个卷上<br>6.1.2 介绍可用的卷类型<br>有多种卷类型可供选择。其中-些是通用的，而另-些则相对于当前常用的存储技术有较大差别。如果从来没有听说过这些技术，也别太担心一其中至少一半笔者也没有听说过。你有可能只会用到那些自己熟悉和曾经用过的卷技术。以下是几种可用卷类型的列表：<br>·emptyDir-一用于存储临时数据的简单空目录。<br>●hostPath — 用于将目录从工作节点的文件系统挂载到pod中。<br>gitRepo— 通过检出Git 仓库的内容来初始化的卷。<br>nfs-挂载到pod中的NFS共享卷。</p>
+<p>gcePersistentDisk（Google 高效能型存储磁盘卷）、awsElastic  BlockStore（AmazonWeb 服务弹性块存储卷）、azureDisk （Microsoft Azure磁盘卷） 一用 于挂载云服务商提供的特定存储类型。<br>cinder、cephfs、iscsi、 flocker、glusterfs、quobyte、 rbd、 flexVolume、vsphere-Volume、 photonPersistentDisk、 scaleI0 用于挂载其他类型的网络存储。<br>configMap、secret、 downwardAPI—用于将 Kubernetes 部分资源和集群信息公开给pod 的特殊类型的卷。<br>persistentVolumeClaim一种使用 预置或者动态配置的持久存储类 型（我们将在本章的最后一节对此展开讨论 ）。<br>这些卷类型有各种用途。 我们将在下面的部分中了解其中一些内容。 特殊类型的卷（secret、downwardAPI、 configMap）将在接下来的两章中讨论， 因为它们不是用于存储数据，而是用于将 Kubernetes 元数据公开给运行在 pod 中的应用程序。<br>单个容器可以同时使用不同类型的多个卷， 而且正如我们前面提到的，每个容 器都可以装载或不装载卷。<br>6.2 通过卷在容器之间共享数据<br>尽管一个卷即使被单个容器使用也可能很有用， 但是我们首先要关注它是如何用于在一个 pod 的多个容器之间共享数据的。<br>6.2.1 使用 emptyDir卷<br>最简单的卷类型是 emptyDir 卷， 所以作为第一个例子让我们看看如何在 pod 中定义卷。顾名思义，卷从一个空目录开始， 运行在 pod 内的应用程序可以写入它 需要的任何文件。因为卷的生存周期与 pod 的生存周期相关联，所以当删除 pod 时， 卷的内容就会丢失。<br>一个 emptyDir 卷对于在同一个 pod 中运行的容器之间共享文件特别有用。但 是它也 可以被单个容器用于将数据临时写入磁盘， 例如在大型数据集上执行排序操作时，没有那么多内存可供使用。 数据也可以写入容器的文件系统本身 （还记得容器的顶层读写层吗？）， 但是这两者之间存在着细微的差别。 容器的文件系统甚至可能是不可写的（ 我们将在书的末尾讨论这个问题）， 所以写到挂载的卷可能是唯一的选择。</p>
+<p>在pod中使用emptyDir卷<br>让我们重新回顾一下前面的例子，其中web服务器、内容代理和日志转换器共享两个卷，但让我们简化一下，现在将构建一个仅有web服务器容器内容代理和单独HTML的卷的pod<br>我们将使用Nginx作为Web服务器和UNIX fortune命令来生成HTML内容，fortune命令每次运行时都会输出一个随机引用，可以创建一个脚本每10秒调用一次执行，并将其输出存储在index.html中，在Docker Hub上可以找到一个现成的Nginx镜像，但是需要自己创建fortune镜像，或者使用笔者已经构建并推送到Docker Hubluksa/Fortune下的镜像。如果你希望了解如何构建Docker镜像，请参考下面的注解（构建fortune容器镜像）。<br>构建fortune容器镜像<br>这里描述如何创建镜像，创建一个名为fortune的新目录，然后在其中创建一个具有以下内容的fortuneloop.sh的shell脚本：</p>
+<h1 id="bin-bash"><a href="#bin-bash" class="headerlink" title="!/bin/bash"></a>!/bin/bash</h1><p>trap “exit” SIGINT<br>mkdir /var/htdocs<br>while:<br>dc<br>echo $(date) Writing fortune to /var/htdocs/index.html /usr/games/fortune &gt; /var/htdocs/index.html<br>sleep 10<br>done<br>然后，在同一个目录中，创建一个名为Dockerfle的文件，其中包含以下内容：FROM ubuntu:latest<br>RUN apt -get update ; apt-get -y install fortune<br>ADD fortuneloop.sh /bin/fortuneloop.sh<br>ENTRYPOINT /bin/fortuneloop.sh<br>该镜像基于ubuntu：latest镜像，默认情况下不包括fortune二进制文件。这就是为什么在Dockerfile的第二行中，需要使用apt-get安装它的原因。之后，可以向镜像的/bin文件夹中添加fortuneloop.sh脚本。在Dockerfile的最后一行中，指定镜像启动时执行fortuneloop.sh脚本。<br>准备好这两个文件之后，使用以下两个命令（用自己的Docker Hub用户ID替换luksa）构建镜像并上传到Docker Hub：<br>s docker build -t luksa/fortune $ docker push luksa/fortune</p>
+<p>创建pod<br>现在有两个镜像需要运行在pod上，是时候创建pod的manifest了，创建一个名为fortune-pod.yaml 的文件，其内容包含在下面的代码清单中。<br>代码清单6.1一个pod中有两个共用同一个卷的容器： fortune-pod.yaml</p>
+<p>pod包含两个容器和一个挂载在两个容器中的共用的卷，但在不同的路径上。当html-generator容器启动时，它每10秒启动一次fortune命令输出到/var/htdocs/index.html文件。因为卷是在/var/htdocs上挂载的，所以index.html文件被写入卷中，而不是容器的顶层。一旦web-server容器启动，它就开始为/usr/share/nginx/html目录中的任意HTML文件提供服务（这是Nginx服务的默认服务文件目录）。因为我们将卷挂载在那个确切的位置，Nginx将为运行fortune循环的容器输出的index.html文件提供服务。最终的效果是，一个客户端向pod上的80端口发送一个HTTP请求，将接收当前的fortune消息作为响应。<br>查看pod状态<br>为了查看fortune消息，需要启用对pod的访问，可以尝试将端口从本地机器转发到pod来实现：</p>
+<p>注意作为练习， 还可以通过服务来访问该pod， 而不是单纯使用端口转发。现在可以通过本地计算机的8080端口来访问 Nginx 服务器。通过执行 curl 命 令：<br>$curl<a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a><br>Beware of a tall blond man with one black shoe.<br>如果等待几秒发送另一个请求， 则应该会接收到另一条信息。 通过组合两个容器，就创建了一个简单的应用， 通过这个应用可以观察到卷是如何将两个容器组合在一起，并分别增强它们各自的功能的。<br>指定用于 EMPTYDIR的介质<br>作为卷来使用的 emptyDir，是在承载 pod 的工作节点的实际磁盘上创建的， 因此其性能取决于节点的磁盘类型。 但我们可以通知 Kubernetes 在 tmfs 文件系统 （存在内存而非硬盘）上创建 emptyDir。 因此，将 emptyDir的medium 设置为  Memory:<br>volumes:</p>
+<ul>
+<li>name: html<br>emptyDir 的文件将会存<br>emptyDir:<br>储在内存中<br>medium: Memory<br>emptyDir 卷是最简单的卷类型， 但是其他类型的卷都是在它的基础上构建的，在创建空目录后，它们会用数据填充它。 有一种称作 gitRepo 的卷类型，我们将 在下面进行介绍。<br>6.2.2 使用 Git 仓库作为存储卷<br>gitRepo 卷基本上也是一个 emptyDir卷， 它通过克隆 Git 仓库并在 pod 启动时（但在创建容器之前） 检出特定版本来填充数据，如图 6.3 所示。 </li>
+</ul>
+<p>图 6.3 gitRepo 卷是一个 emptyDir卷， 最初填充了 Git 仓库的内容<br>注意在创建 gitRepo 卷后， 它并不能和对应 repo 保持同步。 当向Git仓库推送新增的提交时， 卷中的文件将不会被更新。然而， 如果所用的 pod 是由 ReplicationController 管理的，删除这个 pod 将触发新建一个新的 pod，而这个新 pod 的卷中将包含最新的提交。<br>例如，我们可以使用 Git 仓库来存放网站的静态 HTML 文件， 并创建一个包含web 服务器容器和 gitRepo 卷的 pod。 每当 pod 创建时， 它会拉取网站的最新版本并开始托管网站。唯一的缺点是， 每次将更改推送到gitRepo 时， 都需要删除 pod，才能托管新版本的网站。<br>让我们现在开始， 这跟你以前做的很接近。<br>从一个克隆的 Git 仓库中运行 web 服务器 pod的服务文件<br>在创建 pod 之前， 需要有一个包含 HTML 文件并实际可用的 Git 仓库，笔者在 GitHub创建了一个repo，链接为:<a href="https://github.com/luksa/kubia-website-example.git。我们需要" target="_blank" rel="noopener">https://github.com/luksa/kubia-website-example.git。我们需要</a> fork 这个项目（在 github . 上创建你自己的 repo 副本 ）， 这样就可以在后面对其进行变更修改。<br>当我们完成了 fork 操作，就可以继续创建 pod 了。这次，只需要一个 Nginx 容 器和一个 gitRepo 卷（ 确保已将 gitRepo 卷指向 fork 来的 repo 副本 ），如下面的代码清单所示。<br>代码清单6.2<br>使用gitRepo 卷的 pod： gitrepo-volume-pod.yaml </p>
+<p>在创建 pod 时， 首先将卷初始化为一个空目录， 然后将制定的 Git 仓库克隆到其中。如果没有将目录设置为.（句点）， 存储库将会被克隆到 kubia-website-example 示例目录中，这不是我们想要的结果。 我们预期将 repo 克隆到卷的根目录中。 在设置存储库时，我们还需要指明让 Kubernetes 切换到 master 分支所在的版本来创建存储卷修订变更。<br>在 pod 运行时，我们可以尝试通过端口转发 、服务或在 pod（或集群中的任意其 他 pod） 中运行 curl 命令来访问 pod。<br>确认文件未与Git 仓库保持同步<br>现在，我们将对 Github 项目中的 index.html 文件进行更改。如果不在本地使用  Git，可以直接在 Github 上编辑文件—单击 Github 存储库中的文件以打开该文件，  然后单击铅笔图标开始编辑它。 更改文本， 然后单击底部的按钮提交更改。<br>Git 仓库的主分支现在包含对 HTML 文件所做的更改。而这些更改在 Nginxweb服务器上不可见，因为 gitrepo 卷与 Git 仓库未能保持同步。 可以通过再次访问pod 来确认这一点。<br>要查看新版本的站点，需要删除 pod 并重建，每次进行更改时，没必要每次都 删除 pod， 可以运行一个附加进程来使卷与 Git 仓库保持同步。在这里不详细解释如何实现，相反，建议自己多做练习， 这里可以给到一些指引。<br>介绍 sidecar 容器<br>Git 同步进程不应该运行在与 Nginx 站点服务器相同的容器中， 而是在第二个容器：sidecar container。它是一种容器， 增加了对 pod 主容器的操作。可以将一个 sidecar 添加到 pod 中， 这样就可以使用现有的容器镜像， 而不是将附加逻辑填入主</p>
+<p>应用程序的代码中，这会使它过于复杂和不可复用。<br>为了找到一个保持本地目录与Git仓库同步的现有容器镜像，转到DockerHub并搜索“git syc”，可以看到很多可以实现的镜像。然后在示例中，从pod的一个新容器使用镜像，挂载pod现有的gitRepo卷到新容器中，并配置Git同步容器来保持文件与Git repo同步。如果正确设置了所有的内容，应该能看到web服务器正在加载的文件与GitHub repo同步。<br>注意第18章中的一个例子包含了类似的Git同步容器，所以可以等读到第18章，再跟着分步说明做这个练习。<br>使用带有专用Git仓库的gitRepo卷<br>另外还有一个原因，使得我们必须依赖于Gitsyncsidecar容器。我们还没有讨论过是否可以使用对应私有Git repo的gitRepo卷，其实不可行。Kubernetes 开发人员的共识是保持gitRepo卷的简单性，而不添加任何通过SSH协议克隆私有存储库的支持，因为这需要向gitRepo卷添加额外的配置选项。<br>如果想要将私有的Gitrepo克隆到容器中，则应该使用gitsyncsidecar或类似的方法，而不是使用gitRepo卷。<br>总结gitRepo存储卷<br>gitRepo容器就像emptyDir卷一样，基本上是一个专用目录，专门用于包含卷的容器并单独使用。当pod被删除时，卷及其内容被删除。然而，其他类型的卷并不创建新目录，而是将现有的外部目录挂载到pod的容器文件系统中。该卷内容可以保存多个pod实例化，接下来我们将了解这些类型的卷。<br>6.3  访问工作节点文件系统，上的文件<br>大多数pod应该忽略它们的主机节点，因此它们不应该访问节点文件系统上的任何文件。但是某些系统级别的pod（切记，这些通常由DaemonSet管理）确实需要读取节点的文件或使用节点文件系统来访问节点设备。Kubermetes通过hostPath卷实现了这一点。<br>6.3.1介绍 hostPath卷<br>hostPath 卷指向节点文件系统上的特定文件或目录（请参见图6.4）。在同个节点上运行并在其hostPath卷中使用相同路径的pod可以看到相同的文件。</p>
+<p>图6.4 hostPath 卷将工作节点上的文件或目录挂载到容器的文件系统中<br>hostPath卷是我们介绍的第一种类型的持久性存储，因为gitRepo和emptyDir卷的内容都会在pod被删除时被删除，而hostPath卷的内容则不会被删除。如果删除了一个pod，并且下一个pod使用了指向主机上相同路径的hostPath卷，则新pod将会发现上一个pod留下的数据，但前提是必须将其调度到与第一个pod相同的节点上。<br>如果你正在考虑使用hostPath卷作为存储数据库数据的目录，请重新考虑。因为卷的内容存储在特定节点的文件系统中，所以当数据库pod被重新安排在另-个节点时，会找不到数据。这解释了为什么对常规pod使用hostPath卷不是一个好主意，因为这会使pod对预定规划的节点很敏感。<br>6.3.2检查使用hostPath卷的系统pod<br>让我们看看如何正确地使用hostPath卷。我们先看一下是否有系统层面的pod已经在使用这种类型的卷，而不是直接创建一个新pod。你可能还记得前面一章中，有几个这样的pod正在kube-system命名空间中运行，再次列出它们：$ kubectl get pod 8 —namespace kube- sys tem<br>R EADY<br>STATUS RESTARTS AGE Running 1 4d<br>fluentd- kubia-4ebc2fle-9a3e 1/1 f luentd- kubia-4ebc2fle-e2vz 1 /1 …<br>Running<br>31d<br>选择第一个并查看其使用的卷大小（在下面的代码清单中显示）。</p>
+<p>提示如果你使用的是Minikube，试试kube - addon-manager -minikube pod.<br>pod使用两个hostPath卷来访问节点的/var/log和/var/lib/docker/containers目录。也许你认为在第一次尝试时就找到一个在使用hostPath卷的pod很幸运，但实际上并不是这样（至少在GKE不是）。检查其他文件，将能看到大多数情况下都使用这种类型的卷来访问节点的日志文件、kubeconfig （Kubemetes 配置文件）或CA证书。<br>如果检查其他pod，则会看到其中没有一个使用hostPath卷来存储自己的数据，都是使用这种卷来访问节点的数据。但是，正如我们在本章后面将看到的， hostPath卷通常用于尝试单节点集群中的持久化存储，譬如Minikube创建的集群。继续阅读，我们将了解即使在多节点集群中也应该使用哪些类型的卷来正确地存储持久化数据。<br>提示请记住仅当 需要在节点上读取或写入系统文件时才使用hostPath，切勿使用它们来持久化跨pod的数据。<br>6.4使用持久化存储<br>当运行在一个pod中的应用程序需要将数据保存到磁盘.上，并且即使该pod重新调度到另一个节点时也要求具有相同的数据可用。这就不能使用到目前为止我们提到的任何卷类型，由于这些数据需要可以从任何集群节点访问，因此必须将其存储在某种类型的网络存储（NAS）中。<br>要了解允许保存数据的卷，我们将创建-个运行MongoDB（文件类型NoSQL数据库）的pod。除了测试目的，运行没有卷或非持久卷的数据库pod没有任何意义，</p>
+<p>所以需要为该pod 添加适当类型的卷并将其挂载在 MongoDB 容器中。<br>6.4.1<br>使用 GCE 持久磁盘作为 pod 存储卷<br>如果是在 Google Kubernetes Engine 中运行这些示例，那么由于集群节点是运行 在 Google Compute Engine （GCE） 之上， 则将使用 GCE 持久磁盘作为底层存储机制。<br>在早期版本中，Kubernetes 没有自动配置底层存储， 必须手动执行此操作。自动配置现在已经可以实现， 我们将在本章的后面部分进一步了解。 首先，我们需要手动配置存储， 这样可以让你有机会了解背后发生了什么。<br>创建 GCE 持久磁盘<br>首先创建 GCE 持久磁盘。 我们需要在同一区域的 Kubernetes 集群中创建它，如果你不记得是在哪个区域创建了集群， 可以通过使用gcloud 命令来查看：<br>$ gcloud container clusters list<br>NAME ZONE<br>MASTER_VERSION MASTER_TP<br>kubia europe-west1-b 1.2.5<br>104.155.84.137<br>以上输出说明已经在 europe-west1-b 区域中创建了集群，因此也需要在同 一区域中创建GCE 持久磁盘。 可以像这样创建磁盘：<br>$ gcloud compute disks create —size=1GiB —zone=europe-west1-b mongodb<br>WARNING: You have selected a disk size of under [200GB]. This may result in poor I/O performance. For more information, see:<br><a href="https://developers.google.com/compute/docs/disks#pdperformance" target="_blank" rel="noopener">https://developers.google.com/compute/docs/disks#pdperformance</a>.<br>Created[<a href="https://www.googleapis.com/compute/v1/projects/rapid-pivot-" target="_blank" rel="noopener">https://www.googleapis.com/compute/v1/projects/rapid-pivot-</a><br>136513/zones/europe-west1-b/disks/mongodbl.<br>NAME<br>ZONE<br>SIZE_GB TYPE<br>STATUS<br>mongodb europe-west1-b 1<br>pd-standard READY<br>这个命令创建了一个 1GiB 容量并命名为 mongodb的GCE 持久磁盘。可以忽 略有关磁盘大小的告警， 因为我们无须关心用于测试的磁盘性能。<br>创建一个使用GCE持久磁盘卷的 pod<br>现在我们已经正确设置了物理存储， 可以在 MongoDB pod 的卷中使用它。着 手为 pod 准备 YAML， 如下面的代码清单所示。 </p>
+<p>提示如果要使用 Minikube，就不能使用 GCE持久磁盘，但是可以部署 mongodb-pod-hostpath.yaml， 这个使用的是hostpath 卷而不是GCE持久磁盘。<br>pod 包含一个容器和一个卷， 被之前创建的 GCE 持久磁盘支持（如图6.5 所示）。因为 MongoDB就是在 /data/db . 上存储数据的， 所以容器中的卷也要挂载在这个路径上。</p>
+<p>图6.5带有 单个运行Mongodb的容器的pod，该容器挂载引用外部的GCE持久磁盘<br>通过向MongoDB数据库添加文档来将数据写入持久化存储<br>现在已经创建了pod并且容器也已经启动，我们可以在容器中运行MongoDBshell，从而向数据存储写入一些数据。<br>如下面的代码清单所示执行shlle命令。<br>176<br>6卷：将磁盘挂载到容器<br>代码清单6.5在mongodb pod中执行MongoDB shell</p>
+<p>MongoDB 允许存储 JSON 文档， 所以我们将存放一个文档， 以查看其是否被持久化存储，并且可以在重新创建 pod 后检索到。使用以下命令插入一个新的 JSON文档：</p>
+<blockquote>
+<p>use mystore<br>switched to db mystore<br>db.foo.ingert({name:’foo’})<br>“nInserted”:1 }) WriteResult({<br>你已经插入了一个简单的 JSON 文档（name：’foo’），现在， 可以通过find（）命令来查看插入的文档：<br>db.foo.find()<br>{ “_id” : ObjectId(“57a61eb9de0cfd512374cc75”), “name” : “foo” }<br>文档现在已经被存储在 GCE Persistent Disk 中了。<br>重新创建 pod 并验证其可以读取由前一个 pod 保存的数据<br>现在可以退出 mongodb shell（输入exit 并按 Enter 键）， 然后删除 pod 并重建： $ kubectl delete pod mongodb<br>pod “mongodb” deleted<br>$ kubectl create -f mongodb-pod-gcepd.yaml<br>pod “mongodb” created<br>新的 pod 使用与前一个 pod 完全相同的 GCE Persistent Disk，所以运行在其中 的 MongoDB容器应该会看到完全相同的数据， 即便将 pod 调度到不同的节点也是 一样的。<br>提示可以通过执行kubectl get po-owide来查看pod被调度到哪个节点上。容器启动后，可以再次运行 MongoDB shell 来检查是否还可以检索之前存储的 文档，如下面的代码清单所示。</p>
+</blockquote>
+<p>代码清单6.6在新pod中检索MongoDB的持久化数据<br>$ kubectl exec -it mongodb mongo<br>MongoDB shell version: 3.2.8<br>connecting to: mongodb://127.0.0.1:27017 Welcome to the MongoDB shell.</p>
+<blockquote>
+<p>use mystore<br>switched to db mystore<br>db.foo.findl)<br>{“_id” :Objectld(“57a61eb9de0cfd512374cc75”), “name” :”foo”}<br>符合预期，数据仍然存在，即便删除了pod并重建。这证实了可以使用GCE持久磁盘在多个pod实例中持久化数据。<br>我们完成了MongoDBpod的操作，所以继续清理这个pod，但是不要删除底层的GCE持久磁盘，我们将在本章后面再次用到。<br>6.4.2通过底层持久化存储使用其他类型的卷<br>因为你的Kubemetes集群运行在Google Kubemetes引擎上所以需要创建GCEpersistent disk。当在其他地方运行Kubemetes集群时，应该根据不同的基础设施使用其他类型的卷。<br>例如，如果你的Kubemetes集群运行在Amazon的AWS EC2上，就可以使用 awsElasticBlockStore卷给你的pod提供持久化存储。如果集群在MicrosoftAzure上运行，则可以使用azureFile或者azureDisk卷。我们无法在这里详细介绍如何去实现，实际上与前面的示例是一样的。首先，需要创建实际的底层存储，然后在卷定义中设置适当的属性。<br>使用AWS弹性块存储卷<br>例如，要使用AWS弹性块存储（Aws Elastic Block Store）而不是GCE持久磁盘，只需要更改卷定义。如下面的代码清单所示（请参阅以粗体标注的行）。<br>代码清单6.7使用awsElastic Block Store卷的pod： mongodb-pod-aws.yaml</p>
+</blockquote>
+<p>使用NFS卷<br>如果集群是运行在自有的一组服务器上， 那么就有大量其他可移植的选项用于 在卷内挂载外部存储。例如， 要挂载一个简单的 NFS 共享， 只需指定 NFS 服务器和共享路径，如下面的代码清单所示。<br>代码清单6.8使用 NFS 的 pod：mongodb-pod-nfs.yamlvolumes:<br>这个卷受 NFS 共享</p>
+<ul>
+<li>name: mongodb-data<br>支持<br>nfs:<br>8erver: 1.2.3.4<br>NFS服务<br>path: /some/path<br>服务器提供<br>器的IP<br>的路径<br>使用其他存储技术<br>其他的支持选项包括用于挂载 ISCSI 磁盘资源的 iscsi，用于挂载 GlusterFS 的 glusterfs，适用于 RADOS 块设备的 bd，还有flexVolume、cinder、cephfs、  flocker、fc（光纤通道）等。rbd 如果你不会使用到它们，就不需要知道所有的信息。这里提到是为了展示Kubernetes 支持广泛的存储技术， 并且可以使用喜欢和习惯的任何存储技术。<br>要了解每个卷类型设置需要哪些属性的详细信息，可以转到Kubernetes API 引 用中的Kubernetes API 定义， 或者通过第三章展示的通过 kubectl explain 查找信息。 如果你已经熟悉了一种特定的存储技术， 那么使用explain 命令可以让你轻松地了解如何挂载一个适当类型的卷， 并在 pod 中使用它。<br>但是开发人员需要知道所有信息吗？ 开发人员在创建 pod 时， 应该处理与基础设施相关的存储细节， 还是应该留给集群管理员处理？<br>通过 pod 的卷来隐藏真实的底层基础设施， 不就是Kubernetes 存在的意义吗？ 举个例子，让研发人员来指定 NFS 服务器的主机名会是一件感觉很糟糕的事情。而 这还不是最糟糕的。<br>将这种涉及基础设施类型的信息塞到一个 pod 设置中，意味着 pod 设置与特定 的 Kubernetes 集群有很大耦合度。 这就不能在另一个 pod 中使用相同的设置了。所以使用这样的卷并不是在 pod 中附加持久化存储的最佳实践。 在下一节中，我们将</li>
+</ul>
+<p>学习如何改进这一点。<br>6.5从底层存储技术解耦pod<br>到目前为止，我们探索过的所有持久卷类型都要求pod的开发人员了解集群中可用的真实网络存储的基础结构。例如，要创建支持NFS协议的卷，开发人员必须知道NFS节点所在的实际服务器。这违背了Kubernetes的基本理念，这个理念旨在向应用程序及其开发人员隐藏真实的基础设施，使他们不必担心基础设施的具体状态，并使应用程序可在大量云服务商和数据企业之间进行功能迁移。<br>理想的情况是，在Kubernetes上部署应用程序的开发人员不需要知道底层使用的是哪种存储技术，同理他们也不需要了解应该使用哪些类型的物理服务器来运行pod，与基础设施相关的交互是集群管理员独有的控制领域。<br>当开发人员需要一定数量的持久化存储来进行应用时，可以向Kubernetes请求，就像在创建pod时可以请求CPU、内存和其他资源一样。系统管理员可以对集群进行配置让其可以为应用程序提供所需的服务。<br>6.5.1介绍持久卷和持久卷声明<br>在Kubemetes集群中为了使应用能够正常请求存储资源，同时避免处理基础设施细节，引入了两个新的资源，分别是持久卷和持久卷声明，这名字可能有点误导，因为正如在前面几节中看到的，甚至常规的Kubernetes卷也可以用来存储持久性数据。<br>在pod中使用PersistentVolume（持久卷，简称PV）要比使用常规的pod卷复杂一些，所以让我们通过图6.6来说明持久卷、持久卷声明和真实底层存储是如何相互关联的。<br>研发人员无须向他们的pod中添加特定技术的卷，而是由集群管理员设置底层存储，然后通过Kubernetes API服务器创建持久卷并注册。在创建持久卷时，管理员可以指定其大小和所支持的访问模式。<br>当集群用户需要在其pod中使用持久化存储时，他们首先创建持久卷声明 （PersistentVolumeClaim，简称PVC）清单，指定所需要的最低容量要求和访问模式，然后用户将持久卷声明清单提交给Kubernetes API服务器，Kubernetes将找到可匹配的持久卷并将其绑定到持久卷声明。<br>持久卷声明可以当作pod中的一个卷来使用，其他用户不能使用相同的持久卷，除非先通过删除持久卷声明绑定来释放。</p>
+<p>图6.6持久卷由集群管理员提供，并被 pod 通过持久卷声明来消费<br>6.5.2<br>创建持久卷<br>让我们重新讨论 MongoDB 示例， 但与之前操作不同的是， 这次不会直接引用在 pod 中的 GCE 持久磁盘。相反， 你将首先承担集群管理员的角色， 并创建一个支持 GCE 持久磁盘的 持久卷。然后， 你将承担应用程序研发人员的角色，首先声 明持久卷，然后在 pod 中使用。<br>在 6.4.1 节中，我们通过使用 GCE 持久磁盘来设置物理存储， 这次不用再这么操作。你所需要做的就是在 Kubernetes 中创建持久卷， 方法是准备如下所示的代码清单，并将其提交给 API 服务器。<br>代码清单 6.9一个 gcePersistentDisk持久卷： mongodb-pv-gcepd.yaml </p>
+<p>注意如果在用Minikube，请用mongodb-pv-hostpath.yaml文件创建PV。<br>在创建持久卷时，管理员需要告诉Kubernetes其对应的容量需求，以及它是否可以由单个节点或多个节点同时读取或写入。管理员还需要告诉Kubernetes如何处理PersistentVolume（当持久卷声明的绑定被删除时）。最后，无疑也很重要的事情是，管理员需要指定持久卷支持的实际存储类型、位置和其他属性。如果仔细观察，当直接在pod卷中引用GCE持久磁盘时，最后一部分配置与前面完全相同（在下面的代码清单中再次显示）。<br>代码清单6.10<br>在pod卷中引用GCEPD</p>
+<p>在使用 kubectl create 命令创建持久卷之后，应该可以声明它了。 看看是否列出了所有的持久卷：<br>$ kubectl get pv<br>NAME<br>CAPACITY<br>RECLAIMPOLICY<br>ACCESSMODES<br>STATUS<br>CLAIM<br>mongodb-pv<br>1Gi<br>Retain<br>RWO,ROX<br>Available<br>注意部分省略， 同时 pv 也用作 persistentvolume 的简写。<br>正如预期的那样，持久卷显示为可用， 因为你还没创建持久卷声明。<br>注意持久卷不属于任何命名空间（见图6.7）， 它跟节点一样是集群层面的资源。 </p>
+<p>图6.7和集群节点- 样，持久卷不属于任何命名空间，区别于pod和持久卷声明<br>6.5.3 通过创建持久卷声明来获取持久卷<br>假设现在需要部署一个需要持久化存储的pod，将要用到之前创建的持久卷，但是不能直接在pod内使用，需要先声明一个。<br>声明一个持久卷和创建一个pod是相对独立的过程，因为即使pod被重新调度（切记，重新调度意味着先前的pod被删除并且创建了一个新的pod），我们也希望通过相同的持久卷声明来确保可用。<br>创建持久卷声明<br>现在开始创建一个声明。先参考下面的代码清单所示的内容来准备一个持久卷声明清单，并通过kubectl create 将其发布到Kubernetes API。<br>代码清单6.11 PersistentCo lumeClaim： mongodb-pvc. yaml</p>
+<p>当创建好声明，Kubernetes就会找到适当的持久卷并将其绑定到声明，持久卷的容量必须足够大以满足声明的需求，并且卷的访问模式必须包含声明中指定的访问模式。在该示例中，声明请求1GiB的存储空间和ReadWrite0nce访问模式。之前创建的持久卷符合刚刚声明中的这两个条件，所以它被绑定到对应的声明中。我们可以通过检查声明来查看。<br>列举持久卷声明<br>列举出所有的持久卷声明来查看PVC的状态：<br>$ kubectl get pvc NAME<br>STATUS<br>VOLUME<br>CAPACITY 1Ci<br>ACCESSMODES RWO,ROX<br>AGE<br>mongodb-pvc<br>Bound<br>mongodb-pv<br>3s<br>注意我们使用pvc来代称persistentvolumeclaim。<br>PVC状态显示已与持久卷的mongodb-pv绑定。请留意访问模式的简写： ●RWO<br>-ReadWriteOnce<br>仅允许单个节点挂载读写。<br>●ROX<br>-ReadOnlyMany<br>允许多个节点挂载只读。<br>●RWX<br>ReadWriteMany<br>允许多个节点挂载读写这个卷。<br>注意RWO、ROX、RWX涉及可以同时使用卷的工作节点的数量而并非pod的数量。<br>列举持久卷<br>通过使用kubectlget命令，我们还可以看到持久卷现在已经Bound，并且不再是Available。<br>$ kubectl get pv NAME<br>CAPACITY<br>ACCESSMODES RWO,ROX<br>STATUS Bound<br>CLAIM<br>mongodb-pv<br>1Gi<br>default/mongodb-pr<br>持久卷显示被绑定在default/mongodb-pvc的声明上，这个default部分是声明所在的命名空间（在默认命名空间中创建的声明），我们之前有提到过持久卷是集群范围的，因此不能在特定的命名空间中创建，但是持久卷声明又只能在特</p>
+<p>定的命名空间创建， 所以持久卷和持久卷声明只能被同一命名空间内的 pod 创建使用。<br>6.5.4 在 pod 中使用持久卷声明<br>持久卷现在已经可用了，除非先释放掉卷， 否则没有人可以申明相同的卷。要 在 pod 中使用持久卷， 需要在 pod 的卷中引用持久卷声明名称， 如下面的代码清单所示。<br>代码清单6.12使用 PVC 卷的 pod： mongodb-pod-pvc.yaml </p>
+<p>继续创建pod，现在检查这个pod是否确实在使用相同的持久卷和底层GCEPD。通过再次运行MongoDBshell，应该可以看到之前存储的数据，如下面的代码清单所示。<br>代码清单6.13在已使用 PVC和PV的pod中检索MongoDB的持久化数据</p>
+<p>符合预期，可以检索之前存储到 MongoDB的文档。<br>6.5.5 了解使用持久卷和持久卷声明的好处<br>通过图 6.8，展示了 pod 可以直接使用， 或者通过持久卷和持久卷声明，这两 种方式使用GCE 持久磁盘。</p>
+<p>图 6.8 直接使用通过 PVC 和 PV 使用GCE 持久磁盘<br>考虑如何使用这种间接方法从基础设施获取存储，对于应用程序开发人员（或 者集群用户）来说更加简单。是的， 这需要额外的步骤来创建持久卷和持久卷声明，但是研发人员不需要关心 底层实际使用的存储技术。<br>此外，现在可以在许多不同的 Kubernetes 集群上使用相同的 pod 和持久卷声明 清单，因为它们不涉及任何特定依赖于基础设施的内容。声明说：“我需要x存储量，并且我需要能够支持一个客户端同时读取和写入。”然后 pod 通过其中一个卷的名 称来引用声明。</p>
+<p>6.5.6 回收持久卷<br>在结束关于持久卷的本节前，让我们先做一个快速实验，删除pod和持久卷声明：$ kubectl delete pod mongodb<br>pod “mongodbu deleted<br>$ kubectl delete pvc mongodb-pvc<br>persistentvolumeclaim “mongodb-pvcu deleted<br>如果再次创建持久卷声明会怎样？它是否会被绑定到持久卷？在创建声明后，kubectl getpvc命令返回的结果是什么？<br>$ kubectl get pvc NAME<br>STATUS<br>VOLUME<br>CAPACITY<br>ACCESSMODES<br>AGE<br>mongodb-pvc<br>Pending<br>13s<br>这个持久卷声明的状态显示为Pending，有趣。之前创建声明的时候，它立即绑定到了持久卷，那么为什么现在不绑定呢？也许列出持久卷可以看得更清楚一些：$ kubectl get pv<br>NAME<br>CAPACITY ACCESSMODES STATUS<br>CLAIM<br>REASON AGE<br>mongodb-pv<br>1Gi<br>RWO,ROX<br>Released<br>default/mongodb-pvc<br>5m<br>STATUS列显示持久卷的状态是Released，不像之前那样是Available.原因在于之前已经使用过这个卷，所以它可能包含前一个声明人的数据，如果集群管理员还没来得及清理，那么不应该将这个卷绑定到全新的声明中。除此之外，通过使用相同的持久卷，新的pod可以读取由前一个pod存放的数据，即使声明和pod是在不同的命名空间中创建的（因此有可能属于不同的集群租户）。<br>手动回收持久卷<br>通过将persistentVolumeReclaimPolicy设置为Retain从而通知到Kubernetes，我们希望在创建持久卷后将其持久化，让Kubernetes可以在持久卷从持久卷声明中释放后仍然能保留它的卷和数据内容。据我所知，手动回收持久卷并使其恢复可用的唯一方法是删除和重新创建持久卷资源。当这样操作时，你将决定如何处理底层存储中的文件：可以删除这些文件，也可以闲置不用，以便在下一个pod中复用它们。<br>自动回收持久卷<br>存在两种其他可行的回收策略：Recycle和Delete。第一种删除卷的内容并使卷可用于再次声明，通过这种方式，持久卷可以被不同的持久卷声明和pod反复伸田，如图69所示。</p>
+<p>图 6.9 持久卷和持久卷声明的生命周期， 以及在 pod 中的使用<br>而另一边，Delete 策略删除底层存储。 需要注意当前 GCE 持久磁盘无法使用 Recycle 选项。 这种类型的持久卷只支持 Retain 和 Delete 策略，其他类型的持久磁盘可能支持这些选项， 也可能不支持这些选项。因此，在创建自 己的持久卷之前，一定要检查卷中所用到的特定底层存储支持什么回收策略。<br>提示可以在现有的持久卷上更改持久卷回收策略。比如，如果最初将其设置为 Delete，则可以轻松地将其更改为 Retain，以防止丢失有价值的数据。<br>6.6 持久卷的动态卷配置<br>如你所见，使用持久卷和持久卷声明可以轻松获得持久化存储资源， 无须研发人员处理下面实际使用的存储技术， 但这仍然需要一个集群管理 员来支持实际的存储。幸运的是， Kubernetes 还可以通过动态配置持久卷来自动执行此任务。<br>集群管理员可以创建一个 持久卷配置， 并定义一个或多个 StorageClass 对象， 从而让用户选择他们想要的持久卷类型而不仅仅只是创建持久卷。用户可以在其持 久卷声明中引用StorageClass， 而配置程序在配置持久存储时将采用这一点。<br>注意与持久卷类似， StorageClass 资源并非命名空间。<br>Kubernetes 包括最流行的云服务提供商的置备程序 provisioner，所以管理员并不总是需要创建一个置备程序。 但是如果 Kubernetes 部署在本地， 则需要配置定制的置备程序。<br>与管理员预先提供一组持久卷不同的是， 它们需要定义一个或两个（或多个） StorageClass， 并允许系统在每次通过持久卷声明请求时创建一个新的持久卷。最重要的是，不可能耗尽持久卷（很明显， 你可以用完存储空间）。 </p>
+<p>6.6.1通过 StorageClass资源定义可用存储类型<br>在用户创建持久卷声明之前，管理员需要创建一 个或多个StorageClass资源，然后才能创建新的持久卷。我们来看下面代码清单中的一个例子。<br>代码清单 6.14一个StorageClass定义： storageclass fast-gcepd.yamlapiversion: storage .k8s.io/v1<br>kind: storageclass<br>metadata:<br>name: fast<br>用于配置持久卷的<br>provisioner: kubernetes. io/gce-pd<br>卷插件<br>parameters:<br>type: pd-ssd<br>传递给parameters<br>zone: europe -west1-b<br>he出<br>zone; europe<br>的参数<br>注意如果使用Minikube，请部署文件storageclass-fast-hostpath.yaml.<br>StorageClass资源指定当久卷声明请求此StorageClass时应使用哪个置备程序来提供持久卷。StorageClass 定义中定义的参数将传递给置备程序，并具体到每个供应器插件。StorageClass 使用GCE持久磁盘的预配置器，这意味着当Kubernetes在GCE中运行时可供使用。对于其他云提供商，需要使用其他的置备程序。<br>6.6.2请求持久卷声明中的存储类<br>创建StorageClass资源后，用户可以在其持久卷声明中按名称引用存储类。创建一个请求特定存储类的PVC定义<br>可以修改mongodb-pvc以使用动态配置。以下代码清单显示了PVC中更新后的YAML定义。<br>代码清单6.15一 个采用动态配置的PVC ： mongodb pve-dp yaml</p>
+<p>除了指定大小和访问模式，持久卷声明现在还会指定要使用的存储类别。在创建声明时，持久卷由fast StorageClass资源中引用的 provisioner创建。即使现有手动设置的持久卷与持久卷声明匹配，也可以使用provisionero<br>注意如果在PVC中引用一个不存在的存储类，则PV的配置将失败（在PVC上使用kubectl describe时，将会看到ProvisioningFailed事件）。<br>检查所创建的PVC和动态配置的PV<br>接着，创建PVC，然后使用kubectlget进行查看：<br>$ kubectl get pvc mongodb-pvc<br>NAME<br>STATUS<br>VOLUME<br>CAPACITY 1Gi<br>ACCESSMODES RWO<br>STORAGECLASS fast<br>mongodb-pvc<br>Bound<br>pvc-1e6bc048<br>VOLUME列显示了与此声明绑定的持久卷（实际名称比上面显示的长）。现在可以尝试列出持久卷，看看是否确实自动创建了一个新的PV：<br>$ kubectl get pv<br>NAME<br>CAPACITY ACCESSMODES RECLAIMPOLICY STATUS<br>STORAGECLASS<br>mongodb-pv<br>1Gi<br>RWO, ROX<br>Retain<br>Released<br>pvc-1e6bc048<br>1Gi<br>RWO<br>Delete<br>Bound<br>fast<br>注意仅显示相关的列。<br>可以看到动态配置的持久卷其容量和访问模式是在PVC中所要求的。它的回收策略是Delete，这意味着当PVC被删除时，持久卷也将被删除。除了PV，置备程序还提供了真实的存储空间，fast StorageClass被配置为使用kubernetes.io/gce-pd从而提供了GCE持久磁盘。可以使用以下命令查看磁盘：<br>$ gcloud compute disks list NAME<br>ZONE<br>SIZE_GB<br>TYPE<br>STATUS READY READY READY READY READY<br>gke-kubia-dyn-pvc-1e6bc048 gke-kubia-default-pool-71df gke-kubia-default-pool-79cd gke-kubia-default-pool-blc4 mongodb<br>europe-westl-d<br>1<br>pd-ssd<br>europe-westl-d100 europe-westl-d<br>pd-standard pd-standard pd-standard pd-standard<br>100<br>europe-westl-d<br>100<br>europe-westl-d<br>1<br>如你所见，第一个持久磁盘的名称表明它是动态配置的，同时它的类型显示为一个SSD，正如在前面创建的存储类中所指定的那样。<br>了解存储类的使用<br>集群管理员可以创建具有不同性能或其他特性的多个存储类，然后研发人员再</p>
+<p>决定对应每一个声明最适合的存储类。<br>StorageClasses的好处在于，声明是通过名称引用它们的。因此，只要StorageClass名称在所有这些名称中相同，PVC定义便可跨不同集群移植。要自己查看这个可移植性，可以尝试在Minikube上运行相同的示例，假设你一直在使用 GKE。作为集群管理员，你必须创建一个不同的存储类（但名称相同）。 storageclass-fast-hostpath.yaml文件中定义的存储类是专用于Minikube的。然后，一旦部署 了存储类，作为集群用户，就可以像以前一样部署完全相同的PVC清单和完全相同的pod清单。这展示了pod和PVC在不同集群间的移植性。<br>6.6.3 不指定存储类的动态配置<br>正如我们在本章中所做的那样，将持久性存储附加到pod.上变得越来越简单。本章中的章节反映了存储配置是如何从早期的Kubernetes版本发展到现在的。在最后一节中，我们将看看将持久卷附加到pod的最新和最简单的方法。<br>列出存储类<br>当你创建名为fast的自定义存储类时，并未检查集群中是否已定义任何现有存储类。现在为什么 不这样试试？以下是GKE中可用的存储类：<br>$. kubecti get c TYPE<br>$ kubectl<br>NAME<br>tast<br>kubernetes.io/gce-pd<br>standard (default) kubernetes . io/gce-pd<br>注意我们使用sc作为storageclass的简写。<br>除了你自己创建的fast存储类，还存在standard存储类并标记为默认存储类。很快就会知道其含义了，让我们列举Minikube中可用的存储类，以便我们进行比较：<br>$ kubectl get sC<br>NAME<br>ast<br>k8s .io/ minikube-hostpath standard (default)<br>k8s. io/minikube - hostpath<br>再来看看，fast 存储类是由你创建的，并且此处也存在默认的standard存储类，比较两个列表中的TYPE列，你会看到GKE正在使用kubernetes.io/gce-pd置备程序，而Minikube正在使用k8s. io/minikube-hostpath。</p>
+<p>检查默认存储类<br>使用kubectl get 可查看有关GKE集群中标准存储类的更多信息，如下面的代码清单所示。<br>代码清单6.16 GKE 上的标准存储类的定义</p>
+<p>如果仔细观察清单的顶部，会看到存储类定义会包含一个注释，这会使其成为默认的存储类。如果持久卷声明没有明确指出要使用哪个存储类，则默认存储类会用于动态提供持久卷的内容。<br>创建一个没有指定存储类别的持久卷声明<br>可以在不指定storageClassName属性的情况下创建PVC，并且（在GoogleKubernetes引擎上）将为你提供一个pd-standard类型的GCE持久磁盘。试试通过下面的代码清单中的YAML来创建一个声明。<br>代码清单6.17不指定存储类别的PVC：mongodb-pvc-dp-nostorageclass.yam</p>
+<p>此PVC定义仅包含存储大小请求和所需访问模式，并不包含存储级别。在创建PVC时，将使用任何标记为默认的存储类。可以通过如下代码确认：<br>$ kubectl get pvc mongodb-pvc2 NAME<br>STATUS<br>VOLUME<br>CAPACITY 1Gi<br>ACCESSMODES RWO<br>STORAGECLASS standard<br>mongodb-pvc2<br>Bound<br>pvc-95a5ec12<br>$ kubectl get pv pvc-95a5ec12<br>NAME<br>CAPACITY ACCESSMODES RECLAIMPOLICY STATUS STORAGECLASS<br>pvc-95a5ec12<br>1Gi<br>RWO<br>Delete<br>Bound<br>standard<br>$ gcloud compute diskg list NAME<br>ZONE<br>SIZE GB<br>TYPE<br>STATUS READY<br>gke-kubia-dyn-pvc-95a5ec12<br>europe-westl-d<br>1<br>pd-standard<br>强制将持久卷声明绑定到预配置的其中一个持久卷<br>这最后会告诉我们为什么要在代码清单6.11中将storageClassName设置为一个空字符串（当你想让PVC绑定到你手动配置的PV时）。在这里回顾一下这个PVC定义的相关行：<br>kind: PersistentvolumeClaim spec:<br>将空字符串指定为存储类名可确保PVC绑定到预先配置的PV，而不是动态配置新的PV<br>storageClassName: uu<br>。<br>如果尚未将storageClassName属性设置为空字符串，则尽管已存在适当的预配置持久卷，但动态卷置备程序仍将配置新的持久卷。此时，笔者想演示一个声明如何绑定到手动预先配置的持久卷，同时不希望置备程序干涉。<br>提示如果希望PVC使用预先配置的PV，请将storageClassName显式设置为””。<br>了解动态持久卷供应的全貌<br>这将我们带到本章的最后。总而言之，将持久化存储附加到一个容器的最佳方式是仅创建PVC（如果需要，可以使用明确指定的storgeClassName）和容器（其通过名称引用PVC），其他所有内容都由动态持久卷置备程序处理。<br>要全面了解获取动态的持久卷所涉及的步骤，请查看图6.10。</p>
+<p>图6.10持久卷动态配置的完整图示<br>6.7<br>本章小结<br>本章向你展示了如何使用卷来为pod的容器提供临时或持久存储。你已经学会了如何：<br>·创建一个多容器pod，并通过为pod添加一个卷并将其挂载到每个容器中， 来让pod中的容器操作相同的文件<br>，使用emptyDir卷存储临时的非持久数据<br>，使用gitRepo卷可以在pod启动时使用Git库的内容轻松填充目录·使用hostPath卷从主机节点访问文件<br>·将外部存储装载到卷中，以便在pod重启之前保持pod数据读写<br>。通过使用持久卷和持久卷声明解耦pod与存储基础架构<br>。为每个持久卷声明动态设置所需（或缺省）存储类的持久卷<br>。当需要将持久卷声明绑定到预配置的持久卷时，防止动态置备程序千扰<br>在下一章中，你将看到Kubernetes提供了什么机制来将配置数据、机密信息，以及有关pod和容器的元数据提供给在pod内运行的进程。这是通过本章中提到的特殊类型的卷完成的，但尚未探索。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Kubernetes-in-Action/" rel="tag"># Kubernetes in Action</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/10/01/5-服务：让客户端发现pod并与之通信/" rel="next" title="5-服务：让客户端发现pod并与之通信">
+                <i class="fa fa-chevron-left"></i> 5-服务：让客户端发现pod并与之通信
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/10/01/7-ConfigMap和Secret：配置应用程序/" rel="prev" title="7-ConfigMap和Secret：配置应用程序">
+                7-ConfigMap和Secret：配置应用程序 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">687</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">56</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2022/10/06/第15章-Helm程序包管理器/" title="第15章 Helm程序包管理器" target="_blank">第15章 Helm程序包管理器</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第14章-资源指标及HPA控制器/" title="第14章 资源指标及HPA控制器" target="_blank">第14章 资源指标及HPA控制器</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第13章-Kubernetes系统扩展/" title="第13章 Kubernetes系统扩展" target="_blank">第13章 Kubernetes系统扩展</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第12章-Pod资源调度/" title="第12章 Pod资源调度" target="_blank">第12章 Pod资源调度</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/06/第11章-网络模型与网络策略/" title="第11章 网络模型与网络策略" target="_blank">第11章 网络模型与网络策略</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#bin-bash"><span class="nav-number">1.</span> <span class="nav-text">!/bin/bash</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">6.2m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">93:28</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

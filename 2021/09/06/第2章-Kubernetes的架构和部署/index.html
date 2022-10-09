@@ -103,18 +103,25 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="Kubernetes实战">
 <meta property="og:type" content="article">
 <meta property="og:title" content="第2章 Kubernetes的架构和部署">
 <meta property="og:url" content="http://yoursite.com/2021/09/06/第2章-Kubernetes的架构和部署/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-09-06T05:53:28.372Z">
+<meta property="og:image" content="http://yoursite.com/2021/09/06/第2章-Kubernetes的架构和部署/1.png">
+<meta property="og:image" content="http://yoursite.com/2021/09/06/第2章-Kubernetes的架构和部署/t-1-1.png">
+<meta property="og:image" content="http://yoursite.com/2021/09/06/第2章-Kubernetes的架构和部署/t-1-2.png">
+<meta property="og:image" content="http://yoursite.com/2021/09/06/第2章-Kubernetes的架构和部署/t-2-1.png">
+<meta property="og:image" content="http://yoursite.com/2021/09/06/第2章-Kubernetes的架构和部署/t-2-2.png">
+<meta property="og:image" content="http://yoursite.com/2021/09/06/第2章-Kubernetes的架构和部署/t-3-1.png">
+<meta property="og:updated_time" content="2022-09-30T09:52:44.180Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第2章 Kubernetes的架构和部署">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2021/09/06/第2章-Kubernetes的架构和部署/1.png">
 
 
 
@@ -426,12 +433,24 @@
                 
               
 
-              <time title="创建时间：2021-09-06 13:52:17 / 修改时间：13:53:28" itemprop="dateCreated datePublished" datetime="2021-09-06T13:52:17+08:00">2021-09-06</time>
+              <time title="创建时间：2021-09-06 13:52:17" itemprop="dateCreated datePublished" datetime="2021-09-06T13:52:17+08:00">2021-09-06</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-09-30 17:52:44" itemprop="dateModified" datetime="2022-09-30T17:52:44+08:00">2022-09-30</time>
               
             
           </span>
@@ -477,7 +496,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">2.4k</span>
               
 
               
@@ -491,7 +510,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">2 分钟</span>
               
             </div>
           
@@ -512,10 +531,53 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
+<p>Kubernetes遵循微服务架构理论，整个系统划分出各个功能独立的组件，组件之间边界清晰，部署简单，可以轻易地运行在各种系统和环境中。本章将首先介绍Kubernetes的架构和各个组件的功能，然后详细说明如何从头开始部署一套完整的Kubernetes运行环境，包括Kubernetes提供的各种扩展插件（Cluster Add-on）的安装方式。</p>
+<h1 id="Kubernetes的架构和组件"><a href="#Kubernetes的架构和组件" class="headerlink" title="Kubernetes的架构和组件"></a>Kubernetes的架构和组件</h1><p>Kubernetes属于主从分布式架构，节点在角色上分为Master和Node，如图2-1所示。</p>
+<blockquote>
+<p>图2-1 Kubernetes的架构</p>
+</blockquote>
+<img src="/2021/09/06/第2章-Kubernetes的架构和部署/1.png">
+<p>Kubernetes使用Etcd作为存储中间件，Etcd是一个高可用的键值存储系统，通过Raft一致性算法处理日志复制以保证强一致性。Kubernetes使用Etcd作为系统的配置存储中心，Kubernetes中的重要数据都是持久化在Etcd中的，这使得Kubernetes架构的各个组件属于无状态，可以更简单地实施分布式集群部署。</p>
+<p>Kubernetes Master作为控制节点，调度管理整个系统，包含以下组件。</p>
+<ul>
+<li>Kubernetes API Server：作为Kubernetes系统的入口，其封装了核心对象的增删改查操作，以RESTAPI接口方式提供给外部客户和内部组件调用。它维护的REST对象将持久化到Etcd中。</li>
+<li>Kubernetes Scheduler：负责集群的资源调度，为新建的Pod分配机器。这部分工作分出来变成一个组件，意味着可以很方便地替换成其他的调度器。</li>
+<li>Kubernetes Controller Manager:负责执行各种控制器，目前已经实现很多控制器来<br>保证Kubernetes的正常运行，主要包含的控制器如表2-1所示。</li>
+</ul>
+<blockquote>
+<p>表2-1 Kubernetes控制器</p>
+</blockquote>
+<img src="/2021/09/06/第2章-Kubernetes的架构和部署/t-1-1.png">
+<img src="/2021/09/06/第2章-Kubernetes的架构和部署/t-1-2.png">
+<p>KubernetesNode是运行节点，用于运行管理业务的容器，包含以下组件。</p>
+<ul>
+<li>Kubelet：负责管控容器，Kubelet会从KubernetesAPIServer接收Pod的创建请求，启动和停止容器，监控容器运行状态并汇报给KubernetesAPIServer。</li>
+<li>KubernetesProxy：负责为Pod创建代理服务，KubernetesProxy会从KubernetesAPIServer获取所有的Service，并根据Service信息创建代理服务，实现Service到Pod的请求路由和转发，从而实现Kubernetes层级的虚拟转发网络。</li>
+<li>Docker：KubernetesNode是容器运行节点，需要运行Docker服务，目前Kubernetes也支持Rocket，这是一款CoreOS开发的类Docker的开源容器引擎，本书只说明Docker。</li>
+</ul>
+<h1 id="部署Kubernetes"><a href="#部署Kubernetes" class="headerlink" title="部署Kubernetes"></a>部署Kubernetes</h1><p>Kubernetes能够运行在各个平台上，包括物理机、虚拟机和云平台。在部署方式上，Kubernetes可以在生产环境中大规模地进行分布式部署，也可以简单地运行在单机中以用于测试开发，我们可以根据不同的需求搭建不同的Kubernetes运行环境。</p>
+<p>Kubernetes官方和社区针对不同系统和平台提供了自动化部署脚本，具体情况如表2-2所示。</p>
+<blockquote>
+<p>表2-2 Kubernetes部署支持</p>
+</blockquote>
+<img src="/2021/09/06/第2章-Kubernetes的架构和部署/t-2-1.png">
+<img src="/2021/09/06/第2章-Kubernetes的架构和部署/t-2-2.png">
+<p>接下来我们将详细说明Kubernetes的部署步骤，同时也会涉及Kuberetes的一些概念，可以进一步帮助读者理解Kubernetes的架构和原理。</p>
+<h2 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h2><p>Kubernetes是一个分布式架构，可灵活地进行安装部署，可以部署在单机，也可以分布式部署。机器可以是物理机，也可以是虚拟机，但是需要运行Linux（x8664）操作系统，至少1核CPU和1GB内存。</p>
+<p>本书准备了4台虚拟机（CentOS7.0系统）用于部署Kubernetes运行环境，包括一个Etcd、-个KubernetesMaster和三个KubernetesNode，如表2-3所示。</p>
+<blockquote>
+<p>表2-3 Kubernetes运行环境</p>
+</blockquote>
+<img src="/2021/09/06/第2章-Kubernetes的架构和部署/t-3-1.png">
+<blockquote>
+<p>提示 本书后续的实践操作都在此套环境中运行。</p>
+</blockquote>
+<h2 id="运行Etcd"><a href="#运行Etcd" class="headerlink" title="运行Etcd"></a>运行Etcd</h2><p>Kubernetes依赖于Etcd，需要先部署Etcd，可以从Github.上下载指定版本的Etcd发布包：</p>
+<h2 id="运行KubernetesMaster组件"><a href="#运行KubernetesMaster组件" class="headerlink" title="运行KubernetesMaster组件"></a>运行KubernetesMaster组件</h2><p>在KubernetesMaster.上需要运行以下组件：<br>KubernetesAPIServer<br>KubernetesControllerManagerKubernetesScheduler<br>KubernetesProxy（可选）<br>KubernetesAPIServer运行KubernetesAPIServer：</p>
+<h2 id="运行KubernetesNode组件"><a href="#运行KubernetesNode组件" class="headerlink" title="运行KubernetesNode组件"></a>运行KubernetesNode组件</h2><p>KubernetesNode上需要运行以下组件:<br>Docker<br>Kubelet<br>KubernetesProxy</p>
+<p>Docker<br>Docker官方社区提供各个平台的安装方法（可参考ttp://ocs.docker.com/installation/），很多Linux发行版都陆续对Docker进行了支持，可以使用以下方式快速安装Docker：$curl-sSL<a href="https://get.docker.com/lsh" target="_blank" rel="noopener">https://get.docker.com/lsh</a><br>提示<br>1.Docker要求Linux64系统，并且内核至少3.10版本以上。<br>2.不同的Kubernetes版本对Docker的版本要求可能会有不同，总体上我们建议使用最新稳定的Docker版本，如果Kubelet发现Docker版本过低，在创建Pod的时候会失败并发出告警日志。<br>启动Docker：<br>$docker-d\<br>-Hunix:///var/run/docker.sock-H0.0.0.0:2375>&gt;/var/log/docker.log2&gt;&amp;1&amp;<br>Kubelet<br>运行Kubelet：</p>
+
       
     </div>
 
@@ -607,8 +669,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -625,7 +696,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">638</span>
+                    <span class="site-state-item-count">687</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -907,7 +978,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">55</span>
+                      
+                    
+                    <span class="site-state-item-count">56</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -938,23 +1011,23 @@
                 
                 
                   <li>
-                    <a href="/2022/09/27/第1章-Kubernetes系统基础/" title="第1章 Kubernetes系统基础" target="_blank">第1章 Kubernetes系统基础</a>
+                    <a href="/2022/10/06/第15章-Helm程序包管理器/" title="第15章 Helm程序包管理器" target="_blank">第15章 Helm程序包管理器</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/26/33-临时对象池sync-Pool/" title="33 | 临时对象池sync.Pool" target="_blank">33 | 临时对象池sync.Pool</a>
+                    <a href="/2022/10/06/第14章-资源指标及HPA控制器/" title="第14章 资源指标及HPA控制器" target="_blank">第14章 资源指标及HPA控制器</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/26/32-context-Context类型/" title="32 | context.Context类型" target="_blank">32 | context.Context类型</a>
+                    <a href="/2022/10/06/第13章-Kubernetes系统扩展/" title="第13章 Kubernetes系统扩展" target="_blank">第13章 Kubernetes系统扩展</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/26/31-sync-WaitGroup和sync-Once/" title="31 | sync.WaitGroup和sync.Once" target="_blank">31 | sync.WaitGroup和sync.Once</a>
+                    <a href="/2022/10/06/第12章-Pod资源调度/" title="第12章 Pod资源调度" target="_blank">第12章 Pod资源调度</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/09/26/30-原子操作（下）/" title="30 | 原子操作（下）" target="_blank">30 | 原子操作（下）</a>
+                    <a href="/2022/10/06/第11章-网络模型与网络策略/" title="第11章 网络模型与网络策略" target="_blank">第11章 网络模型与网络策略</a>
                   </li>
                 
               </ul>
@@ -969,6 +1042,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Kubernetes的架构和组件"><span class="nav-number">1.</span> <span class="nav-text">Kubernetes的架构和组件</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#部署Kubernetes"><span class="nav-number">2.</span> <span class="nav-text">部署Kubernetes</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#环境准备"><span class="nav-number">2.1.</span> <span class="nav-text">环境准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行Etcd"><span class="nav-number">2.2.</span> <span class="nav-text">运行Etcd</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行KubernetesMaster组件"><span class="nav-number">2.3.</span> <span class="nav-text">运行KubernetesMaster组件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行KubernetesNode组件"><span class="nav-number">2.4.</span> <span class="nav-text">运行KubernetesNode组件</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -998,7 +1088,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">5.6m</span>
+    <span title="站点总字数">6.2m</span>
   
 
   
@@ -1009,7 +1099,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">85:25</span>
+    <span title="站点阅读时长">93:28</span>
   
 </div>
 
