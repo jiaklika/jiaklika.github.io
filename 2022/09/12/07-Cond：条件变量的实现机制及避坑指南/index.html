@@ -103,20 +103,20 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：">
+  <meta name="description" content="思考并回答以下问题：  Cond通常应用于等待某个条件的一组goroutine，等条件变为true的时候，其中一个goroutine或者所有的goroutine都会被唤醒执行。怎么理解？">
 <meta name="keywords" content="Go并发编程实战课">
 <meta property="og:type" content="article">
 <meta property="og:title" content="07 | Cond：条件变量的实现机制及避坑指南">
 <meta property="og:url" content="http://yoursite.com/2022/09/12/07-Cond：条件变量的实现机制及避坑指南/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:description" content="思考并回答以下问题：  Cond通常应用于等待某个条件的一组goroutine，等条件变为true的时候，其中一个goroutine或者所有的goroutine都会被唤醒执行。怎么理解？">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/09/12/07-Cond：条件变量的实现机制及避坑指南/1.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/12/07-Cond：条件变量的实现机制及避坑指南/2.webp">
-<meta property="og:updated_time" content="2022-09-16T03:49:19.860Z">
+<meta property="og:updated_time" content="2022-10-14T06:03:48.607Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="07 | Cond：条件变量的实现机制及避坑指南">
-<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:description" content="思考并回答以下问题：  Cond通常应用于等待某个条件的一组goroutine，等条件变为true的时候，其中一个goroutine或者所有的goroutine都会被唤醒执行。怎么理解？">
 <meta name="twitter:image" content="http://yoursite.com/2022/09/12/07-Cond：条件变量的实现机制及避坑指南/1.webp">
 
 
@@ -446,7 +446,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-16 11:49:19" itemprop="dateModified" datetime="2022-09-16T11:49:19+08:00">2022-09-16</time>
+                <time title="修改时间：2022-10-14 14:03:48" itemprop="dateModified" datetime="2022-10-14T14:03:48+08:00">2022-10-14</time>
               
             
           </span>
@@ -492,7 +492,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">9k</span>
+                <span title="本文字数">9.1k</span>
               
 
               
@@ -527,6 +527,9 @@
 
       
         <p>思考并回答以下问题：</p>
+<ul>
+<li>Cond通常应用于等待某个条件的一组goroutine，等条件变为true的时候，其中一个goroutine或者所有的goroutine都会被唤醒执行。怎么理解？</li>
+</ul>
 <a id="more"></a>
 <p>在写Go程序之前，我曾经写了10多年的Java程序，也面试过不少Java程序员。在Java面试中，经常被问到的一个知识点就是等待/通知（wait/notify）机制。面试官经常会这样考察候选人：请实现一个限定容量的队列（queue），当队列满或者空的时候，利用等待/通知机制实现阻塞或者唤醒。</p>
 <p>在Go中，也可以实现一个类似的限定容量的队列，而且实现起来也比较简单，只要用条件变量（Cond）并发原语就可以。Cond并发原语相对来说不是那么常用，但是在特定的场景使用会事半功倍，比如你需要在唤醒一个或者所有的等待者做一些检查操作的时候。</p>
@@ -534,10 +537,10 @@
 <h1 id="Go标准库的Cond"><a href="#Go标准库的Cond" class="headerlink" title="Go标准库的Cond"></a><span style="color:#339AFF;">Go标准库的Cond</span></h1><p>Go标准库提供Cond原语的目的是，为等待/通知场景下的并发问题提供支持。Cond通常应用于等待某个条件的一组goroutine，等条件变为true的时候，其中一个goroutine或者所有的goroutine都会被唤醒执行。</p>
 <p>顾名思义，Cond是和某个条件相关，这个条件需要一组goroutine协作共同完成，在条件还没有满足的时候，所有等待这个条件的goroutine都会被阻塞住，只有这一组goroutine通过协作达到了这个条件，等待的goroutine才可能继续进行下去。</p>
 <p>那这里等待的条件是什么呢？等待的条件，可以是某个变量达到了某个阈值或者某个时间点，也可以是一组变量分别都达到了某个阈值，还可以是某个对象的状态满足了特定的条件。总结来讲，等待的条件是一种可以用来计算结果是true还是false的条件。</p>
-<p>从开发实践上，我们真正使用Cond的场景比较少，因为一旦遇到需要使用Cond的场景，我们更多地会使用Channel的方式（我会在第12和第13讲展开Channel的用法）去实现，因为那才是更地道的Go语言的写法，甚至Go的开发者有个“把Cond从标准库移除”的提议（issue21165）。而有的开发者认为，Cond是唯一难以掌握的Go并发原语。至于其中原因，我先卖个关子，到这一讲的后半部分我再和你解释。</p>
+<p>从开发实践上，我们真正使用Cond的场景比较少，因为一旦遇到需要使用Cond的场景，我们更多地会使用Channel的方式（我会在第12和第13讲展开Channel的用法）去实现，因为那才是更地道的Go语言的写法，甚至Go的开发者有个“把Cond从标准库移除”的提议（<a href="https://github.com/golang/go/issues/21165" target="_blank" rel="noopener">issue 21165</a>）。而有的开发者认为，Cond是唯一难以掌握的Go并发原语。至于其中原因，我先卖个关子，到这一讲的后半部分我再和你解释。</p>
 <p>今天，这一讲我们就带你仔细地学一学Cond这个并发原语吧。</p>
 <h1 id="Cond的基本用法"><a href="#Cond的基本用法" class="headerlink" title="Cond的基本用法"></a><span style="color:#339AFF;">Cond的基本用法</span></h1><p>标准库中的Cond并发原语初始化的时候，需要关联一个Locker接口的实例，一般我们使用Mutex或者RWMutex。</p>
-<p>我们看一下Cond的实现：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Cond</span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">NeWCond</span><span class="params">(l Locker)</span> *<span class="title">Cond</span></span></span><br><span class="line"><span class="function">    <span class="title">func</span> <span class="params">(c *Cond)</span> <span class="title">Broadcast</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    <span class="title">func</span> <span class="params">(c *Cond)</span> <span class="title">Signal</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    <span class="title">func</span> <span class="params">(c *Cond)</span> <span class="title">Wait</span><span class="params">()</span></span></span><br></pre></td></tr></table></figure></p>
+<p>我们看一下Cond的实现：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Cond</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NeWCond</span><span class="params">(l Locker)</span> *<span class="title">Cond</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(c *Cond)</span> <span class="title">Broadcast</span><span class="params">()</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(c *Cond)</span> <span class="title">Signal</span><span class="params">()</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(c *Cond)</span> <span class="title">Wait</span><span class="params">()</span></span></span><br></pre></td></tr></table></figure></p>
 <p>首先，Cond关联的Locker实例可以通过c.L访问，它内部维护着一个先入先出的等待队列。</p>
 <p>然后，我们分别看下它的三个方法Broadcast、Signal和Wait方法。</p>
 <p>Signal方法，允许调用者Caller唤醒一个等待此Cond的goroutine。如果此时没有等待的goroutine，显然无需通知waiter；如果Cond等待队列中有一个或者多个等待的goroutine，则需要从等待队列中移除第一个goroutine并把它唤醒。在其他编程语言中，比如Java语言中，Signal方法也被叫做notify方法。</p>
@@ -1103,7 +1106,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">6.4m</span>
+    <span title="站点总字数">6.6m</span>
   
 
   
@@ -1114,7 +1117,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">97:25</span>
+    <span title="站点阅读时长">99:35</span>
   
 </div>
 

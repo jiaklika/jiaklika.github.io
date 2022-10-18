@@ -118,7 +118,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/09/12/18｜Deployment：让应用永不宕机/5.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/12/18｜Deployment：让应用永不宕机/6.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/12/18｜Deployment：让应用永不宕机/7.webp">
-<meta property="og:updated_time" content="2022-09-21T14:44:43.867Z">
+<meta property="og:updated_time" content="2022-10-14T09:41:32.577Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="18 ｜ Deployment：让应用永不宕机">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -451,7 +451,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-21 22:44:43" itemprop="dateModified" datetime="2022-09-21T22:44:43+08:00">2022-09-21</time>
+                <time title="修改时间：2022-10-14 17:41:32" itemprop="dateModified" datetime="2022-10-14T17:41:32+08:00">2022-10-14</time>
               
             
           </span>
@@ -536,18 +536,18 @@
 <p>在上一节课里，我们使用kubeadm搭建了一个由两个节点组成的小型Kubernetes集群，比起单机的minikube，它更接近真实环境，在这里面做实验我们今后也更容易过渡到生产系统。</p>
 <p>有了这个Kubernetes环境，接下来我们就在“初级篇”里学习的Pod知识基础上，深入研究一些由Pod衍生出来的其他API对象。</p>
 <p>今天要看的API对象名字叫“Deployment”，顾名思义，它是专门用来部署应用程序的，能够让应用永不宕机，多用来发布无状态的应用，是Kubernetes里最常用也是最有用的一个对象。</p>
-<h1 id="为什么要有Deployment"><a href="#为什么要有Deployment" class="headerlink" title="为什么要有Deployment"></a><span style="color:#339AFF;">为什么要有Deployment</span></h1><p>在第13讲里，我们学习了API对象Job和CronJob，它们代表了生产环境中的离线业务，通过对Pod的包装，向Pod添加控制字段，实现了基于Pod运行临时任务和定时任务的功能。</p>
+<h1 id="为什么要有Deployment"><a href="#为什么要有Deployment" class="headerlink" title="为什么要有Deployment"></a><span style="color:#339AFF;">为什么要有Deployment</span></h1><p>在里，我们学习了API对象Job和CronJob，它们代表了生产环境中的离线业务，通过对Pod的包装，向Pod添加控制字段，实现了基于Pod运行临时任务和定时任务的功能。</p>
 <p>那么，除了“离线业务”，另一大类业务——也就是“在线业务”，在Kubernetes里应该如何处理呢？</p>
 <p>我们先看看用Pod是否就足够了。因为它在YAML里使用“containers”就可以任意编排容器，而且还有一个“restartPolicy”字段，默认值就是Always，可以监控Pod里容器的状态，一旦发生异常，就会自动重启容器。</p>
-<p>不过，“restartPolicy”只能保证容器正常工作。不知你有没有想到，如果容器之外的Pod出错了该怎么办呢？比如说，有人不小心用kubectldelete误删了Pod，或者Pod运行的节点发生了断电故障，那么Pod就会在集群里彻底消失，对容器的控制也就无从谈起了。</p>
+<p>不过，“restartPolicy”只能保证容器正常工作。不知你有没有想到，如果容器之外的Pod出错了该怎么办呢？比如说，有人不小心用<code>kubectl delete</code>误删了Pod，或者Pod运行的节点发生了断电故障，那么Pod就会在集群里彻底消失，对容器的控制也就无从谈起了。</p>
 <p>还有我们也都知道，在线业务远不是单纯启动一个Pod这么简单，还有多实例、高可用、版本更新等许多复杂的操作。比如最简单的多实例需求，为了提高系统的服务能力，应对突发的流量和压力，我们需要创建多个应用的副本，还要即时监控它们的状态。如果还是只使用Pod，那就会又走回手工管理的老路，没有利用好Kubernetes自动化运维的优势。</p>
 <p>其实，解决的办法也很简单，因为Kubernetes已经给我们提供了处理这种问题的思路，就是“单一职责”和“对象组合”。既然Pod管理不了自己，那么我们就再创建一个新的对象，由它来管理Pod，采用和Job/CronJob一样的形式——“对象套对象”。</p>
 <p>这个用来管理Pod，实现在线业务应用的新API对象，就是Deployment。</p>
-<h1 id="如何使用YAML描述Deployment"><a href="#如何使用YAML描述Deployment" class="headerlink" title="如何使用YAML描述Deployment"></a><span style="color:#339AFF;">如何使用YAML描述Deployment</span></h1><p>我们先用命令kubectlapi-resources来看看Deployment的基本信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl api-resources</span><br><span class="line"></span><br><span class="line">NAME         SHORTNAMES   APIVERSION   NAMESPACED   KIND</span><br><span class="line">deployments  deploy       apps/v1      <span class="literal">true</span>        Deployment</span><br></pre></td></tr></table></figure></p>
+<h1 id="如何使用YAML描述Deployment"><a href="#如何使用YAML描述Deployment" class="headerlink" title="如何使用YAML描述Deployment"></a><span style="color:#339AFF;">如何使用YAML描述Deployment</span></h1><p>我们先用命令<code>kubectl api-resources</code>来看看Deployment的基本信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl api-resources</span><br><span class="line"></span><br><span class="line">NAME         SHORTNAMES   APIVERSION   NAMESPACED   KIND</span><br><span class="line">deployments  deploy       apps/v1      <span class="literal">true</span>        Deployment</span><br></pre></td></tr></table></figure></p>
 <p>从它的输出信息里可以知道，Deployment的简称是“deploy”，它的apiVersion是“apps/v1”，kind是“Deployment”。</p>
 <p>所以，依据前面学习Pod、Job的经验，你就应该知道Deployment的YAML文件头该怎么写了：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: xxx-dep</span><br></pre></td></tr></table></figure></p>
-<p>当然了，我们还是可以使用命令kubectlcreate来创建Deployment的YAML样板，免去反复手工输入的麻烦。</p>
-<p>创建Deployment样板的方式和Job也差不多，先指定类型是Deployment（简写deploy），然后是它的名字，再用—image参数指定镜像名字。</p>
+<p>当然了，我们还是可以使用命令<code>kubectl create</code>来创建Deployment的YAML样板，免去反复手工输入的麻烦。</p>
+<p>创建Deployment样板的方式和Job也差不多，先指定类型是Deployment（简写deploy），然后是它的名字，再用<code>--image</code>参数指定镜像名字。</p>
 <p>比如下面的这条命令，我就创建了一个名字叫ngx-dep的对象，使用的镜像是nginx:alpine：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> out=<span class="string">"--dry-run=client -o yaml"</span></span><br><span class="line">kubectl create deploy ngx-dep --image=nginx:alpine <span class="variable">$out</span></span><br></pre></td></tr></table></figure></p>
 <p>得到的Deployment样板大概是下面的这个样子：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  labels:</span><br><span class="line">    app: ngx-dep</span><br><span class="line">  name: ngx-dep</span><br><span class="line">  </span><br><span class="line">spec:</span><br><span class="line">  replicas: 2</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: ngx-dep</span><br><span class="line">      </span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        app: ngx-dep</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - image: nginx:alpine</span><br><span class="line">        name: nginx</span><br></pre></td></tr></table></figure></p>
 <p>把它和Job/CronJob对比一下，你会发现有相似也有不同。相似的地方是都有“spec”“template”字段，“template”字段里也是一个Pod；不同的地方在于它的“spec”部分多了replicas、selector这两个新字段，聪明的你应该会猜到，这或许就会是Deployment特殊能力的根本。</p>
@@ -1119,7 +1119,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">6.4m</span>
+    <span title="站点总字数">6.6m</span>
   
 
   
@@ -1130,7 +1130,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">97:25</span>
+    <span title="站点阅读时长">99:35</span>
   
 </div>
 

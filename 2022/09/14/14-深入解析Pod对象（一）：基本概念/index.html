@@ -103,18 +103,18 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：">
+  <meta name="description" content="思考并回答以下问题：  Pod扮演的是传统部署环境里“虚拟机”的角色。怎么理解？">
 <meta name="keywords" content="深入剖析Kubernetes">
 <meta property="og:type" content="article">
 <meta property="og:title" content="14 | 深入解析Pod对象（一）：基本概念">
 <meta property="og:url" content="http://yoursite.com/2022/09/14/14-深入解析Pod对象（一）：基本概念/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:description" content="思考并回答以下问题：  Pod扮演的是传统部署环境里“虚拟机”的角色。怎么理解？">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2022-09-17T15:36:06.859Z">
+<meta property="og:updated_time" content="2022-10-12T09:28:02.955Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="14 | 深入解析Pod对象（一）：基本概念">
-<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:description" content="思考并回答以下问题：  Pod扮演的是传统部署环境里“虚拟机”的角色。怎么理解？">
 
 
 
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-17 23:36:06" itemprop="dateModified" datetime="2022-09-17T23:36:06+08:00">2022-09-17</time>
+                <time title="修改时间：2022-10-12 17:28:02" itemprop="dateModified" datetime="2022-10-12T17:28:02+08:00">2022-10-12</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">4.8k</span>
+                <span title="本文字数">5.7k</span>
               
 
               
@@ -503,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">4 分钟</span>
+                <span title="阅读时长">5 分钟</span>
               
             </div>
           
@@ -524,29 +524,32 @@
 
       
         <p>思考并回答以下问题：</p>
+<ul>
+<li>Pod扮演的是传统部署环境里“虚拟机”的角色。怎么理解？</li>
+</ul>
 <a id="more"></a>
 <p>在上一篇文章中，我详细介绍了Pod这个Kubernetes项目中最重要的概念。而在今天这篇文章中，我会和你分享Pod对象的更多细节。</p>
 <p>现在，你已经非常清楚：Pod，而不是容器，才是Kubernetes项目中的最小编排单位。将这个设计落实到API对象上，容器（Container）就成了Pod属性里的一个普通的字段。那么，一个很自然的问题就是：到底哪些属性属于Pod对象，而又有哪些属性属于Container呢？</p>
 <p>要彻底理解这个问题，你就一定要牢记我在上一篇文章中提到的一个结论：Pod扮演的是传统部署环境里“虚拟机”的角色。这样的设计，是为了使用户从传统环境（虚拟机环境）向Kubernetes（容器环境）的迁移，更加平滑。</p>
 <p>而如果你能把Pod看成传统环境里的“机器”、把容器看作是运行在这个“机器”里的“用户程序”，那么很多关于Pod对象的设计就非常容易理解了。</p>
-<p>比如，凡是调度、网络、存储，以及安全相关的属性，基本上是Pod级别的。</p>
+<p>比如，<strong>凡是调度、网络、存储，以及安全相关的属性，基本上是Pod级别的。</strong></p>
 <p>这些属性的共同特征是，它们描述的是“机器”这个整体，而不是里面运行的“程序”。比如，配置这个“机器”的网卡（即：Pod的网络定义），配置这个“机器”的磁盘（即：Pod的存储定义），配置这个“机器”的防火墙（即：Pod的安全定义）。更不用说，这台“机器”运行在哪个服务器之上（即：Pod的调度）。</p>
 <p>接下来，我就先为你介绍Pod中几个重要字段的含义和用法。</p>
-<p>NodeSelector：是一个供用户将Pod与Node进行绑定的字段，用法如下所示：</p>
+<p><strong>NodeSelector：是一个供用户将Pod与Node进行绑定的字段</strong>，用法如下所示：<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="string">...</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr"> nodeSelector:</span></span><br><span class="line"><span class="attr">   disktype:</span> <span class="string">ssd</span></span><br></pre></td></tr></table></figure></p>
 <p>这样的一个配置，意味着这个Pod永远只能运行在携带了“disktype:ssd”标签（Label）的节点上；否则，它将调度失败。</p>
-<p>NodeName：一旦Pod的这个字段被赋值，Kubernetes项目就会被认为这个Pod已经经过了调度，调度的结果就是赋值的节点名字。所以，这个字段一般由调度器负责设置，但用户也可以设置它来“骗过”调度器，当然这个做法一般是在测试或者调试的时候才会用到。</p>
-<p>HostAliases：定义了Pod的hosts文件（比如/etc/hosts）里的内容，用法如下：</p>
-<p>在这个Pod的YAML文件中，我设置了一组IP和hostname的数据。这样，这个Pod启动后，/etc/hosts文件的内容将如下所示：</p>
+<p><strong>NodeName</strong>：一旦Pod的这个字段被赋值，Kubernetes项目就会被认为这个Pod已经经过了调度，调度的结果就是赋值的节点名字。所以，这个字段一般由调度器负责设置，但用户也可以设置它来“骗过”调度器，当然这个做法一般是在测试或者调试的时候才会用到。</p>
+<p><strong>HostAliases：定义了Pod的hosts文件（比如/etc/hosts）里的内容</strong>，用法如下：<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="string">...</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  hostAliases:</span></span><br><span class="line"><span class="attr">  - ip:</span> <span class="string">"10.1.2.3"</span></span><br><span class="line"><span class="attr">    hostnames:</span></span><br><span class="line"><span class="bullet">    -</span> <span class="string">"foo.remote"</span></span><br><span class="line"><span class="bullet">    -</span> <span class="string">"bar.remote"</span></span><br><span class="line"><span class="string">...</span></span><br></pre></td></tr></table></figure></p>
+<p>在这个Pod的YAML文件中，我设置了一组IP和hostname的数据。这样，这个Pod启动后，/etc/hosts文件的内容将如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/hosts</span><br><span class="line"><span class="comment"># Kubernetes-managed hosts file.</span></span><br><span class="line">127.0.0.1 localhost</span><br><span class="line">...</span><br><span class="line">10.244.135.10 hostaliases-pod</span><br><span class="line">10.1.2.3 foo.remote</span><br><span class="line">10.1.2.3 bar.remote</span><br></pre></td></tr></table></figure></p>
 <p>其中，最下面两行记录，就是我通过HostAliases字段为Pod设置的。需要指出的是，在Kubernetes项目中，如果要设置hosts文件里的内容，一定要通过这种方法。否则，如果直接修改了hosts文件的话，在Pod被删除重建之后，kubelet会自动覆盖掉被修改的内容。</p>
-<p>除了上述跟“机器”相关的配置外，你可能也会发现，凡是跟容器的LinuxNamespace相关的属性，也一定是Pod级别的。这个原因也很容易理解：Pod的设计，就是要让它里面的容器尽可能多地共享LinuxNamespace，仅保留必要的隔离和限制能力。这样，Pod模拟出的效果，就跟虚拟机里程序间的关系非常类似了。</p>
-<p>举个例子，在下面这个Pod的YAML文件中，我定义了shareProcessNamespace=true：</p>
-<p>这就意味着这个Pod里的容器要共享PIDNamespace。</p>
+<p>除了上述跟“机器”相关的配置外，你可能也会发现，<strong>凡是跟容器的Linux Namespace相关的属性，也一定是Pod级别的。</strong>这个原因也很容易理解：Pod的设计，就是要让它里面的容器尽可能多地共享Linux Namespace，仅保留必要的隔离和限制能力。这样，Pod模拟出的效果，就跟虚拟机里程序间的关系非常类似了。</p>
+<p>举个例子，在下面这个Pod的YAML文件中，我定义了shareProcessNamespace=true：<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  shareProcessNamespace:</span> <span class="literal">true</span></span><br><span class="line"><span class="attr">  containers:</span></span><br><span class="line"><span class="attr">  - name:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">    image:</span> <span class="string">nginx</span></span><br><span class="line"><span class="attr">  - name:</span> <span class="string">shell</span></span><br><span class="line"><span class="attr">    image:</span> <span class="string">busybox</span></span><br><span class="line"><span class="attr">    stdin:</span> <span class="literal">true</span></span><br><span class="line"><span class="attr">    tty:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure></p>
+<p>这就意味着这个Pod里的容器要共享PID Namespace。</p>
 <p>而在这个YAML文件中，我还定义了两个容器：一个是nginx容器，一个是开启了tty和stdin的shell容器。</p>
-<p>我在前面介绍容器基础时，曾经讲解过什么是tty和stdin。而在Pod的YAML文件里声明开启它们俩，其实等同于设置了dockerrun里的-it（-i即stdin，-t即tty）参数。</p>
+<p>我在前面介绍容器基础时，曾经讲解过什么是tty和stdin。而在Pod的YAML文件里声明开启它们俩，其实等同于设置了<code>docker run</code>里的<code>-it</code>（<code>-i</code>即stdin，<code>-t</code>即tty）参数。</p>
 <p>如果你还是不太理解它们俩的作用的话，可以直接认为tty就是Linux给用户提供的一个常驻小程序，用于接收用户的标准输入，返回操作系统的标准输出。当然，为了能够在tty中输入信息，你还需要同时开启stdin（标准输入流）。</p>
-<p>于是，这个Pod被创建后，你就可以使用shell容器的tty跟这个容器进行交互了。我们一起实践一下：</p>
-<p>接下来，我们使用kubectlattach命令，连接到shell容器的tty上：</p>
-<p>这样，我们就可以在shell容器里执行ps指令，查看所有正在运行的进程：</p>
+<p>于是，这个Pod被创建后，你就可以使用shell容器的tty跟这个容器进行交互了。我们一起实践一下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create -f nginx.yaml</span><br></pre></td></tr></table></figure></p>
+<p>接下来，我们使用<code>kubectl attach</code>命令，连接到shell容器的tty上：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl attach -it nginx -c shell</span><br></pre></td></tr></table></figure></p>
+<p>这样，我们就可以在shell容器里执行ps指令，查看所有正在运行的进程：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl attach -it nginx -c shell</span><br><span class="line">/ <span class="comment"># ps ax</span></span><br><span class="line">PID   USER     TIME  COMMAND</span><br><span class="line">    1 root      0:00 /pause</span><br><span class="line">    8 root      0:00 nginx: master process nginx -g daemon off;</span><br><span class="line">   14 101       0:00 nginx: worker process</span><br><span class="line">   15 root      0:00 sh</span><br><span class="line">   21 root      0:00 ps ax</span><br></pre></td></tr></table></figure></p>
 <p>可以看到，在这个容器里，我们不仅可以看到它本身的psax指令，还可以看到nginx容器的进程，以及Infra容器的/pause进程。这就意味着，整个Pod里的每个容器的进程，对于所有容器来说都是可见的：它们共享了同一个PIDNamespace。</p>
 <p>类似地，凡是Pod中的容器要共享宿主机的Namespace，也一定是Pod级别的定义，比如：</p>
 <p>在这个Pod中，我定义了共享宿主机的Network、IPC和PIDNamespace。这就意味着，这个Pod里的所有容器，会直接使用宿主机的网络、直接与宿主机进行IPC通信、看到宿主机里正在运行的所有进程。</p>
@@ -1088,7 +1091,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">6.4m</span>
+    <span title="站点总字数">6.6m</span>
   
 
   
@@ -1099,7 +1102,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">97:25</span>
+    <span title="站点阅读时长">99:35</span>
   
 </div>
 
