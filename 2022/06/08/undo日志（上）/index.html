@@ -103,13 +103,13 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
 <meta property="og:type" content="article">
 <meta property="og:title" content="undo日志（上）">
 <meta property="og:url" content="http://yoursite.com/2022/06/08/undo日志（上）/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/undo日志（上）/1.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/undo日志（上）/2.awebp">
@@ -127,10 +127,10 @@
 <meta property="og:image" content="http://yoursite.com/2022/06/08/undo日志（上）/14.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/undo日志（上）/15.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/undo日志（上）/16.awebp">
-<meta property="og:updated_time" content="2022-08-26T08:39:59.049Z">
+<meta property="og:updated_time" content="2022-10-22T09:21:54.031Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="undo日志（上）">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
 <meta name="twitter:image" content="http://yoursite.com/2022/06/08/undo日志（上）/1.awebp">
 
 
@@ -460,7 +460,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-26 16:39:59" itemprop="dateModified" datetime="2022-08-26T16:39:59+08:00">2022-08-26</time>
+                <time title="修改时间：2022-10-22 17:21:54" itemprop="dateModified" datetime="2022-10-22T17:21:54+08:00">2022-10-22</time>
               
             
           </span>
@@ -541,17 +541,14 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
-<h1 id="事务回滚的需求"><a href="#事务回滚的需求" class="headerlink" title="事务回滚的需求"></a>事务回滚的需求</h1><p>我们说过事务需要保证原子性，也就是事务中的操作要么全部完成，要么什么也不做。但是偏偏有时候事务执行到一半会出现一些情况，比如：</p>
+<h1 id="事务回滚的需求"><a href="#事务回滚的需求" class="headerlink" title="事务回滚的需求"></a><span style="color:#339AFF;">事务回滚的需求</span></h1><p>我们说过事务需要保证原子性，也就是事务中的操作要么全部完成，要么什么也不做。但是偏偏有时候事务执行到一半会出现一些情况，比如：</p>
 <ul>
 <li>情况一：事务执行过程中可能遇到各种错误，比如服务器本身的错误，操作系统错误，甚至是突然断电导致的错误。</li>
 <li>情况二：程序员可以在事务执行过程中手动输入<code>ROLLBACK</code>语句结束当前的事务的执行。</li>
 </ul>
 <p>这两种情况都会导致事务执行到一半就结束，但是事务执行过程中可能已经修改了很多东西，为了保证事务的原子性，我们需要把东西改回原先的样子，这个过程就称之为回滚（英文名：rollback），这样就可以造成一个假象：这个事务看起来什么都没做，所以符合原子性要求。</p>
-<p>小时候我非常痴迷于象棋，总是想找厉害的大人下棋，赢棋是不可能赢棋的，这辈子都不可能赢棋的，又不想认输，只能偷偷的悔棋才能勉强玩的下去。悔棋就是一种非常典型的回滚操作，比如棋子往前走两步，悔棋对应的操作就是向后走两步；比如棋子往左走一步，悔棋对应的操作就是向右走一步。数据库中的回滚跟悔棋差不多，你插入了一条记录，回滚操作对应的就是把这条记录删除掉；你更新了一条记录，回滚操作对应的就是把该记录更新为旧值；你删除了一条记录，回滚操作对应的自然就是把该记录再插进去。说的貌似很简单的样子[手动偷笑😏]。</p>
+<p>悔棋就是一种非常典型的回滚操作，比如棋子往前走两步，悔棋对应的操作就是向后走两步；比如棋子往左走一步，悔棋对应的操作就是向右走一步。数据库中的回滚跟悔棋差不多，你插入了一条记录，回滚操作对应的就是把这条记录删除掉；你更新了一条记录，回滚操作对应的就是把该记录更新为旧值；你删除了一条记录，回滚操作对应的自然就是把该记录再插进去。</p>
 <p>从上边的描述中我们已经能隐约感觉到，每当我们要对一条记录做改动时（这里的改动可以指INSERT、DELETE、UPDATE），都需要留一手——把回滚时所需的东西都给记下来。比方说：</p>
 <ul>
 <li>你插入一条记录时，至少要把这条记录的主键值记下来，之后回滚的时候只需要把这个主键值对应的记录删掉就好了。</li>
@@ -559,7 +556,7 @@
 <li>你修改了一条记录，至少要把修改这条记录前的旧值都记录下来，这样之后回滚时再把这条记录更新为旧值就好了。</li>
 </ul>
 <p>设计数据库的大叔把这些为了回滚而记录的这些东东称之为撤销日志，英文名为<code>undo log</code>，我们也可以土洋结合，称之为undo日志。这里需要注意的一点是，由于查询操作（SELECT）并不会修改任何用户记录，所以在查询操作执行时，并不需要记录相应的undo日志。在真实的InnoDB中，undo日志其实并不像我们上边所说的那么简单，不同类型的操作产生的undo日志的格式也是不同的，不过先暂时把这些容易让人脑子糊的具体细节放一放，我们先回过头来看看事务id是个神马玩意儿。</p>
-<h1 id="事务id"><a href="#事务id" class="headerlink" title="事务id"></a>事务id</h1><h2 id="给事务分配id的时机"><a href="#给事务分配id的时机" class="headerlink" title="给事务分配id的时机"></a>给事务分配id的时机</h2><p>我们前边在唠叨事务简介时说过，一个事务可以是一个只读事务，或者是一个读写事务：</p>
+<h1 id="事务id"><a href="#事务id" class="headerlink" title="事务id"></a><span style="color:#339AFF;">事务id</span></h1><h2 id="给事务分配id的时机"><a href="#给事务分配id的时机" class="headerlink" title="给事务分配id的时机"></a>给事务分配id的时机</h2><p>我们前边在唠叨事务简介时说过，一个事务可以是一个只读事务，或者是一个读写事务：</p>
 <ul>
 <li>我们可以通过<code>START TRANSACTION READ ONLY</code>语句开启一个只读事务。</li>
 </ul>
@@ -593,7 +590,7 @@
 <h2 id="trx-id隐藏列"><a href="#trx-id隐藏列" class="headerlink" title="trx_id隐藏列"></a>trx_id隐藏列</h2><p>我们前边唠叨InnoDB记录行格式的时候重点强调过：聚簇索引的记录除了会保存完整的用户数据以外，而且还会自动添加名为trx_id、roll_pointer的隐藏列，如果用户没有在表中定义主键以及UNIQUE键，还会自动添加一个名为row_id的隐藏列。所以一条记录在页面中的真实结构看起来就是这样的：</p>
 <img src="/2022/06/08/undo日志（上）/1.awebp">
 <p>其中的trx_id列其实还蛮好理解的，就是某个对这个聚簇索引记录做改动的语句所在的事务对应的事务id而已（此处的改动可以是INSERT、DELETE、UPDATE操作）。至于roll_pointer隐藏列我们后边分析～</p>
-<h1 id="undo日志的格式"><a href="#undo日志的格式" class="headerlink" title="undo日志的格式"></a>undo日志的格式</h1><p>为了实现事务的原子性，InnoDB存储引擎在实际进行增、删、改一条记录时，都需要先把对应的undo日志记下来。一般每对一条记录做一次改动，就对应着一条undo日志，但在某些更新记录的操作中，也可能会对应着2条undo日志，这个我们后边会仔细唠叨。一个事务在执行过程中可能新增、删除、更新若干条记录，也就是说需要记录很多条对应的undo日志，这些undo日志会被从0开始编号，也就是说根据生成的顺序分别被称为第0号undo日志、第1号undo日志、…、第n号undo日志等，这个编号也被称之为undo no。</p>
+<h1 id="undo日志的格式"><a href="#undo日志的格式" class="headerlink" title="undo日志的格式"></a><span style="color:#339AFF;">undo日志的格式</span></h1><p>为了实现事务的原子性，InnoDB存储引擎在实际进行增、删、改一条记录时，都需要先把对应的undo日志记下来。一般每对一条记录做一次改动，就对应着一条undo日志，但在某些更新记录的操作中，也可能会对应着2条undo日志，这个我们后边会仔细唠叨。一个事务在执行过程中可能新增、删除、更新若干条记录，也就是说需要记录很多条对应的undo日志，这些undo日志会被从0开始编号，也就是说根据生成的顺序分别被称为第0号undo日志、第1号undo日志、…、第n号undo日志等，这个编号也被称之为undo no。</p>
 <p>这些undo日志是被记录到类型为FIL_PAGE_UNDO_LOG（对应的十六进制是0x0002，忘记了页面类型是个啥的同学需要回过头再看看前边的章节）的页面中。这些页面可以从系统表空间中分配，也可以从一种专门存放undo日志的表空间，也就是所谓的undo tablespace中分配。不过关于如何分配存储undo日志的页面这个事情我们稍后再说，现在先来看看不同操作都会产生什么样子的undo日志吧～ 为了故事的顺利发展，我们先来创建一个名为undo_demo的表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> undo_demo (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">    key1 <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    <span class="keyword">col</span> <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_key1 (key1)</span><br><span class="line">)<span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
 <p>这个表中有3个列，其中id列是主键，我们为key1列建立了一个二级索引，col列是一个普通的列。我们前边介绍InnoDB的数据字典时说过，每个表都会被分配一个唯一的table id，我们可以通过系统数据库information_schema中的innodb_sys_tables表来查看某个表对应的table id是什么，现在我们查看一下undo_demo对应的table id是多少：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM information_schema.innodb_sys_tables WHERE name = <span class="string">'xiaohaizi/undo_demo'</span>;</span><br><span class="line">+----------+---------------------+------+--------+-------+-------------+------------+---------------+------------+</span><br><span class="line">| TABLE_ID | NAME                | FLAG | N_COLS | SPACE | FILE_FORMAT | ROW_FORMAT | ZIP_PAGE_SIZE | SPACE_TYPE |</span><br><span class="line">+----------+---------------------+------+--------+-------+-------------+------------+---------------+------------+</span><br><span class="line">|      138 | xiaohaizi/undo_demo |   33 |      6 |   482 | Barracuda   | Dynamic    |             0 | Single     |</span><br><span class="line">+----------+---------------------+------+--------+-------+-------------+------------+---------------+------------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.01 sec)</span><br></pre></td></tr></table></figure></p>
 <p>从查询结果可以看出，undo_demo表对应的table id为138，先把这个值记住，我们后边有用。</p>
@@ -856,7 +853,7 @@ UPDATE undo_demo
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">726</span>
+                    <span class="site-state-item-count">728</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1171,6 +1168,14 @@ UPDATE undo_demo
                 
                 
                   <li>
+                    <a href="/2022/10/21/当前读和快照读的区别/" title="当前读和快照读的区别" target="_blank">当前读和快照读的区别</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/19/详解MySQL的for-update/" title="详解MySQL的for update" target="_blank">详解MySQL的for update</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/10/10/结课测试-这些Go语言的知识你都掌握了吗？/" title="结课测试 | 这些Go语言的知识你都掌握了吗？" target="_blank">结课测试 | 这些Go语言的知识你都掌握了吗？</a>
                   </li>
                 
@@ -1180,14 +1185,6 @@ UPDATE undo_demo
                 
                   <li>
                     <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/47-基于HTTP协议的网络服务/" title="47 | 基于HTTP协议的网络服务" target="_blank">47 | 基于HTTP协议的网络服务</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/46-访问网络服务/" title="46 | 访问网络服务" target="_blank">46 | 访问网络服务</a>
                   </li>
                 
               </ul>
@@ -1259,7 +1256,7 @@ UPDATE undo_demo
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">99:35</span>
+    <span title="站点阅读时长">99:55</span>
   
 </div>
 

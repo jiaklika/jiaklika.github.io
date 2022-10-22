@@ -103,18 +103,21 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Innodb到底是怎么加锁的">
 <meta property="og:url" content="http://yoursite.com/2022/09/06/Innodb到底是怎么加锁的/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2022-09-08T08:35:23.213Z">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/Innodb到底是怎么加锁的/1.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/Innodb到底是怎么加锁的/2.awebp">
+<meta property="og:updated_time" content="2022-10-19T01:14:06.387Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Innodb到底是怎么加锁的">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2022/09/06/Innodb到底是怎么加锁的/1.awebp">
 
 
 
@@ -443,7 +446,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-08 16:35:23" itemprop="dateModified" datetime="2022-09-08T16:35:23+08:00">2022-09-08</time>
+                <time title="修改时间：2022-10-19 09:14:06" itemprop="dateModified" datetime="2022-10-19T09:14:06+08:00">2022-10-19</time>
               
             
           </span>
@@ -524,39 +527,41 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
 <p>上一篇文章中缺失一点儿东西，再补全一下。</p>
+<blockquote>
 <p>学完本文后：妈妈再也不用担心我不知道InnoDB是怎么加锁的了!</p>
-<p>流传较广，但是错误的一个观点<br>不知道从什么时候开始，下边这个错误的观点开始被广泛的流传：</p>
+</blockquote>
+<h1 id="流传较广，但是错误的一个观点"><a href="#流传较广，但是错误的一个观点" class="headerlink" title="流传较广，但是错误的一个观点"></a>流传较广，但是错误的一个观点</h1><p>不知道从什么时候开始，下边这个错误的观点开始被广泛的流传：</p>
+<blockquote>
 <p>在使用加锁读的方式读取使用InnoDB存储引擎的表时，当在执行查询时没有使用到索引时，行锁会被转换为表锁。</p>
+</blockquote>
 <p>这里强调一点，对于任何INSERT、DELETE、UPDATE、SELECT … LOCK IN SHARE MODE、SELECT … FOR UPDATE语句来说，InnoDB存储引擎都不会加表级别的S锁或者X锁（我们这里不讨论表级意向锁的添加），只会加行级锁。所以即使对于全表扫描的加锁读语句来说，也只会对表中的记录进行加锁，而不是直接加一个表锁。</p>
 <p>另外，很多小伙伴都会问：“这个语句加什么锁”，其实这是一个伪命题，因为一个语句需要加什么锁受到很多方面的影响，如果有人问你某某语句会加什么锁，那你可以直接回怼：真不专业！</p>
 <p>我们稍后给大家详细分析一下影响加锁的因素都有哪些，以及从源码的角度看一下InnoDB到底是如何加锁的，希望小伙伴看完后会惊呼：真tm的简单！</p>
 <p>不过在进行讨论前我们需要申明一下，我们讨论的只是InnoDB加的事务锁，即为了避免脏写、脏读、不可重复读、幻读这些现象带来的一致性问题而加的锁，并不是为了在多线程访问共享内存区域时而加的锁（比方说两个不同事务所在的线程想读写同一个页面时，需要进行加锁保护），也不包括server层添加的MDL锁。</p>
 <p>本文所参考的源码版本为5.7.22。</p>
-<p>事务锁到底是什么<br>锁是一个内存结构，InnoDB中用lock_t这个结构来定义：</p>
+<h1 id="事务锁到底是什么"><a href="#事务锁到底是什么" class="headerlink" title="事务锁到底是什么"></a>事务锁到底是什么</h1><p>锁是一个内存结构，InnoDB中用lock_t这个结构来定义：</p>
+<img src="/2022/09/06/Innodb到底是怎么加锁的/1.awebp">
 <p>不论是行锁，还是表锁都用这个结构来表示。我们给大家画个图：</p>
+<img src="/2022/09/06/Innodb到底是怎么加锁的/2.awebp">
 <p>其中的type_mode是用于区分这个锁结构到底是行锁还是表锁，如果是表锁的话是意向锁、直接对表加锁、还是AUTO-INC锁，如果是行锁的话，具体是正经记录锁、gap锁还是next-key锁。</p>
-<p>小贴士：</p>
-<p>在InnoDB的实现中，InnoDB的行锁是与记录一一对应的。即使是对于gap锁来说，在实现上也是为某条记录生成一个锁结构，然后该锁结构的类型是gap锁而已，并不是专门为某个区间生成一个锁结构。该gap锁的功能就是每当有别的事务插入记录时，会检查一下待插入记录的下一条记录上是否已经有一个gap锁的锁结构，如果有的话就进入阻塞状态。</p>
+<blockquote>
+<p>小贴士：在InnoDB的实现中，InnoDB的行锁是与记录一一对应的。即使是对于gap锁来说，在实现上也是为某条记录生成一个锁结构，然后该锁结构的类型是gap锁而已，并不是专门为某个区间生成一个锁结构。该gap锁的功能就是每当有别的事务插入记录时，会检查一下待插入记录的下一条记录上是否已经有一个gap锁的锁结构，如果有的话就进入阻塞状态。</p>
+</blockquote>
 <p>我们平时所说的加锁就是在内存中生成这样的一个锁结构（除了生成锁结构，还有一种称作隐式锁的加锁方式，不用生成锁结构）。当然，如果为1条记录加锁就要生成一个锁结构，那岂不是太浪费了！设计InnoDB的大叔提出了一种优化方案，即同一个事务，在同一个页面上加的相同类型的锁都放在同一个锁结构里。</p>
 <p>各种类型的锁是如果通过type_mode区分、各种锁都有什么作用，以及如何减少生成锁结构的细节我们这里就不展开了，那又要花费超长的篇幅，大家可以到《MySQL是怎样运行的：从根儿上理解MySQL》书籍中查看，我们下边来看具体的加锁细节。</p>
-<p>准备工作<br>为了故事的顺利发展，我们先创建一个表hero：</p>
-<p>CREATE TABLE hero (<br>    number INT,<br>    name VARCHAR(100),<br>    country varchar(100),<br>    PRIMARY KEY (number),<br>    KEY idx_name (name)<br>) Engine=InnoDB CHARSET=utf8;<br>然后向这个表里插入几条记录：</p>
-<p>INSERT INTO hero VALUES<br>    (1, ‘l刘备’, ‘蜀’),<br>    (3, ‘z诸葛亮’, ‘蜀’),<br>    (8, ‘c曹操’, ‘魏’),<br>    (15, ‘x荀彧’, ‘魏’),<br>    (20, ‘s孙权’, ‘吴’);<br>然后现在hero表就有了两个索引（一个二级索引，一个聚簇索引），示意图如下：</p>
-<p>加锁受哪些因素影响<br>一条语句加什么锁受多种因素影响，如果你不能确认下边这些因素的时候，最好不要抢先发言说”XXX语句对XXX记录加了什么锁”：</p>
-<p>事务的隔离级别<br>语句执行时使用的索引类型（比如聚簇索引、唯一二级索引、普通二级索引）<br>是否是精确匹配<br>是否是唯一性搜索<br>具体执行的语句类型（SELECT、INSERT、DELETE、UPDATE）<br>是否开启innodb_locks_unsafe_for_binlog系统变量<br>记录是否被标记删除<br>这里边有几个概念大家可能不是很清楚，我们先解释一下。</p>
-<p>扫描区间<br>比方说下边这个查询：</p>
-<p>SELECT * FROM hero WHERE name &lt;=  ‘l刘备’ AND country = ‘魏’;<br>MySQL可以使用下边两种方式来执行上述查询：</p>
-<p>使用二级索引idx_name执行上述查询，那么就需要扫描name值在(-∞, ‘l刘备’]这个区间中的所有二级索引记录，针对获取到的每一条二级索引记录，都需要执行回表操作来获取相应的聚簇索引记录。</p>
-<p>直接扫描所有的聚簇索引记录，即进行全表扫描。此时相当于扫描number值在(-∞, +∞)这个区间中的所有聚簇索引记录。</p>
+<h1 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h1><p>为了故事的顺利发展，我们先创建一个表hero：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> hero (</span><br><span class="line">    <span class="built_in">number</span> <span class="built_in">INT</span>,</span><br><span class="line">    <span class="keyword">name</span> <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    country <span class="built_in">varchar</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="built_in">number</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_name (<span class="keyword">name</span>)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
+<p>然后向这个表里插入几条记录：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> hero <span class="keyword">VALUES</span></span><br><span class="line">    (<span class="number">1</span>, <span class="string">'l刘备'</span>, <span class="string">'蜀'</span>),</span><br><span class="line">    (<span class="number">3</span>, <span class="string">'z诸葛亮'</span>, <span class="string">'蜀'</span>),</span><br><span class="line">    (<span class="number">8</span>, <span class="string">'c曹操'</span>, <span class="string">'魏'</span>),</span><br><span class="line">    (<span class="number">15</span>, <span class="string">'x荀彧'</span>, <span class="string">'魏'</span>),</span><br><span class="line">    (<span class="number">20</span>, <span class="string">'s孙权'</span>, <span class="string">'吴'</span>);</span><br><span class="line">```    </span><br><span class="line">然后现在hero表就有了两个索引（一个二级索引，一个聚簇索引），示意图如下：</span><br><span class="line"></span><br><span class="line">&#123;% asset_img 3.awebp %&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 加锁受哪些因素影响</span></span><br><span class="line"></span><br><span class="line">一条语句加什么锁受多种因素影响，如果你不能确认下边这些因素的时候，最好不要抢先发言说"XXX语句对XXX记录加了什么锁"：</span><br><span class="line"></span><br><span class="line">* 事务的隔离级别</span><br><span class="line">* 语句执行时使用的索引类型（比如聚簇索引、唯一二级索引、普通二级索引）</span><br><span class="line">* 是否是精确匹配</span><br><span class="line">* 是否是唯一性搜索</span><br><span class="line">* 具体执行的语句类型（SELECT、INSERT、DELETE、UPDATE）</span><br><span class="line">* 是否开启innodb_locks_unsafe_for_binlog系统变量</span><br><span class="line">* 记录是否被标记删除</span><br><span class="line"></span><br><span class="line">这里边有几个概念大家可能不是很清楚，我们先解释一下。</span><br><span class="line"></span><br><span class="line"><span class="comment">## 扫描区间</span></span><br><span class="line"></span><br><span class="line">比方说下边这个查询：</span><br><span class="line">```sql</span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> hero <span class="keyword">WHERE</span> <span class="keyword">name</span> &lt;=  <span class="string">'l刘备'</span> <span class="keyword">AND</span> country = <span class="string">'魏'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>MySQL可以使用下边两种方式来执行上述查询：</p>
+<ul>
+<li>使用二级索引idx_name执行上述查询，那么就需要扫描name值在(-∞, ‘l刘备’]这个区间中的所有二级索引记录，针对获取到的每一条二级索引记录，都需要执行回表操作来获取相应的聚簇索引记录。</li>
+<li>直接扫描所有的聚簇索引记录，即进行全表扫描。此时相当于扫描number值在(-∞, +∞)这个区间中的所有聚簇索引记录。</li>
+</ul>
 <p>优化器会计算上述二种方式哪个成本更低，选用成本更低的那种来执行查询。</p>
 <p>当优化器使用二级索引执行查询时，我们把(-∞, ‘l刘备’]称作扫描区间，意味着需要扫描name列值在这个区间中的所有二级索引记录，我们也可以把形成这个扫描区间的条件name &lt;= ‘l刘备’称作是形成这个扫描区间的边界条件；当优化器使用全表扫描执行查询时，我们把(-∞, +∞)称作扫描区间，意味着需要扫描number值在这个区间中的所有聚簇索引记录。</p>
-<p>在执行一个查询的过程中，可能会用到多个扫描区间，如下所示：</p>
-<p>SELECT * FROM hero WHERE name &lt; ‘l刘备’ OR name &gt; ‘x荀彧’;<br>如果优化器采用二级索引idx_name执行上述查询时，那么对应的扫描区间就是(-∞, l刘备)以及(‘x荀彧’, +∞)，即需要扫描name值在上述两个扫描区间中的记录。</p>
+<p>在执行一个查询的过程中，可能会用到多个扫描区间，如下所示：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> hero <span class="keyword">WHERE</span> <span class="keyword">name</span> &lt; <span class="string">'l刘备'</span> <span class="keyword">OR</span> <span class="keyword">name</span> &gt; <span class="string">'x荀彧'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>如果优化器采用二级索引idx_name执行上述查询时，那么对应的扫描区间就是(-∞, l刘备)以及(‘x荀彧’, +∞)，即需要扫描name值在上述两个扫描区间中的记录。</p>
 <p>每当InnoDB需要扫描一个扫描区间中的记录时，都需要分两步：</p>
 <p>先通过索引对应的B+树，从根页面开始一路向下定位，直到定位到叶子节点中在扫描区间中的第一条记录。</p>
 <p>之后就可以不需要继续从根节点定位了，而是通过记录的next_record属性直接找到扫描区间的下一条记录即可（页面之间通过双向链表连接，找完一个页面中的记录后，可以顺着双向链表再去下一个页面中去找属于同一个扫描区间的记录）。</p>
@@ -783,8 +788,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -801,7 +815,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">726</span>
+                    <span class="site-state-item-count">728</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1116,6 +1130,14 @@
                 
                 
                   <li>
+                    <a href="/2022/10/21/当前读和快照读的区别/" title="当前读和快照读的区别" target="_blank">当前读和快照读的区别</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/19/详解MySQL的for-update/" title="详解MySQL的for update" target="_blank">详解MySQL的for update</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/10/10/结课测试-这些Go语言的知识你都掌握了吗？/" title="结课测试 | 这些Go语言的知识你都掌握了吗？" target="_blank">结课测试 | 这些Go语言的知识你都掌握了吗？</a>
                   </li>
                 
@@ -1125,14 +1147,6 @@
                 
                   <li>
                     <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/47-基于HTTP协议的网络服务/" title="47 | 基于HTTP协议的网络服务" target="_blank">47 | 基于HTTP协议的网络服务</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/46-访问网络服务/" title="46 | 访问网络服务" target="_blank">46 | 访问网络服务</a>
                   </li>
                 
               </ul>
@@ -1147,6 +1161,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#流传较广，但是错误的一个观点"><span class="nav-number">1.</span> <span class="nav-text">流传较广，但是错误的一个观点</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#事务锁到底是什么"><span class="nav-number">2.</span> <span class="nav-text">事务锁到底是什么</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#准备工作"><span class="nav-number">3.</span> <span class="nav-text">准备工作</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1187,7 +1218,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">99:35</span>
+    <span title="站点阅读时长">99:55</span>
   
 </div>
 

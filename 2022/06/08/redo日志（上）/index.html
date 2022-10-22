@@ -103,13 +103,13 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：">
+  <meta name="description" content="思考并回答以下问题：  因为有Buffer Pool的存在，才会有redo log的作用。系统崩溃了，Buffer Pool里的东西都没了。怎么理解？ 在事务提交时，把redo log刷新到磁盘中。怎么理解？ 对于一个已经提交的事务，在事务提交后即使系统发生了崩溃，这个事务对数据库中所做的更改也不能丢失。在事务提交完成之前把该事务所修改的所有页面都刷新到磁盘的方法不好，怎么不好？ 什么是随机IO和">
 <meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
 <meta property="og:type" content="article">
 <meta property="og:title" content="redo日志（上）">
 <meta property="og:url" content="http://yoursite.com/2022/06/08/redo日志（上）/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:description" content="思考并回答以下问题：  因为有Buffer Pool的存在，才会有redo log的作用。系统崩溃了，Buffer Pool里的东西都没了。怎么理解？ 在事务提交时，把redo log刷新到磁盘中。怎么理解？ 对于一个已经提交的事务，在事务提交后即使系统发生了崩溃，这个事务对数据库中所做的更改也不能丢失。在事务提交完成之前把该事务所修改的所有页面都刷新到磁盘的方法不好，怎么不好？ 什么是随机IO和">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/redo日志（上）/1.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/redo日志（上）/2.awebp">
@@ -130,10 +130,10 @@
 <meta property="og:image" content="http://yoursite.com/2022/06/08/redo日志（上）/17.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/redo日志（上）/18.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/redo日志（上）/19.awebp">
-<meta property="og:updated_time" content="2022-09-12T03:26:03.272Z">
+<meta property="og:updated_time" content="2022-10-21T02:21:45.291Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="redo日志（上）">
-<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:description" content="思考并回答以下问题：  因为有Buffer Pool的存在，才会有redo log的作用。系统崩溃了，Buffer Pool里的东西都没了。怎么理解？ 在事务提交时，把redo log刷新到磁盘中。怎么理解？ 对于一个已经提交的事务，在事务提交后即使系统发生了崩溃，这个事务对数据库中所做的更改也不能丢失。在事务提交完成之前把该事务所修改的所有页面都刷新到磁盘的方法不好，怎么不好？ 什么是随机IO和">
 <meta name="twitter:image" content="http://yoursite.com/2022/06/08/redo日志（上）/1.awebp">
 
 
@@ -463,7 +463,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-12 11:26:03" itemprop="dateModified" datetime="2022-09-12T11:26:03+08:00">2022-09-12</time>
+                <time title="修改时间：2022-10-21 10:21:45" itemprop="dateModified" datetime="2022-10-21T10:21:45+08:00">2022-10-21</time>
               
             
           </span>
@@ -509,7 +509,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">12k</span>
+                <span title="本文字数">13k</span>
               
 
               
@@ -523,7 +523,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">11 分钟</span>
+                <span title="阅读时长">12 分钟</span>
               
             </div>
           
@@ -544,9 +544,18 @@
 
       
         <p>思考并回答以下问题：</p>
+<ul>
+<li>因为有Buffer Pool的存在，才会有redo log的作用。系统崩溃了，Buffer Pool里的东西都没了。怎么理解？</li>
+<li>在事务提交时，把redo log刷新到磁盘中。怎么理解？</li>
+<li>对于一个已经提交的事务，在事务提交后即使系统发生了崩溃，这个事务对数据库中所做的更改也不能丢失。在事务提交完成之前把该事务所修改的所有页面都刷新到磁盘的方法不好，怎么不好？</li>
+<li>什么是随机IO和顺序IO？</li>
+<li>事务持久性的特性，就是说对于一个已经提交的事务，在事务提交后即使系统发生了崩溃，这个事务对数据库中所做的更改也不能丢失。怎么理解？</li>
+<li>没有必要在每次事务提交时就把该事务在内存中修改过的全部页面刷新到磁盘，只需要把修改了哪些东西记录一下就好。因为在系统崩溃重启时需要按照上述内容所记录的步骤重新更新数据页，所以上述内容也被称之为重做日志。怎么理解？</li>
+<li>事务的持久性是通过redo log实现的。redo日志本质上只是记录了一下事务对数据库做了哪些修改。怎么理解？</li>
+<li>在事务提交时将所有修改过的内存中的页面刷新到磁盘中相比，只将该事务执行过程中产生的redo日志刷新到磁盘的好处是redo日志占用的空间非常小，redo日志是顺序写入磁盘的。怎么理解？</li>
+</ul>
 <a id="more"></a>
-<h1 id="事先说明"><a href="#事先说明" class="headerlink" title="事先说明"></a><span style="color:#339AFF;">事先说明</span></h1><p>本文以及接下来的几篇文章将会频繁的使用到我们前边唠叨的InnoDB记录行格式、页面格式、索引原理、表空间的组成等各种基础知识，如果大家对这些东西理解的不透彻，那么阅读下边的文字可能会有些吃力，为保证您的阅读体验，请确保自己已经掌握了我前边唠叨的这些知识。</p>
-<h1 id="redo日志是个啥"><a href="#redo日志是个啥" class="headerlink" title="redo日志是个啥"></a><span style="color:#339AFF;">redo日志是个啥</span></h1><p>我们知道<span style="color:red">InnoDB</span>存储引擎是以页为单位来管理存储空间的，我们进行的增删改查操作其实本质上都是在访问页面（包括读页面、写页面、创建新页面等操作）。我们前边唠叨Buffer Pool的时候说过，在真正访问页面之前，需要把在磁盘上的页缓存到内存中的<span style="color:red">Buffer Pool</span>之后才可以访问。但是在唠叨事务的时候又强调过一个称之为<span style="color:red">持久性</span>的特性，就是说对于一个已经提交的事务，在事务提交后即使系统发生了崩溃，这个事务对数据库中所做的更改也不能丢失。但是如果我们只在内存的Buffer Pool中修改了页面，假设在事务提交后突然发生了某个故障，导致内存中的数据都失效了，那么这个已经提交了的事务对数据库中所做的更改也就跟着丢失了，这是我们所不能忍受的（想想ATM机已经提示狗哥转账成功，但之后由于服务器出现故障，重启之后猫爷发现自己没收到钱，猫爷就被砍死了）。那么如何保证这个持久性呢？一个很简单的做法就是在事务提交完成之前把该事务所修改的所有页面都刷新到磁盘，但是这个简单粗暴的做法有些问题：</p>
+<h1 id="redo日志是个啥"><a href="#redo日志是个啥" class="headerlink" title="redo日志是个啥"></a><span style="color:#339AFF;">redo日志是个啥</span></h1><p>我们知道<span style="color:red">InnoDB</span>存储引擎是以页为单位来管理存储空间的，我们进行的增删改查操作其实本质上都是在访问页面（包括读页面、写页面、创建新页面等操作）。我们前边唠叨Buffer Pool的时候说过，在真正访问页面之前，需要把在磁盘上的页缓存到内存中的<span style="color:red">Buffer Pool</span>之后才可以访问。但是在唠叨事务的时候又强调过一个称之为<span style="color:red">持久性</span>的特性，就是说<strong>对于一个已经提交的事务，在事务提交后即使系统发生了崩溃，这个事务对数据库中所做的更改也不能丢失。</strong>但是如果我们只在内存的Buffer Pool中修改了页面，假设在事务提交后突然发生了某个故障，导致内存中的数据都失效了，那么这个已经提交了的事务对数据库中所做的更改也就跟着丢失了，这是我们所不能忍受的。那么如何保证这个持久性呢？一个很简单的做法就是在事务提交完成之前把该事务所修改的所有页面都刷新到磁盘，但是这个简单粗暴的做法有些问题：</p>
 <ul>
 <li>刷新一个完整的数据页太浪费了</li>
 </ul>
@@ -554,7 +563,7 @@
 <ul>
 <li>随机IO刷起来比较慢</li>
 </ul>
-<p>一个事务可能包含很多语句，即使是一条语句也可能修改许多页面，倒霉催的是该事务修改的这些页面可能并不相邻，这就意味着在将某个事务修改的Buffer Pool中的页面刷新到磁盘时，需要进行很多的随机IO，随机IO比顺序IO要慢，尤其对于传统的机械硬盘来说。</p>
+<p>一个事务可能包含很多语句，即使是一条语句也可能修改许多页面，倒霉催的是该事务修改的这些页面可能并不相邻，这就意味着在将某个事务修改的Buffer Pool中的页面刷新到磁盘时，需要进行很多的随机IO，随机IO比顺序IO要慢，尤其对于传统的机械硬盘来说（对于从磁盘中读取和写入数据的操作，叫做磁盘IO，分两种情况：随机IO就是读写的内容分散在磁盘的不同位置，需要来回查找所以效率低；顺序IO就是读写的内容集中存储在磁盘的一块，从前到后依次读取，免去了查找的过程，所以效率高。机械磁盘的顺序IO和随机IO的性能差异巨大。顺序IO时缓存命中率高，节省寻道时间。随机IO不停寻址，缓存失效）。</p>
 <p>咋办呢？再次回到我们的初心：我们只是想让已经提交了的事务对数据库中数据所做的修改永久生效，即使后来系统崩溃，在重启后也能把这种修改恢复出来。所以我们其实没有必要在每次事务提交时就把该事务在内存中修改过的全部页面刷新到磁盘，只需要把修改了哪些东西记录一下就好，比方说某个事务将系统表空间中的第100号页面中偏移量为1000处的那个字节的值1改成2我们只需要记录一下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">将第0号表空间的100号页面的偏移量为1000处的值更新为2。</span><br></pre></td></tr></table></figure></p>
 <p>这样我们在事务提交时，把上述内容刷新到磁盘中，即使之后系统崩溃了，重启之后只要按照上述内容所记录的步骤重新更新一下数据页，那么该事务对数据库中所做的修改又可以被恢复出来，也就意味着满足持久性的要求。因为在系统崩溃重启时需要按照上述内容所记录的步骤重新更新数据页，所以上述内容也被称之为重做日志，英文名为redo log，我们也可以土洋结合，称之为redo日志。与在事务提交时将所有修改过的内存中的页面刷新到磁盘中相比，只将该事务执行过程中产生的redo日志刷新到磁盘的好处如下：</p>
 <ul>
@@ -853,7 +862,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">726</span>
+                    <span class="site-state-item-count">728</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1168,6 +1177,14 @@
                 
                 
                   <li>
+                    <a href="/2022/10/21/当前读和快照读的区别/" title="当前读和快照读的区别" target="_blank">当前读和快照读的区别</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/19/详解MySQL的for-update/" title="详解MySQL的for update" target="_blank">详解MySQL的for update</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/10/10/结课测试-这些Go语言的知识你都掌握了吗？/" title="结课测试 | 这些Go语言的知识你都掌握了吗？" target="_blank">结课测试 | 这些Go语言的知识你都掌握了吗？</a>
                   </li>
                 
@@ -1177,14 +1194,6 @@
                 
                   <li>
                     <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/47-基于HTTP协议的网络服务/" title="47 | 基于HTTP协议的网络服务" target="_blank">47 | 基于HTTP协议的网络服务</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/46-访问网络服务/" title="46 | 访问网络服务" target="_blank">46 | 访问网络服务</a>
                   </li>
                 
               </ul>
@@ -1210,7 +1219,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#事先说明"><span class="nav-number">1.</span> <span class="nav-text">事先说明</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#redo日志是个啥"><span class="nav-number">2.</span> <span class="nav-text">redo日志是个啥</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#redo日志格式"><span class="nav-number">3.</span> <span class="nav-text">redo日志格式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#简单的redo日志类型"><span class="nav-number">3.1.</span> <span class="nav-text">简单的redo日志类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#复杂一些的redo日志类型"><span class="nav-number">3.2.</span> <span class="nav-text">复杂一些的redo日志类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redo日志格式小结"><span class="nav-number">3.3.</span> <span class="nav-text">redo日志格式小结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Mini-Transaction"><span class="nav-number">4.</span> <span class="nav-text">Mini-Transaction</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#以组的形式写入redo日志"><span class="nav-number">4.1.</span> <span class="nav-text">以组的形式写入redo日志</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Mini-Transaction的概念"><span class="nav-number">4.2.</span> <span class="nav-text">Mini-Transaction的概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redo日志的写入过程"><span class="nav-number">4.3.</span> <span class="nav-text">redo日志的写入过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redo日志缓冲区"><span class="nav-number">4.4.</span> <span class="nav-text">redo日志缓冲区</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#redo日志是个啥"><span class="nav-number">1.</span> <span class="nav-text">redo日志是个啥</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#redo日志格式"><span class="nav-number">2.</span> <span class="nav-text">redo日志格式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#简单的redo日志类型"><span class="nav-number">2.1.</span> <span class="nav-text">简单的redo日志类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#复杂一些的redo日志类型"><span class="nav-number">2.2.</span> <span class="nav-text">复杂一些的redo日志类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redo日志格式小结"><span class="nav-number">2.3.</span> <span class="nav-text">redo日志格式小结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Mini-Transaction"><span class="nav-number">3.</span> <span class="nav-text">Mini-Transaction</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#以组的形式写入redo日志"><span class="nav-number">3.1.</span> <span class="nav-text">以组的形式写入redo日志</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Mini-Transaction的概念"><span class="nav-number">3.2.</span> <span class="nav-text">Mini-Transaction的概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redo日志的写入过程"><span class="nav-number">3.3.</span> <span class="nav-text">redo日志的写入过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redo日志缓冲区"><span class="nav-number">3.4.</span> <span class="nav-text">redo日志缓冲区</span></a></li></ol></li></ol></div>
             
 
           </div>
@@ -1256,7 +1265,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">99:35</span>
+    <span title="站点阅读时长">99:55</span>
   
 </div>
 

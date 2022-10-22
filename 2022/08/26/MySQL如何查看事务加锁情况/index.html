@@ -103,18 +103,18 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
 <meta property="og:type" content="article">
 <meta property="og:title" content="MySQL如何查看事务加锁情况">
 <meta property="og:url" content="http://yoursite.com/2022/08/26/MySQL如何查看事务加锁情况/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2022-09-06T03:52:37.162Z">
+<meta property="og:updated_time" content="2022-10-18T15:53:56.379Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MySQL如何查看事务加锁情况">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
 
 
 
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-06 11:52:37" itemprop="dateModified" datetime="2022-09-06T11:52:37+08:00">2022-09-06</time>
+                <time title="修改时间：2022-10-18 23:53:56" itemprop="dateModified" datetime="2022-10-18T23:53:56+08:00">2022-10-18</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">6.5k</span>
               
 
               
@@ -503,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">6 分钟</span>
               
             </div>
           
@@ -524,10 +524,32 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
+<p>本篇文章以MySQL 5.7为例。</p>
+<p>我们都知道MySQL的InnoDB存储引擎是支持事务功能的，不过在很多同学的潜意识中，只有把若干语句包含在BEGIN/START TRANSACTION、COMMIT中间，才算是开启一个事务，就像这样：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">BEGIN</span>;</span><br><span class="line">语句1;</span><br><span class="line">语句2;</span><br><span class="line">...</span><br><span class="line">语句n;</span><br><span class="line"><span class="keyword">COMMIT</span>;</span><br></pre></td></tr></table></figure></p>
+<p>其实不是这样的，每个涉及到使用InnoDB作为存储引擎的表的语句，都会在事务中执行。我们稍后详细看一下。</p>
+<h1 id="自动提交与手动提交"><a href="#自动提交与手动提交" class="headerlink" title="自动提交与手动提交"></a>自动提交与手动提交</h1><p>设计MySQL的大叔提供了一个称之为autocommit的系统变量，如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SHOW VARIABLES LIKE <span class="string">'autocommit'</span>;</span><br><span class="line">+---------------+-------+</span><br><span class="line">| Variable_name | Value |</span><br><span class="line">+---------------+-------+</span><br><span class="line">| autocommit    | ON    |</span><br><span class="line">+---------------+-------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.15 sec)</span><br></pre></td></tr></table></figure></p>
+<p>该系统变量含义如下：</p>
+<p>当autocommit的值为ON时，意味着开启自动提交，则每个SQL语句将形成一个独立的事务，当该语句执行完成时，对应的事务也就提交了。</p>
+<p>有同学有疑问，如果在autocommit的值为ON时，我写的一条SQL语句中既没有增加/修改/删除记录，也没有对记录加锁，比方说这样的一条利用MVCC进行读取的SELECT语句：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM hero;</span><br><span class="line">+--------+------------+---------+</span><br><span class="line">| number | name       | country |</span><br><span class="line">+--------+------------+---------+</span><br><span class="line">|      1 | l刘备      | 蜀      |</span><br><span class="line">|      3 | z诸葛亮    | 蜀      |</span><br><span class="line">|      8 | c曹操      | 魏      |</span><br><span class="line">|     15 | x荀彧      | 魏      |</span><br><span class="line">|     20 | s孙权      | 吴      |</span><br><span class="line">|     22 | g关羽      | 蜀      |</span><br><span class="line">|     30 | d典韦      | 魏      |</span><br><span class="line">+--------+------------+---------+</span><br><span class="line">7 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.02 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt;</span><br></pre></td></tr></table></figure></p>
+<p>那这条语句也相当与在事务中执行的么？是的，其实区别语句是否在事务中执行的依据其实是代码中是否调用了trx_start_low这个函数，有感兴趣的同学可以去看看代码哈～</p>
+<p>当autocommit的值为OFF时，意味着禁用自动提交，我们写的若干个增删改查语句都算作是一个事务中的语句，直到我们手动的使用COMMIT语句来提交这个事务。</p>
+<p>如果我们当前会话的系统变量autocommit的值为ON，意味着开启了自动提交。此时如果我们想把若干个语句放到一个事务中执行，那就需要显式地写出BEGIN或者START TRANSACTION语句来禁用自动提交。</p>
+<p>查看事务加锁的几种方法<br>有同学会使用information_schema数据库下的一些表来观察当前数据库中的一些事务和锁的情况，诸如：innodb_locks、innodb_lock_wait。但是千万要记住：在使用它们之前一定先得知道它们是干啥的，然后再去使用。不要在连这些表是干啥的情况下就去贸然使用，最后还能得出一个结论～。下边我们看看这几个表都是干嘛使的：</p>
+<p>innodb_locks表：该表中会记录一些锁信息：</p>
+<p>如果一个事务想要获取某个锁但未获取到，该锁信息将被记录。<br>如果一个事务因为获取到了某个锁，但是这个锁阻塞了别的事务的话，该锁信息会被记录。<br>这里需要大家注意的是：只有当系统中发生了某个事务因为获取不到锁而阻塞的情况才会向该表中写入记录。如果未发生阻塞，比方说我们在T1中执行：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># T1</span></span><br><span class="line">mysql&gt; BEGIN;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; SELECT * FROM hero WHERE number = 1 <span class="keyword">for</span> update;</span><br><span class="line">+--------+---------+---------+</span><br><span class="line">| number | name    | country |</span><br><span class="line">+--------+---------+---------+</span><br><span class="line">|      1 | l刘备   | 蜀      |</span><br><span class="line">+--------+---------+---------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.01 sec)</span><br></pre></td></tr></table></figure></p>
+<p>很显然T1已经获取到了hero表中number值为1的聚簇索引记录的X型正经记录锁（number列为主键），但是由于并未发生阻塞，该锁的信息并不会记录在innodb_locks表中：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM innodb_locks;</span><br><span class="line">Empty <span class="built_in">set</span>, 1 warning (0.02 sec)</span><br></pre></td></tr></table></figure></p>
+<p>innodb_lock_wait：表明当前系统中因为等待哪些锁而让事务进入阻塞状态。</p>
+<p>比方说接着上边的例子，我们在事务T2中接着执行：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># T2</span></span><br><span class="line">mysql&gt; BEGIN;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; SELECT * FROM hero WHERE number = 1 lock <span class="keyword">in</span> share mode;</span><br><span class="line"><span class="comment"># 进入阻塞状态</span></span><br></pre></td></tr></table></figure></p>
+<p>因为获取不到hero表中number值为1的聚簇索引记录的S型正经记录锁，所以事务T2进入阻塞状态，那么在innodb_lock_wait表中会留下一条记录：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select * from innodb_lock_wait;</span><br><span class="line">+-------------------+-------------------------+-----------------+------------------+</span><br><span class="line">| requesting_trx_id | requested_lock_id       | blocking_trx_id | blocking_lock_id |</span><br><span class="line">+-------------------+-------------------------+-----------------+------------------+</span><br><span class="line">| 281479631936736   | 281479631936736:272:3:2 | 38938           | 38938:272:3:2    |</span><br><span class="line">+-------------------+-------------------------+-----------------+------------------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure></p>
+<p>因为此时T2发生了阻塞，在innodb_locks表中也可以体现出来：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM innodb_locks;</span><br><span class="line">+-------------------------+-----------------+-----------+-----------+--------------------+------------+------------+-----------+----------+-----------+</span><br><span class="line">| lock_id                 | lock_trx_id     | lock_mode | lock_type | lock_table         | lock_index | lock_space | lock_page | lock_rec | lock_data |</span><br><span class="line">+-------------------------+-----------------+-----------+-----------+--------------------+------------+------------+-----------+----------+-----------+</span><br><span class="line">| 281479631936736:272:3:2 | 281479631936736 | S         | RECORD    | `xiaohaizi`.`hero` | PRIMARY    |        272 |         3 |        2 | 1         |</span><br><span class="line">| 38938:272:3:2           | 38938           | X         | RECORD    | `xiaohaizi`.`hero` | PRIMARY    |        272 |         3 |        2 | 1         |</span><br><span class="line">+-------------------------+-----------------+-----------+-----------+--------------------+------------+------------+-----------+----------+-----------+</span><br><span class="line">2 rows <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.02 sec)</span><br></pre></td></tr></table></figure></p>
+<p>不过我们看到，在查询innodb_locks和innodb_lock_wait表的时候都伴随着一个warning，我们看一下系统在警告神马：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SHOW WARNINGS\G</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">  Level: Warning</span><br><span class="line">   Code: 1681</span><br><span class="line">Message: <span class="string">'INFORMATION_SCHEMA.INNODB_LOCKS'</span> is deprecated and will be removed <span class="keyword">in</span> a future release.</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.01 sec)</span><br></pre></td></tr></table></figure></p>
+<p>其实是因为innodb_locks和innodb_lock_wait在我目前使用的版本（MySQL 5.7.21）中被标记为过时的，并且提示在未来的版本中可能被移除，其实也就是不鼓励我们使用这两个表来获取相关的锁信息。</p>
+<p>另外，我们还可以使用SHOW ENGINE INNODB STATUS这个命令来查看当前系统中每个事务都加了哪些锁：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SHOW ENGINE INNODB STATUS\G</span><br><span class="line">...此处省略很多信息</span><br><span class="line">------------</span><br><span class="line">TRANSACTIONS</span><br><span class="line">------------</span><br><span class="line">Trx id counter 38944</span><br><span class="line">Purge <span class="keyword">done</span> <span class="keyword">for</span> trx<span class="string">'s n:o &lt; 38452 undo n:o &lt; 0 state: running but idle</span></span><br><span class="line"><span class="string">History list length 262</span></span><br><span class="line"><span class="string">Total number of lock structs in row lock hash table 2</span></span><br><span class="line"><span class="string">LIST OF TRANSACTIONS FOR EACH SESSION:</span></span><br><span class="line"><span class="string">---TRANSACTION 281479631937824, not started</span></span><br><span class="line"><span class="string">0 lock struct(s), heap size 1160, 0 row lock(s)</span></span><br><span class="line"><span class="string">---TRANSACTION 38938, ACTIVE 1875 sec</span></span><br><span class="line"><span class="string">2 lock struct(s), heap size 1160, 1 row lock(s)</span></span><br><span class="line"><span class="string">MySQL thread id 29, OS thread handle 123145576628224, query id 690 localhost 127.0.0.1 root</span></span><br><span class="line"><span class="string">Trx read view will not see trx with id &gt;= 38938, sees &lt; 38938</span></span><br><span class="line"><span class="string">...此处省略很多信息</span></span><br></pre></td></tr></table></figure></p>
+<p>由于输出的内容太多，为方便起见，我们只保留了关于TRANSACTIONS的相关信息，这里列出了每个事务获取锁的情况。如果我们想看到更详细的加锁情况，可以开启innodb_status_output_locks：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SET GLOBAL innodb_status_output_locks = ON;</span><br><span class="line">Query OK, 0 rows affected (0.01 sec)</span><br></pre></td></tr></table></figure></p>
+<p>那每个锁的详细情况就被列出来了：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SHOW ENGINE INNODB STATUS\G</span><br><span class="line">...此处省略很多信息</span><br><span class="line"></span><br><span class="line">------------</span><br><span class="line">TRANSACTIONS</span><br><span class="line">------------</span><br><span class="line">Trx id counter 38945</span><br><span class="line">Purge <span class="keyword">done</span> <span class="keyword">for</span> trx<span class="string">'s n:o &lt; 38452 undo n:o &lt; 0 state: running but idle</span></span><br><span class="line"><span class="string">History list length 262</span></span><br><span class="line"><span class="string">Total number of lock structs in row lock hash table 2</span></span><br><span class="line"><span class="string">LIST OF TRANSACTIONS FOR EACH SESSION:</span></span><br><span class="line"><span class="string">---TRANSACTION 281479631937824, not started</span></span><br><span class="line"><span class="string">0 lock struct(s), heap size 1160, 0 row lock(s)</span></span><br><span class="line"><span class="string">---TRANSACTION 38938, ACTIVE 2122 sec</span></span><br><span class="line"><span class="string">2 lock struct(s), heap size 1160, 1 row lock(s)</span></span><br><span class="line"><span class="string">MySQL thread id 29, OS thread handle 123145576628224, query id 690 localhost 127.0.0.1 root</span></span><br><span class="line"><span class="string">Trx read view will not see trx with id &gt;= 38938, sees &lt; 38938</span></span><br><span class="line"><span class="string">TABLE LOCK table `xiaohaizi`.`hero` trx id 38938 lock mode IX</span></span><br><span class="line"><span class="string">RECORD LOCKS space id 272 page no 3 n bits 80 index PRIMARY of table `xiaohaizi`.`hero` trx id 38938 lock_mode X locks rec but not gap</span></span><br><span class="line"><span class="string">Record lock, heap no 2 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span></span><br><span class="line"><span class="string"> 0: len 4; hex 80000001; asc     ;;</span></span><br><span class="line"><span class="string"> 1: len 6; hex 000000009624; asc      $;;</span></span><br><span class="line"><span class="string"> 2: len 7; hex 80000001d00110; asc        ;;</span></span><br><span class="line"><span class="string"> 3: len 7; hex 6ce58898e5a487; asc l      ;;</span></span><br><span class="line"><span class="string"> 4: len 3; hex e89c80; asc    ;;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">...此处省略很多信息</span></span><br></pre></td></tr></table></figure></p>
+<p>当然，我们现在并不准备唠叨输出内容中的每个字段都是啥意思，之后有时间再撰文描述吧～</p>
+
       
     </div>
 
@@ -619,8 +641,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -637,7 +668,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">726</span>
+                    <span class="site-state-item-count">728</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -952,6 +983,14 @@
                 
                 
                   <li>
+                    <a href="/2022/10/21/当前读和快照读的区别/" title="当前读和快照读的区别" target="_blank">当前读和快照读的区别</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/19/详解MySQL的for-update/" title="详解MySQL的for update" target="_blank">详解MySQL的for update</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/10/10/结课测试-这些Go语言的知识你都掌握了吗？/" title="结课测试 | 这些Go语言的知识你都掌握了吗？" target="_blank">结课测试 | 这些Go语言的知识你都掌握了吗？</a>
                   </li>
                 
@@ -961,14 +1000,6 @@
                 
                   <li>
                     <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/47-基于HTTP协议的网络服务/" title="47 | 基于HTTP协议的网络服务" target="_blank">47 | 基于HTTP协议的网络服务</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/46-访问网络服务/" title="46 | 访问网络服务" target="_blank">46 | 访问网络服务</a>
                   </li>
                 
               </ul>
@@ -983,6 +1014,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#自动提交与手动提交"><span class="nav-number">1.</span> <span class="nav-text">自动提交与手动提交</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1023,7 +1071,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">99:35</span>
+    <span title="站点阅读时长">99:55</span>
   
 </div>
 
