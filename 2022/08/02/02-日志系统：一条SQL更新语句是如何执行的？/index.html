@@ -103,21 +103,21 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：">
+  <meta name="description" content="思考并回答以下问题：  WAL的全称是Write-Ahead Logging，它的关键点就是先写日志，再写磁盘。怎么理解？ 有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为crash-safe。怎么理解？ redo log是InnoDB引擎特有的日志，而Server层也有自己的日志，称为binlog。为什么会有两份日志呢？ redo log">
 <meta name="keywords" content="MySQL实战45讲">
 <meta property="og:type" content="article">
 <meta property="og:title" content="02 | 日志系统：一条SQL更新语句是如何执行的？">
 <meta property="og:url" content="http://yoursite.com/2022/08/02/02-日志系统：一条SQL更新语句是如何执行的？/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:description" content="思考并回答以下问题：  WAL的全称是Write-Ahead Logging，它的关键点就是先写日志，再写磁盘。怎么理解？ 有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为crash-safe。怎么理解？ redo log是InnoDB引擎特有的日志，而Server层也有自己的日志，称为binlog。为什么会有两份日志呢？ redo log">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/08/02/02-日志系统：一条SQL更新语句是如何执行的？/1.png">
 <meta property="og:image" content="http://yoursite.com/2022/08/02/02-日志系统：一条SQL更新语句是如何执行的？/2.webp">
 <meta property="og:image" content="http://yoursite.com/2022/08/02/02-日志系统：一条SQL更新语句是如何执行的？/3.png">
-<meta property="og:updated_time" content="2022-09-12T03:09:23.022Z">
+<meta property="og:updated_time" content="2022-10-26T03:52:09.345Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="02 | 日志系统：一条SQL更新语句是如何执行的？">
-<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:description" content="思考并回答以下问题：  WAL的全称是Write-Ahead Logging，它的关键点就是先写日志，再写磁盘。怎么理解？ 有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为crash-safe。怎么理解？ redo log是InnoDB引擎特有的日志，而Server层也有自己的日志，称为binlog。为什么会有两份日志呢？ redo log">
 <meta name="twitter:image" content="http://yoursite.com/2022/08/02/02-日志系统：一条SQL更新语句是如何执行的？/1.png">
 
 
@@ -388,7 +388,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="强迫自己去看，去做。">
+      <meta itemprop="description" content="先得寸，再进尺">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -447,7 +447,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-12 11:09:23" itemprop="dateModified" datetime="2022-09-12T11:09:23+08:00">2022-09-12</time>
+                <time title="修改时间：2022-10-26 11:52:09" itemprop="dateModified" datetime="2022-10-26T11:52:09+08:00">2022-10-26</time>
               
             
           </span>
@@ -493,7 +493,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">5.1k</span>
+                <span title="本文字数">5.6k</span>
               
 
               
@@ -528,6 +528,15 @@
 
       
         <p>思考并回答以下问题：</p>
+<ul>
+<li>WAL的全称是Write-Ahead Logging，它的关键点就是先写日志，再写磁盘。怎么理解？</li>
+<li>有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为crash-safe。怎么理解？</li>
+<li>redo log是InnoDB引擎特有的日志，而Server层也有自己的日志，称为binlog。为什么会有两份日志呢？</li>
+<li>redo log是物理日志，记录的是“在某个数据页上做了什么修改”；binlog是逻辑日志，记录的是这个语句的原始逻辑，比如“给ID=2这一行的c字段加1”。怎么理解？</li>
+<li>redo log是循环写的，空间固定会用完；binlog是可以追加写入的。“追加写”是指binlog文件写到一定大小后会切换到下一个，并不会覆盖以前的日志。怎么理解？</li>
+<li>将redo log的写入拆成了两个步骤：prepare和commit，这就是”两阶段提交”。怎么理解？</li>
+<li>innodb_flush_log_at_trx_commit这个参数设置成1的时候，表示每次事务的redo log都直接持久化到磁盘。sync_binlog这个参数设置成1的时候，表示每次事务的binlog都持久化到磁盘。怎么理解？</li>
+</ul>
 <a id="more"></a>
 <p>前面我们系统了解了一个查询语句的执行流程，并介绍了执行过程中涉及的处理模块。相信你还记得，一条查询语句的执行过程一般是经过连接器、分析器、优化器、执行器等功能模块，最后到达存储引擎。</p>
 <p>那么，一条更新语句的执行流程又是怎样的呢？</p>
@@ -571,7 +580,7 @@
 <p>有了对这两个日志的概念性理解，我们再来看执行器和InnoDB引擎在执行这个简单的update语句时的内部流程。</p>
 <p>1，执行器先找引擎取ID=2这一行。ID是主键，引擎直接用树搜索找到这一行。如果ID=2这一行所在的数据页本来就在内存中，就直接返回给执行器；否则，需要先从磁盘读入内存，然后再返回。</p>
 <p>2，执行器拿到引擎给的行数据，把这个值加上1，比如原来是N，现在就是N+1，得到新的一行数据，再调用引擎接口写入这行新数据。</p>
-<p>3，引擎将这行新数据更新到内存中，同时将这个更新操作记录到redo log里面，此时redo log处于prepare状态。然后告知执行器执行完成了，随时可以提交事务。</p>
+<p>3，引擎将这行新数据更新到内存中，同时将这个更新操作记录到redo log里面，此时<span style="color:red">redo log处于prepare状态</span>。然后告知执行器执行完成了，随时可以提交事务。</p>
 <p>4，执行器生成这个操作的binlog，并把binlog写入磁盘。</p>
 <p>5，执行器调用引擎的提交事务接口，引擎把刚刚写入的redo log改成提交（commit）状态，更新完成。</p>
 <p>这里我给出这个update语句的执行流程图，图中浅色框表示是在InnoDB内部执行的，深色框表示是在执行器中执行的。</p>
@@ -711,7 +720,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
+              <div class="site-description motion-element" itemprop="description">先得寸，再进尺</div>
           </div>
 
           
@@ -721,7 +730,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">728</span>
+                    <span class="site-state-item-count">730</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1036,6 +1045,10 @@
                 
                 
                   <li>
+                    <a href="/2022/10/25/企业微信源码/" title="企业微信源码" target="_blank">企业微信源码</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/10/21/当前读和快照读的区别/" title="当前读和快照读的区别" target="_blank">当前读和快照读的区别</a>
                   </li>
                 
@@ -1049,10 +1062,6 @@
                 
                   <li>
                     <a href="/2022/10/10/49-程序性能分析基础（下）/" title="49 | 程序性能分析基础（下）" target="_blank">49 | 程序性能分析基础（下）</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
                   </li>
                 
               </ul>
@@ -1124,7 +1133,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">99:55</span>
+    <span title="站点阅读时长">100:09</span>
   
 </div>
 

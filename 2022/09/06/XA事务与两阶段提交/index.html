@@ -122,7 +122,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/09/06/XA事务与两阶段提交/9.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/09/06/XA事务与两阶段提交/10.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/09/06/XA事务与两阶段提交/11.awebp">
-<meta property="og:updated_time" content="2022-09-16T02:45:01.296Z">
+<meta property="og:updated_time" content="2022-10-24T03:15:20.616Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="XA事务与两阶段提交">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -396,7 +396,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="强迫自己去看，去做。">
+      <meta itemprop="description" content="先得寸，再进尺">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -455,7 +455,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-16 10:45:01" itemprop="dateModified" datetime="2022-09-16T10:45:01+08:00">2022-09-16</time>
+                <time title="修改时间：2022-10-24 11:15:20" itemprop="dateModified" datetime="2022-10-24T11:15:20+08:00">2022-10-24</time>
               
             
           </span>
@@ -553,23 +553,22 @@
 <p>稍微总结一下就是：我们有一个大的事务，我们可以称其为全局事务，这个全局事务由若干的小的事务组成。要实现这个大的事务，就必须让它对应的若干个小的事务全部完成，或者全部回滚。我们也可以把这个大的全局事务称作分布式事务。</p>
 <p>除了上述涉及多个存储引擎的全局事务之外，分布式事务还有更多的应用场景。比方说我们的数据分布在多个MySQL服务器中；甚至有的数据分布在MySQL服务器中，有的数据分布在Oracle服务器中；甚至有些服务器在中国，有些服务器在美国。我们想完成一个操作，这个操作会更新多个系统里的数据，此时如果我们想让这个操作具有原子性，就需要保证让各个系统中的小事务要么全部提交，要么全部回滚。这时的这个跨多个系统的操作也可以被称作分布式事务。</p>
 <p>跨行转账是一个典型的分布式事务的实例。各个银行都有自己的服务，如果狗哥在招商银行存了10块钱，他想把这10块钱转给猫爷在建设银行的账户，那么招商银行先得给狗哥账户扣10块，然后建设银行给猫爷账户增10块。而招商银行和建设银行根本就不是一个系统，招商银行给狗哥扣钱的业务放到了自己的一个事务里，建设银行给猫爷加钱的业务放到了自己的一个事务里，这两个事务其实在各自的系统中并没有什么关系，完全有可能招商银行的事务提交了，而建设银行的事务由于系统宕机而失败了，这就导致狗哥扣了钱，却没有转给猫爷的惨剧发生。所以我们必须引入一些机制，来实现分布式事务。</p>
-<h1 id="XA规范"><a href="#XA规范" class="headerlink" title="XA规范"></a><span style="color:#339AFF;">XA规范</span></h1><p>有一个名叫X/Open（这名儿听着就挺霸气）的组织提出了一个名为XA的规范。</p>
-<p>有人说XA的含义是Extended Architecture。令人迷惑的是，我竟然没在上述规范中找到XA到底是个啥意思（很尴尬😅），大家把它理解成一个名字就好了，其实叫成王尼玛也没啥问题。</p>
+<h1 id="XA规范"><a href="#XA规范" class="headerlink" title="XA规范"></a><span style="color:#339AFF;">XA规范</span></h1><p>有一个名叫X/Open的组织提出了一个名为XA的规范。</p>
 <p>这个XA规范提出了2个角色：</p>
 <ul>
 <li>一个全局事务由多个小的事务组成，所以我们得在某个地方找一个总揽全局的家伙，这个家伙用于和各个小事务进行沟通，指导它们是提交还是回滚。这个家伙被称作事务协调器（Transaction Coordinator）或者资源管理器（Resource Manager）。</li>
 </ul>
-<p>不论是事务协调器，还是资源管理器这样的名字念起来都比较拗口，有催眠功效，我们后续就把事务协调器或者资源管理器称作大哥了哈。</p>
+<p>&emsp;&emsp;&emsp;&emsp;不论是事务协调器，还是资源管理器这样的名字念起来都比较拗口，有催眠功效，我们后续就把事务协调器或者资源管理器称作大哥了哈。</p>
 <ul>
 <li>管理一个小事务的家伙被称作事务管理器（Transaction Manager）。</li>
 </ul>
-<p>事务管理器念起来也比较拗口，我们就把它称作小弟了哈。</p>
+<p>&emsp;&emsp;&emsp;&emsp;事务管理器念起来也比较拗口，我们就把它称作小弟了哈。</p>
 <p>要提交一个全局事务，那么属于该全局事务的若干个小事务就应该全部提交，只要有任何一个小事务无法提交，那么整个全局事务就应该全部回滚。所以此时大哥不能让各个小弟逐个提交，因为不能保证后面提交的小弟是否可能发生错误。此时XA规范中指出，要提交一个全局事务，必须分为2步：</p>
 <ul>
 <li>Prepare阶段：当大哥准备提交一个全局事务时，会依次通知各个小弟说：“现在事务中的语句都已经执行完了，我们准备提交了，你这里有没有什么问题？”。如果小弟觉得自己没有问题，就把在事务执行过程中所产生的redo日志都刷新到硬盘，然后对大哥说：“没有问题”。如果小弟遇到了啥突发情况不能提交（比方说磁盘满了，不能写redo了），就对大哥说：“不行，提交不了了”。</li>
 <li>Commit阶段：如果在Prepare阶段各个小弟给大哥的答复都是:“OK，木有问题”，那大哥就要真正通知各个小弟去提交事务了。如果在Prepare阶段某个小弟给大哥的回复是：“NO，做不了”，那大哥就得通知所有小弟：“遇到突发情况，所有人立即回滚”。小弟收到通知便都回滚了。不过在大哥通知各个小弟是要提交之前，都需在某个地方记录一下这个全局事务已经提交，以及各个小弟都是什么的信息。</li>
 </ul>
-<p>XA规范把上述全局事务提交时所经历的两个阶段称作两阶段提交。</p>
+<p>XA规范把上述全局事务提交时所经历的两个阶段称作<span style="color:red">两阶段提交</span>。</p>
 <blockquote>
 <p>小贴士：如果一个全局事务仅包含一个小弟的话，那两阶段提交可以退化成1阶段提交。</p>
 </blockquote>
@@ -778,7 +777,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
+              <div class="site-description motion-element" itemprop="description">先得寸，再进尺</div>
           </div>
 
           
@@ -788,7 +787,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">728</span>
+                    <span class="site-state-item-count">730</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1103,6 +1102,10 @@
                 
                 
                   <li>
+                    <a href="/2022/10/25/企业微信源码/" title="企业微信源码" target="_blank">企业微信源码</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/10/21/当前读和快照读的区别/" title="当前读和快照读的区别" target="_blank">当前读和快照读的区别</a>
                   </li>
                 
@@ -1116,10 +1119,6 @@
                 
                   <li>
                     <a href="/2022/10/10/49-程序性能分析基础（下）/" title="49 | 程序性能分析基础（下）" target="_blank">49 | 程序性能分析基础（下）</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
                   </li>
                 
               </ul>
@@ -1191,7 +1190,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">99:55</span>
+    <span title="站点阅读时长">100:09</span>
   
 </div>
 

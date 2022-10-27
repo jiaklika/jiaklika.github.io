@@ -116,7 +116,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/06/08/undo日志（下）/2.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/undo日志（下）/3.awebp">
 <meta property="og:image" content="http://yoursite.com/2022/06/08/undo日志（下）/4.awebp">
-<meta property="og:updated_time" content="2022-08-26T08:40:12.732Z">
+<meta property="og:updated_time" content="2022-10-25T01:39:13.702Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="undo日志（下）">
 <meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
@@ -390,7 +390,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="强迫自己去看，去做。">
+      <meta itemprop="description" content="先得寸，再进尺">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -449,7 +449,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-08-26 16:40:12" itemprop="dateModified" datetime="2022-08-26T16:40:12+08:00">2022-08-26</time>
+                <time title="修改时间：2022-10-25 09:39:13" itemprop="dateModified" datetime="2022-10-25T09:39:13+08:00">2022-10-25</time>
               
             
           </span>
@@ -614,9 +614,13 @@
 <p>TRX_UNDO_TO_FREE：对于insert undo链表来说，如果在它对应的事务提交之后，该链表不能被重用，那么就会处于这种状态。</p>
 <p>TRX_UNDO_TO_PURGE：对于update undo链表来说，如果在它对应的事务提交之后，该链表不能被重用，那么就会处于这种状态。</p>
 <p>TRX_UNDO_PREPARED：包含处于PREPARE阶段的事务产生的undo日志。</p>
-<p>小贴士： Undo页面链表什么时候会被重用，怎么重用我们之后会详细说的。事务的PREPARE阶段是在所谓的分布式事务中才出现的，本书中不会介绍更多关于分布式事务的事情，所以大家目前忽略这个状态就好了。</p>
+<blockquote>
+<p>小贴士：Undo页面链表什么时候会被重用，怎么重用我们之后会详细说的。事务的PREPARE阶段是在所谓的分布式事务中才出现的，本书中不会介绍更多关于分布式事务的事情，所以大家目前忽略这个状态就好了。</p>
+</blockquote>
 <p>TRX_UNDO_LAST_LOG：本Undo页面链表中最后一个Undo Log Header的位置。</p>
-<p>小贴士： 关于什么是Undo Log Header，我们稍后马上介绍哈。</p>
+<blockquote>
+<p>小贴士：关于什么是Undo Log Header，我们稍后马上介绍哈。</p>
+</blockquote>
 <p>TRX_UNDO_FSEG_HEADER：本Undo页面链表对应的段的Segment Header信息（就是我们上一节介绍的那个10字节结构，通过这个信息可以找到该段对应的INODE Entry）。</p>
 <p>TRX_UNDO_PAGE_LIST：Undo页面链表的基节点。</p>
 <p>我们上边说Undo页面的Undo Page Header部分有一个12字节大小的TRX_UNDO_PAGE_NODE属性，这个属性代表一个List Node结构。每一个Undo页面都包含Undo Page Header结构，这些页面就可以通过这个属性连成一个链表。这个TRX_UNDO_PAGE_LIST属性代表着这个链表的基节点，当然这个基节点只存在于Undo页面链表的第一个页面，也就是first undo page中。</p>
@@ -628,12 +632,16 @@
 <p>TRX_UNDO_DEL_MARKS：标记本组undo日志中是否包含由于Delete mark操作产生的undo日志。</p>
 <p>TRX_UNDO_LOG_START：表示本组undo日志中第一条undo日志的在页面中的偏移量。</p>
 <p>TRX_UNDO_XID_EXISTS：本组undo日志是否包含XID信息。</p>
-<p>小贴士： 本书不会讲述更多关于XID是个什么东东，有兴趣的同学可以到搜索引擎或者文档中搜一搜哈。</p>
+<blockquote>
+<p>小贴士：本书不会讲述更多关于XID是个什么东东，有兴趣的同学可以到搜索引擎或者文档中搜一搜哈。</p>
+</blockquote>
 <p>TRX_UNDO_DICT_TRANS：标记本组undo日志是不是由DDL语句产生的。</p>
 <p>TRX_UNDO_TABLE_ID：如果TRX_UNDO_DICT_TRANS为真，那么本属性表示DDL语句操作的表的table id。</p>
 <p>TRX_UNDO_NEXT_LOG：下一组的undo日志在页面中开始的偏移量。</p>
 <p>TRX_UNDO_PREV_LOG：上一组的undo日志在页面中开始的偏移量。</p>
-<p>小贴士： 一般来说一个Undo页面链表只存储一个事务执行过程中产生的一组undo日志，但是在某些情况下，可能会在一个事务提交之后，之后开启的事务重复利用这个Undo页面链表，这样就会导致一个Undo页面中可能存放多组Undo日志，TRX_UNDO_NEXT_LOG和TRX_UNDO_PREV_LOG就是用来标记下一组和上一组undo日志在页面中的偏移量的。关于什么时候重用Undo页面链表，怎么重用这个链表我们稍后会详细说明的，现在先理解TRX_UNDO_NEXT_LOG和TRX_UNDO_PREV_LOG这两个属性的意思就好了。</p>
+<blockquote>
+<p>小贴士：一般来说一个Undo页面链表只存储一个事务执行过程中产生的一组undo日志，但是在某些情况下，可能会在一个事务提交之后，之后开启的事务重复利用这个Undo页面链表，这样就会导致一个Undo页面中可能存放多组Undo日志，TRX_UNDO_NEXT_LOG和TRX_UNDO_PREV_LOG就是用来标记下一组和上一组undo日志在页面中的偏移量的。关于什么时候重用Undo页面链表，怎么重用这个链表我们稍后会详细说明的，现在先理解TRX_UNDO_NEXT_LOG和TRX_UNDO_PREV_LOG这两个属性的意思就好了。</p>
+</blockquote>
 <p>TRX_UNDO_HISTORY_NODE：一个12字节的List Node结构，代表一个称之为History链表的节点。</p>
 <h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>对于没有被重用的Undo页面链表来说，链表的第一个页面，也就是first undo page在真正写入undo日志前，会填充Undo Page Header、Undo Log Segment Header、Undo Log Header这3个部分，之后才开始正式写入undo日志。对于其他的页面来说，也就是normal undo page在真正写入undo日志前，只会填充Undo Page Header。链表的List Base Node存放到first undo page的Undo Log Segment Header部分，List Node信息存放到每一个Undo页面的undo Page Header部分，所以画一个Undo页面链表的示意图就是这样：</p>
 <p>image_1d7cocjrk1dvm1ehg16da1di4mfb16.png-87kB<br>重用Undo页面<br>我们前边说为了能提高并发执行的多个事务写入undo日志的性能，设计InnoDB的大叔决定为每个事务单独分配相应的Undo页面链表（最多可能单独分配4个链表）。但是这样也造成了一些问题，比如其实大部分事务执行过程中可能只修改了一条或几条记录，针对某个Undo页面链表只产生了非常少的undo日志，这些undo日志可能只占用一丢丢存储空间，每开启一个事务就新创建一个Undo页面链表（虽然这个链表中只有一个页面）来存储这么一丢丢undo日志岂不是太浪费了么？的确是挺浪费，于是设计InnoDB的大叔本着勤俭节约的优良传统，决定在事务提交后在某些情况下重用该事务的Undo页面链表。一个Undo页面链表是否可以被重用的条件很简单：</p>
@@ -644,7 +652,9 @@
 <p>insert undo链表</p>
 <p>insert undo链表中只存储类型为TRX_UNDO_INSERT_REC的undo日志，这种类型的undo日志在事务提交之后就没用了，就可以被清除掉。所以在某个事务提交后，重用这个事务的insert undo链表（这个链表中只有一个页面）时，可以直接把之前事务写入的一组undo日志覆盖掉，从头开始写入新事务的一组undo日志，如下图所示：</p>
 <p>image_1d7el7sg0pje14rjc06rp51r8r1m.png-91.7kB<br>如图所示，假设有一个事务使用的insert undo链表，到事务提交时，只向insert undo链表中插入了3条undo日志，这个insert undo链表只申请了一个Undo页面。假设此刻该页面已使用的空间小于整个页面大小的3/4，那么下一个事务就可以重用这个insert undo链表（链表中只有一个页面）。假设此时有一个新事务重用了该insert undo链表，那么可以直接把旧的一组undo日志覆盖掉，写入一组新的undo日志。</p>
-<p>小贴士： 当然，在重用Undo页面链表写入新的一组undo日志时，不仅会写入新的Undo Log Header，还会适当调整Undo Page Header、Undo Log Segment Header、Undo Log Header中的一些属性，比如TRX_UNDO_PAGE_START、TRX_UNDO_PAGE_FREE等等等等，这些我们就不具体唠叨了。</p>
+<blockquote>
+<p>小贴士：当然，在重用Undo页面链表写入新的一组undo日志时，不仅会写入新的Undo Log Header，还会适当调整Undo Page Header、Undo Log Segment Header、Undo Log Header中的一些属性，比如TRX_UNDO_PAGE_START、TRX_UNDO_PAGE_FREE等等等等，这些我们就不具体唠叨了。</p>
+</blockquote>
 <p>update undo链表</p>
 <p>在一个事务提交后，它的update undo链表中的undo日志也不能立即删除掉（这些日志用于MVCC，我们后边会说的）。所以如果之后的事务想重用update undo链表时，就不能覆盖之前事务写入的undo日志。这样就相当于在同一个Undo页面中写入了多组的undo日志，效果看起来就是这样：</p>
 <p>image_1d7elkmtjdbv1kth1c9jk17is123.png-126.3kB<br>回滚段<br>回滚段的概念<br>我们现在知道一个事务在执行过程中最多可以分配4个Undo页面链表，在同一时刻不同事务拥有的Undo页面链表是不一样的，所以在同一时刻系统里其实可以有许许多多个Undo页面链表存在。为了更好的管理这些链表，设计InnoDB的大叔又设计了一个称之为Rollback Segment Header的页面，在这个页面中存放了各个Undo页面链表的frist undo page的页号，他们把这些页号称之为undo slot。我们可以这样理解，每个Undo页面链表都相当于是一个班，这个链表的first undo page就相当于这个班的班长，找到了这个班的班长，就可以找到班里的其他同学（其他同学相当于normal undo page）。有时候学校需要向这些班级传达一下精神，就需要把班长都召集在会议室，这个Rollback Segment Header就相当于是一个会议室。</p>
@@ -704,14 +714,18 @@
 <p>找到可用的undo slot后，如果该undo slot是从cached链表中获取的，那么它对应的Undo Log Segment已经分配了，否则的话需要重新分配一个Undo Log Segment，然后从该Undo Log Segment中申请一个页面作为Undo页面链表的first undo page。</p>
 <p>然后事务就可以把undo日志写入到上边申请的Undo页面链表了！</p>
 <p>对临时表的记录做改动的步骤和上述的一样，就不赘述了。不过需要再次强调一次，如果一个事务在执行过程中既对普通表的记录做了改动，又对临时表的记录做了改动，那么需要为这个记录分配2个回滚段。并发执行的不同事务其实也可以被分配相同的回滚段，只要分配不同的undo slot就可以了。</p>
-<p>回滚段相关配置<br>配置回滚段数量<br>我们前边说系统中一共有128个回滚段，其实这只是默认值，我们可以通过启动参数innodb_rollback_segments来配置回滚段的数量，可配置的范围是1~128。但是这个参数并不会影响针对临时表的回滚段数量，针对临时表的回滚段数量一直是32，也就是说：</p>
+<p>回滚段相关配置</p>
+<p>配置回滚段数量<br>我们前边说系统中一共有128个回滚段，其实这只是默认值，我们可以通过启动参数innodb_rollback_segments来配置回滚段的数量，可配置的范围是1~128。但是这个参数并不会影响针对临时表的回滚段数量，针对临时表的回滚段数量一直是32，也就是说：</p>
 <p>如果我们把innodb_rollback_segments的值设置为1，那么只会有1个针对普通表的可用回滚段，但是仍然有32个针对临时表的可用回滚段。</p>
 <p>如果我们把innodb_rollback_segments的值设置为2～33之间的数，效果和将其设置为1是一样的。<br>如果我们把innodb_rollback_segments设置为大于33的数，那么针对普通表的可用回滚段数量就是该值减去32。</p>
-<p>配置undo表空间<br>默认情况下，针对普通表设立的回滚段（第0号以及第33~127号回滚段）都是被分配到系统表空间的。其中的第第0号回滚段是一直在系统表空间的，但是第33~127号回滚段可以通过配置放到自定义的undo表空间中。但是这种配置只能在系统初始化（创建数据目录时）的时候使用，一旦初始化完成，之后就不能再次更改了。我们看一下相关启动参数：</p>
+<p>配置undo表空间</p>
+<p>默认情况下，针对普通表设立的回滚段（第0号以及第33~127号回滚段）都是被分配到系统表空间的。其中的第第0号回滚段是一直在系统表空间的，但是第33~127号回滚段可以通过配置放到自定义的undo表空间中。但是这种配置只能在系统初始化（创建数据目录时）的时候使用，一旦初始化完成，之后就不能再次更改了。我们看一下相关启动参数：</p>
 <p>通过innodb_undo_directory指定undo表空间所在的目录，如果没有指定该参数，则默认undo表空间所在的目录就是数据目录。</p>
 <p>通过innodb_undo_tablespaces定义undo表空间的数量。该参数的默认值为0，表明不创建任何undo表空间。</p>
 <p>第33<br>~127号回滚段可以平均分布到不同的undo表空间中。</p>
-<p>小贴士： 如果我们在系统初始化的时候指定了创建了undo表空间，那么系统表空间中的第0号回滚段将处于不可用状态。</p>
+<blockquote>
+<p>小贴士：如果我们在系统初始化的时候指定了创建了undo表空间，那么系统表空间中的第0号回滚段将处于不可用状态。</p>
+</blockquote>
 <p>比如我们在系统初始化时指定的innodb_rollback_segments为35，innodb_undo_tablespaces为2，这样就会将第33、34号回滚段分别分布到一个undo表空间中。</p>
 <p>设立undo表空间的一个好处就是在undo表空间中的文件大到一定程度时，可以自动的将该undo表空间截断（truncate）成一个小文件。而系统表空间的大小只能不断的增大，却不能截断。</p>
 
@@ -823,7 +837,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">强迫自己去看，去做。</div>
+              <div class="site-description motion-element" itemprop="description">先得寸，再进尺</div>
           </div>
 
           
@@ -833,7 +847,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">728</span>
+                    <span class="site-state-item-count">730</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1148,6 +1162,10 @@
                 
                 
                   <li>
+                    <a href="/2022/10/25/企业微信源码/" title="企业微信源码" target="_blank">企业微信源码</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/10/21/当前读和快照读的区别/" title="当前读和快照读的区别" target="_blank">当前读和快照读的区别</a>
                   </li>
                 
@@ -1161,10 +1179,6 @@
                 
                   <li>
                     <a href="/2022/10/10/49-程序性能分析基础（下）/" title="49 | 程序性能分析基础（下）" target="_blank">49 | 程序性能分析基础（下）</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
                   </li>
                 
               </ul>
@@ -1236,7 +1250,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">99:55</span>
+    <span title="站点阅读时长">100:09</span>
   
 </div>
 
