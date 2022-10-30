@@ -123,7 +123,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/09/09/21-为什么我只改一行的语句，锁这么多？/10.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/09/21-为什么我只改一行的语句，锁这么多？/11.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/09/21-为什么我只改一行的语句，锁这么多？/12.webp">
-<meta property="og:updated_time" content="2022-10-20T08:57:25.856Z">
+<meta property="og:updated_time" content="2022-10-28T08:47:16.992Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="21 | 为什么我只改一行的语句，锁这么多？">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -397,7 +397,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="先得寸，再进尺">
+      <meta itemprop="description" content="学如逆水行舟，不进则退">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -456,7 +456,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-10-20 16:57:25" itemprop="dateModified" datetime="2022-10-20T16:57:25+08:00">2022-10-20</time>
+                <time title="修改时间：2022-10-28 16:47:16" itemprop="dateModified" datetime="2022-10-28T16:47:16+08:00">2022-10-28</time>
               
             
           </span>
@@ -542,8 +542,8 @@
 <p>所以今天，我们就先从这个加锁规则开始吧。</p>
 <p>首先说明一下，这些加锁规则我没在别的地方看到过有类似的总结，以前我自己判断的时候都是想着代码里面的实现来脑补的。这次为了总结成不看代码的同学也能理解的规则，是我又重新刷了代码临时总结出来的。所以，<strong>这个规则有以下两条前提说明</strong>：</p>
 <p>1，MySQL后面的版本可能会改变加锁策略，所以这个规则只限于截止到现在的最新版本，即5.x系列&lt;=5.7.24，8.0系列&lt;=8.0.13。</p>
-<p>2，如果大家在验证中有发现badcase的话，请提出来，我会再补充进这篇文章，使得一起学习本专栏的所有同学都能受益。</p>
-<p>因为间隙锁在可重复读隔离级别下才有效，所以本篇文章接下来的描述，若没有特殊说明，默认是可重复读隔离级别。</p>
+<p>2，如果大家在验证中有发现bad case的话，请提出来，我会再补充进这篇文章，使得一起学习本专栏的所有同学都能受益。</p>
+<p>因为<span style="color:red">间隙锁在可重复读隔离级别下才有效</span>，所以本篇文章接下来的描述，若没有特殊说明，默认是可重复读隔离级别。</p>
 <p><strong>我总结的加锁规则里面，包含了两个“原则”、两个“优化”和一个“bug”</strong>。</p>
 <p>1，原则1：加锁的基本单位是next-key lock。希望你还记得，next-key lock是前开后闭区间。</p>
 <p>2，原则2：查找过程中访问到的对象才会加锁。</p>
@@ -554,7 +554,7 @@
 <p>接下来的例子基本都是配合着图片说明的，所以我建议你可以对照着文稿看，有些例子可能会“毁三观”，也建议你读完文章后亲手实践一下。</p>
 <h1 id="案例一：等值查询间隙锁"><a href="#案例一：等值查询间隙锁" class="headerlink" title="案例一：等值查询间隙锁"></a><span style="color:#339AFF;">案例一：等值查询间隙锁</span></h1><p>第一个例子是关于等值条件操作间隙：</p>
 <blockquote>
-<p>图1等值查询的间隙锁</p>
+<p>图1 等值查询的间隙锁</p>
 </blockquote>
 <img src="/2022/09/09/21-为什么我只改一行的语句，锁这么多？/1.webp">
 <p>由于表t中没有id=7的记录，所以用我们上面提到的加锁规则判断一下的话：</p>
@@ -636,12 +636,12 @@
 <img src="/2022/09/09/21-为什么我只改一行的语句，锁这么多？/9.webp">
 <p>这个例子里，session A的delete语句加了limit2。你知道表t里c=10的记录其实只有两条，因此加不加limit2，删除的效果都是一样的，但是加锁的效果却不同。可以看到，session B的insert语句执行通过了，跟案例六的结果不同。</p>
 <p>这是因为，案例七里的delete语句明确加了limit2的限制，因此在遍历到(c=10,id=30)这一行之后，满足条件的语句已经有两条，循环就结束了。</p>
-<p>因此，索引c上的加锁范围就变成了从（c=5,id=5)到（c=10,id=30)这个前开后闭区间，如下图所示：</p>
+<p>因此，索引c上的加锁范围就变成了从<code>(c=5,id=5)</code>到<code>(c=10,id=30)</code>这个前开后闭区间，如下图所示：</p>
 <blockquote>
 <p>图10 带limit2的加锁效果</p>
 </blockquote>
 <img src="/2022/09/09/21-为什么我只改一行的语句，锁这么多？/10.webp">
-<p>可以看到，(c=10,id=30）之后的这个间隙并没有在加锁范围里，因此insert语句插入c=12是可以执行成功的。</p>
+<p>可以看到，<code>(c=10,id=30)</code>之后的这个间隙并没有在加锁范围里，因此insert语句插入c=12是可以执行成功的。</p>
 <p>这个例子对我们实践的指导意义就是，<strong>在删除数据的时候尽量加limit</strong>。这样不仅可以控制删除数据的条数，让操作更安全，还可以减小加锁的范围。</p>
 <h1 id="案例八：一个死锁的例子"><a href="#案例八：一个死锁的例子" class="headerlink" title="案例八：一个死锁的例子"></a><span style="color:#339AFF;">案例八：一个死锁的例子</span></h1><p>前面的例子中，我们在分析的时候，是按照next-key lock的逻辑来分析的，因为这样分析比较方便。最后我们再看一个案例，目的是说明：next-key lock实际上是间隙锁和行锁加起来的结果。</p>
 <p>你一定会疑惑，这个概念不是一开始就说了吗？不要着急，我们先来看下面这个例子：</p>
@@ -791,7 +791,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">先得寸，再进尺</div>
+              <div class="site-description motion-element" itemprop="description">学如逆水行舟，不进则退</div>
           </div>
 
           
@@ -801,7 +801,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">730</span>
+                    <span class="site-state-item-count">727</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1120,19 +1120,19 @@
                   </li>
                 
                   <li>
-                    <a href="/2022/10/21/当前读和快照读的区别/" title="当前读和快照读的区别" target="_blank">当前读和快照读的区别</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/10/19/详解MySQL的for-update/" title="详解MySQL的for update" target="_blank">详解MySQL的for update</a>
-                  </li>
-                
-                  <li>
                     <a href="/2022/10/10/结课测试-这些Go语言的知识你都掌握了吗？/" title="结课测试 | 这些Go语言的知识你都掌握了吗？" target="_blank">结课测试 | 这些Go语言的知识你都掌握了吗？</a>
                   </li>
                 
                   <li>
                     <a href="/2022/10/10/49-程序性能分析基础（下）/" title="49 | 程序性能分析基础（下）" target="_blank">49 | 程序性能分析基础（下）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/10/10/47-基于HTTP协议的网络服务/" title="47 | 基于HTTP协议的网络服务" target="_blank">47 | 基于HTTP协议的网络服务</a>
                   </li>
                 
               </ul>
@@ -1204,7 +1204,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">100:09</span>
+    <span title="站点阅读时长">99:59</span>
   
 </div>
 
