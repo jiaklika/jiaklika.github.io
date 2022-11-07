@@ -103,19 +103,19 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：  使用某个索引执行查询时，需要扫描的记录越少，就越可能使用这个索引来执行查询。怎么理解？ B+树叶子节点中的记录是按照索引列的值从小到大排序的。怎么理解？ 对于所有key1列值等于&amp;#39;a&amp;#39;的二级索引记录，由于它们是按照id列的值排序的，所以我们很大可能通过顺序I/O的方式找到下一个数据页，回表操作带来的性能开销较小。怎么理解？ 由于需要扫描的二级索引记录对应的i">
 <meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
 <meta property="og:type" content="article">
 <meta property="og:title" content="设计MySQL的大叔为何偏爱ref">
 <meta property="og:url" content="http://yoursite.com/2022/06/11/设计MySQL的大叔为何偏爱ref/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：  使用某个索引执行查询时，需要扫描的记录越少，就越可能使用这个索引来执行查询。怎么理解？ B+树叶子节点中的记录是按照索引列的值从小到大排序的。怎么理解？ 对于所有key1列值等于&amp;#39;a&amp;#39;的二级索引记录，由于它们是按照id列的值排序的，所以我们很大可能通过顺序I/O的方式找到下一个数据页，回表操作带来的性能开销较小。怎么理解？ 由于需要扫描的二级索引记录对应的i">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/06/11/设计MySQL的大叔为何偏爱ref/1.awebp">
-<meta property="og:updated_time" content="2022-09-06T03:47:51.744Z">
+<meta property="og:updated_time" content="2022-11-07T13:38:59.241Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="设计MySQL的大叔为何偏爱ref">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：  使用某个索引执行查询时，需要扫描的记录越少，就越可能使用这个索引来执行查询。怎么理解？ B+树叶子节点中的记录是按照索引列的值从小到大排序的。怎么理解？ 对于所有key1列值等于&amp;#39;a&amp;#39;的二级索引记录，由于它们是按照id列的值排序的，所以我们很大可能通过顺序I/O的方式找到下一个数据页，回表操作带来的性能开销较小。怎么理解？ 由于需要扫描的二级索引记录对应的i">
 <meta name="twitter:image" content="http://yoursite.com/2022/06/11/设计MySQL的大叔为何偏爱ref/1.awebp">
 
 
@@ -445,7 +445,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-06 11:47:51" itemprop="dateModified" datetime="2022-09-06T11:47:51+08:00">2022-09-06</time>
+                <time title="修改时间：2022-11-07 21:38:59" itemprop="dateModified" datetime="2022-11-07T21:38:59+08:00">2022-11-07</time>
               
             
           </span>
@@ -491,7 +491,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">4.1k</span>
+                <span title="本文字数">4.2k</span>
               
 
               
@@ -527,7 +527,10 @@
       
         <p>思考并回答以下问题：</p>
 <ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
+<li>使用某个索引执行查询时，需要扫描的记录越少，就越可能使用这个索引来执行查询。怎么理解？</li>
+<li>B+树叶子节点中的记录是按照索引列的值从小到大排序的。怎么理解？</li>
+<li>对于所有key1列值等于<code>&#39;a&#39;</code>的二级索引记录，由于它们是按照id列的值排序的，所以我们很大可能通过顺序I/O的方式找到下一个数据页，回表操作带来的性能开销较小。怎么理解？</li>
+<li>由于需要扫描的二级索引记录对应的id值是无序的，所以执行回表操作时，需要访问的聚簇索引记录所在的数据页很大可能就是无序的，这样会造成很多随机I/O。怎么理解？</li>
 </ul>
 <a id="more"></a>
 <h1 id="回忆一下查询成本"><a href="#回忆一下查询成本" class="headerlink" title="回忆一下查询成本"></a><span style="color:#339AFF;">回忆一下查询成本</span></h1><p>对于一个查询来说，有时候可以通过不同的索引或者全表扫描来执行它，MySQL优化器会通过事先生成的统计数据，或者少量访问B+树索引的方式来分析使用各个索引时都需要扫描多少条记录，然后计算使用不同索引的查询成本，最后选择成本最低的那个来执行查询。</p>
@@ -546,10 +549,10 @@
 <p>其中key1列为<code>&#39;a&#39;</code>的记录有2310条：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT COUNT(*) FROM t WHERE key1 = <span class="string">'a'</span>;</span><br><span class="line">+----------+</span><br><span class="line">| COUNT(*) |</span><br><span class="line">+----------+</span><br><span class="line">|     2310 |</span><br><span class="line">+----------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.83 sec)</span><br></pre></td></tr></table></figure></p>
 <p>key1列在<code>&#39;a&#39;</code>到<code>&#39;i&#39;</code>之间的记录也有2310条：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT COUNT(*) FROM t WHERE key1 &gt; <span class="string">'a'</span> AND key1 &lt; <span class="string">'i'</span>;</span><br><span class="line">+----------+</span><br><span class="line">| COUNT(*) |</span><br><span class="line">+----------+</span><br><span class="line">|     2310 |</span><br><span class="line">+----------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (1.31 sec)</span><br></pre></td></tr></table></figure></p>
 <p>现在我们有如下两个查询：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># &lt;span style="color:#339AFF;"&gt;查询1：</span></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 = <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># &lt;span style="color:#339AFF;"&gt;</span></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 &gt; <span class="string">'a'</span> <span class="keyword">AND</span> key1 &lt; <span class="string">'i'</span>;</span><br></pre></td></tr></table></figure>
-<p>按理说上边两个查询需要扫描的记录数量是一样的，MySQL查询优化器对待它们的态度也应该是一样的，也就是要么都使用二级索引idx_key1执行它们，要么都使用全表扫描的方式来执行它们。不过现实是貌似查询优化器更喜欢查询1，而比较讨厌查询2。查询1的执行计划如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># &lt;span style="color:#339AFF;"&gt;查询1的执行计划</span></span><br><span class="line">mysql&gt; EXPLAIN SELECT * FROM t WHERE key1 = <span class="string">'a'</span>\G</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">           id: 1</span><br><span class="line">  select_type: SIMPLE</span><br><span class="line">        table: t</span><br><span class="line">   partitions: NULL</span><br><span class="line">         <span class="built_in">type</span>: ref</span><br><span class="line">possible_keys: idx_key1</span><br><span class="line">          key: idx_key1</span><br><span class="line">      key_len: 303</span><br><span class="line">          ref: const</span><br><span class="line">         rows: 2310</span><br><span class="line">     filtered: 100.00</span><br><span class="line">        Extra: NULL</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.04 sec)</span><br></pre></td></tr></table></figure></p>
-<p>查询2的执行计划如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># &lt;span style="color:#339AFF;"&gt;查询2的执行计划</span></span><br><span class="line">mysql&gt; EXPLAIN SELECT * FROM t WHERE key1 &gt; <span class="string">'a'</span> AND key1 &lt; <span class="string">'i'</span>\G</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">           id: 1</span><br><span class="line">  select_type: SIMPLE</span><br><span class="line">        table: t</span><br><span class="line">   partitions: NULL</span><br><span class="line">         <span class="built_in">type</span>: ALL</span><br><span class="line">possible_keys: idx_key1</span><br><span class="line">          key: NULL</span><br><span class="line">      key_len: NULL</span><br><span class="line">          ref: NULL</span><br><span class="line">         rows: 9912</span><br><span class="line">     filtered: 23.31</span><br><span class="line">        Extra: Using <span class="built_in">where</span></span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.03 sec)</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查询1</span></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 = <span class="string">'a'</span>;</span><br></pre></td></tr></table></figure>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查询2</span></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> key1 &gt; <span class="string">'a'</span> <span class="keyword">AND</span> key1 &lt; <span class="string">'i'</span>;</span><br></pre></td></tr></table></figure>
+<p>按理说上边两个查询需要扫描的记录数量是一样的，MySQL查询优化器对待它们的态度也应该是一样的，也就是要么都使用二级索引idx_key1执行它们，要么都使用全表扫描的方式来执行它们。不过现实是貌似查询优化器更喜欢查询1，而比较讨厌查询2。查询1的执行计划如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查询1的执行计划</span></span><br><span class="line">mysql&gt; EXPLAIN SELECT * FROM t WHERE key1 = <span class="string">'a'</span>\G</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">           id: 1</span><br><span class="line">  select_type: SIMPLE</span><br><span class="line">        table: t</span><br><span class="line">   partitions: NULL</span><br><span class="line">         <span class="built_in">type</span>: ref</span><br><span class="line">possible_keys: idx_key1</span><br><span class="line">          key: idx_key1</span><br><span class="line">      key_len: 303</span><br><span class="line">          ref: const</span><br><span class="line">         rows: 2310</span><br><span class="line">     filtered: 100.00</span><br><span class="line">        Extra: NULL</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.04 sec)</span><br></pre></td></tr></table></figure></p>
+<p>查询2的执行计划如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查询2的执行计划</span></span><br><span class="line">mysql&gt; EXPLAIN SELECT * FROM t WHERE key1 &gt; <span class="string">'a'</span> AND key1 &lt; <span class="string">'i'</span>\G</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">           id: 1</span><br><span class="line">  select_type: SIMPLE</span><br><span class="line">        table: t</span><br><span class="line">   partitions: NULL</span><br><span class="line">         <span class="built_in">type</span>: ALL</span><br><span class="line">possible_keys: idx_key1</span><br><span class="line">          key: NULL</span><br><span class="line">      key_len: NULL</span><br><span class="line">          ref: NULL</span><br><span class="line">         rows: 9912</span><br><span class="line">     filtered: 23.31</span><br><span class="line">        Extra: Using <span class="built_in">where</span></span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.03 sec)</span><br></pre></td></tr></table></figure></p>
 <p>很显然，查询优化器决定使用idx_key1二级索引执行查询1，而使用全表扫描来执行查询2。</p>
 <p>为什么？凭什么？同样是扫描相同数量的记录，凭什么我range访问方法就要比你ref低一头？设计MySQL的大叔，你为何这么偏心…</p>
 <h1 id="解密偏心原因"><a href="#解密偏心原因" class="headerlink" title="解密偏心原因"></a><span style="color:#339AFF;">解密偏心原因</span></h1><p>世界上没有无缘无故的爱，也没有无缘无故的恨。这事儿还得从索引结构说起。比方说idx_key1二级索引结构长这样：</p>
@@ -571,14 +574,11 @@
 <p>由于需要扫描的二级索引记录对应的id值是无序的，所以执行回表操作时，需要访问的聚簇索引记录所在的数据页很大可能就是无序的，这样会造成很多随机I/O。所以如果使用idx_key1来执行查询1和查询2，执行查询1的成本很显然会比查询2低，这也是设计MySQL的大叔更钟情于ref而不是range的原因。</p>
 <h1 id="MySQL的内部实现"><a href="#MySQL的内部实现" class="headerlink" title="MySQL的内部实现"></a><span style="color:#339AFF;">MySQL的内部实现</span></h1><p>MySQL优化器在计算回表的成本时，在使用二级索引执行查询并且需要回表的情境下，对于ref和range是很明显的区别对待的：</p>
 <ul>
-<li>对于range来说，需要扫描多少条二级索引记录，就相当于需要访问多少个页面。每访问一个页面，回表的I/O成本就加1。</li>
-</ul>
-<p>比方对于查询2来说，需要回表的记录数是2310，因为回表操作而计算的I/O成本就是2310。</p>
-<ul>
+<li>对于range来说，需要扫描多少条二级索引记录，就相当于需要访问多少个页面。每访问一个页面，回表的I/O成本就加1。<br>&emsp;比方对于查询2来说，需要回表的记录数是2310，因为回表操作而计算的I/O成本就是2310。</li>
 <li>对于ref来说，回表开销带来的I/O成本存在天花板，也就是定义了一个上限值：<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">double	worst_seeks;</span><br></pre></td></tr></table></figure>
 </li>
 </ul>
-<p>这个上限值的取值是从下边两个值中取较小的那个：</p>
+<p>&emsp;&emsp;这个上限值的取值是从下边两个值中取较小的那个：</p>
 <ul>
 <li>全表记录数的十分之一（此处的全表记录数属于统计数据，是一个估计值）</li>
 <li>聚簇索引所占页面的3倍</li>
@@ -1119,7 +1119,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">105:13</span>
+    <span title="站点阅读时长">105:14</span>
   
 </div>
 
