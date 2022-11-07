@@ -103,23 +103,23 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：">
+  <meta name="description" content="思考并回答以下问题：  Redis使用写后日志这一方式的一大好处是，可以避免出现记录错误命令的情况，只有命令能执行成功，才会被记录到日志中。还有一个好处是在命令执行后才记录日志，所以不会阻塞当前的写操作。怎么理解？ AOF也有两个潜在的风险。一是还没有来得及记日志就宕机了，二是可能会给下一个操作带来阻塞风险。怎么理解？">
 <meta name="keywords" content="Redis核心技术与实战">
 <meta property="og:type" content="article">
 <meta property="og:title" content="04 | AOF日志：宕机了，Redis如何避免数据丢失？">
 <meta property="og:url" content="http://yoursite.com/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:description" content="思考并回答以下问题：  Redis使用写后日志这一方式的一大好处是，可以避免出现记录错误命令的情况，只有命令能执行成功，才会被记录到日志中。还有一个好处是在命令执行后才记录日志，所以不会阻塞当前的写操作。怎么理解？ AOF也有两个潜在的风险。一是还没有来得及记日志就宕机了，二是可能会给下一个操作带来阻塞风险。怎么理解？">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/1.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/2.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/3.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/4.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/5.webp">
-<meta property="og:updated_time" content="2022-11-02T09:48:27.551Z">
+<meta property="og:updated_time" content="2022-11-05T10:36:55.185Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="04 | AOF日志：宕机了，Redis如何避免数据丢失？">
-<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:description" content="思考并回答以下问题：  Redis使用写后日志这一方式的一大好处是，可以避免出现记录错误命令的情况，只有命令能执行成功，才会被记录到日志中。还有一个好处是在命令执行后才记录日志，所以不会阻塞当前的写操作。怎么理解？ AOF也有两个潜在的风险。一是还没有来得及记日志就宕机了，二是可能会给下一个操作带来阻塞风险。怎么理解？">
 <meta name="twitter:image" content="http://yoursite.com/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/1.webp">
 
 
@@ -449,7 +449,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-11-02 17:48:27" itemprop="dateModified" datetime="2022-11-02T17:48:27+08:00">2022-11-02</time>
+                <time title="修改时间：2022-11-05 18:36:55" itemprop="dateModified" datetime="2022-11-05T18:36:55+08:00">2022-11-05</time>
               
             
           </span>
@@ -495,7 +495,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">4.6k</span>
+                <span title="本文字数">4.8k</span>
               
 
               
@@ -530,17 +530,21 @@
 
       
         <p>思考并回答以下问题：</p>
+<ul>
+<li>Redis使用写后日志这一方式的一大好处是，可以避免出现记录错误命令的情况，只有命令能执行成功，才会被记录到日志中。还有一个好处是在命令执行后才记录日志，所以不会阻塞当前的写操作。怎么理解？</li>
+<li>AOF也有两个潜在的风险。一是还没有来得及记日志就宕机了，二是可能会给下一个操作带来阻塞风险。怎么理解？</li>
+</ul>
 <a id="more"></a>
 <p>如果有人问你：“你会把Redis用在什么业务场景下？”我想你大概率会说：“我会把它当作缓存使用，因为它把后端数据库中的数据存储在内存中，然后直接从内存中读取数据，响应速度会非常快。”没错，这确实是Redis的一个普遍使用场景，但是，这里也有一个绝对不能忽略的问题：<strong>一旦服务器宕机，内存中的数据将全部丢失</strong>。</p>
 <p>我们很容易想到的一个解决方案是，从后端数据库恢复这些数据，但这种方式存在两个问题：一是，需要频繁访问数据库，会给数据库带来巨大的压力；二是，这些数据是从慢速数据库中读取出来的，性能肯定比不上从Redis中读取，导致使用这些数据的应用程序响应变慢。所以，对Redis来说，实现数据的持久化，避免从后端数据库中进行恢复，是至关重要的。</p>
 <p>目前，Redis的持久化主要有两大机制，即AOF（Append Only File）日志和RDB快照。在接下来的两节课里，我们就分别学习一下吧。这节课，我们先重点学习下AOF日志。</p>
-<h1 id="AOF日志是如何实现的？"><a href="#AOF日志是如何实现的？" class="headerlink" title="AOF日志是如何实现的？"></a><span style="color:#339AFF;">AOF日志是如何实现的？</span></h1><p>说到日志，我们比较熟悉的是数据库的写前日志（Write Ahead Log,WAL），也就是说，在实际写数据前，先把修改的数据记到日志文件中，以便故障时进行恢复。不过，AOF日志正好相反，它是写后日志，“写后”的意思是Redis是先执行命令，把数据写入内存，然后才记录日志，如下图所示：</p>
+<h1 id="AOF日志是如何实现的？"><a href="#AOF日志是如何实现的？" class="headerlink" title="AOF日志是如何实现的？"></a><span style="color:#339AFF;">AOF日志是如何实现的？</span></h1><p>说到日志，我们比较熟悉的是数据库的写前日志（Write Ahead Log，WAL），也就是说，在实际写数据前，先把修改的数据记到日志文件中，以便故障时进行恢复。不过，AOF日志正好相反，它是写后日志，“写后”的意思是Redis是先执行命令，把数据写入内存，然后才记录日志，如下图所示：</p>
 <blockquote>
 <p>RedisAOF操作过程</p>
 </blockquote>
 <img src="/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/1.webp">
 <p>那AOF为什么要先执行命令再记日志呢？要回答这个问题，我们要先知道AOF里记录了什么内容。</p>
-<p>传统数据库的日志，例如redolog（重做日志），记录的是修改后的数据，而AOF里记录的是Redis收到的每一条命令，这些命令是以文本形式保存的。</p>
+<p>传统数据库的日志，例如redo log（重做日志），记录的是修改后的数据，而AOF里记录的是Redis收到的每一条命令，这些命令是以文本形式保存的。</p>
 <p>我们以Redis收到<code>set testkey testvalue</code>命令后记录的日志为例，看看AOF日志的内容。其中，“*3”表示当前命令有三个部分，每部分都是由“$+数字”开头，后面紧跟着具体的命令、键或值。这里，“数字”表示这部分中的命令、键或值一共有多少字节。例如，“$3set”表示这部分有3个字节，也就是“set”命令。</p>
 <blockquote>
 <p>RedisAOF日志内容</p>
@@ -572,14 +576,14 @@
 <p>这里的“性能问题”，主要在于以下三个方面：一是，文件系统本身对文件大小有限制，无法保存过大的文件；二是，如果文件太大，之后再往里面追加命令记录的话，效率也会变低；三是，如果发生宕机，AOF中记录的命令要一个个被重新执行，用于故障恢复，如果日志文件太大，整个恢复过程就会非常缓慢，这就会影响到Redis的正常使用。</p>
 <p>所以，我们就要采取一定的控制手段，这个时候，<strong>AOF重写机制</strong>就登场了。</p>
 <h1 id="日志文件太大了怎么办？"><a href="#日志文件太大了怎么办？" class="headerlink" title="日志文件太大了怎么办？"></a><span style="color:#339AFF;">日志文件太大了怎么办？</span></h1><p>简单来说，AOF重写机制就是在重写时，Redis根据数据库的现状创建一个新的AOF文件，也就是说，读取数据库中的所有键值对，然后对每一个键值对用一条命令记录它的写入。比如说，当读取了键值对<code>“testkey”:“testvalue”</code>之后，重写机制会记录<code>set testkey testvalue</code>这条命令。这样，当需要恢复时，可以重新执行该命令，实现<code>“testkey”:“testvalue”</code>的写入。</p>
-<p>为什么重写机制可以把日志文件变小呢?实际上，重写机制具有“多变一”功能。所谓的“多变一”，也就是说，旧日志文件中的多条命令，在重写后的新日志中变成了一条命令。</p>
+<p>为什么重写机制可以把日志文件变小呢？实际上，重写机制具有“多变一”功能。所谓的“多变一”，也就是说，旧日志文件中的多条命令，在重写后的新日志中变成了一条命令。</p>
 <p>我们知道，AOF文件是以追加的方式，逐一记录接收到的写命令的。当一个键值对被多条写命令反复修改时，AOF文件会记录相应的多条命令。但是，在重写的时候，是根据这个键值对当前的最新状态，为它生成对应的写入命令。这样一来，一个键值对在重写日志中只用一条命令就行了，而且，在日志恢复时，只用执行这条命令，就可以直接完成这个键值对的写入了。</p>
 <p>下面这张图就是一个例子：</p>
 <blockquote>
 <p>AOF重写减少日志大小</p>
 </blockquote>
 <img src="/2022/05/01/04-AOF日志：宕机了，Redis如何避免数据丢失？/4.webp">
-<p>当我们对一个列表先后做了6次修改操作后，列表的最后状态是<code>[“D”,“C”,“N”]</code>，此时，只用<code>LPUSHu:list“N”,“C”,&quot;D&quot;</code>这一条命令就能实现该数据的恢复，这就节省了五条命令的空间。对于被修改过成百上千次的键值对来说，重写能节省的空间当然就更大了。</p>
+<p>当我们对一个列表先后做了6次修改操作后，列表的最后状态是<code>[“D”,“C”,“N”]</code>，此时，只用<code>LPUSH u:list “N”,“C”,&quot;D&quot;</code>这一条命令就能实现该数据的恢复，这就节省了五条命令的空间。对于被修改过成百上千次的键值对来说，重写能节省的空间当然就更大了。</p>
 <p>不过，虽然AOF重写后，日志文件会缩小，但是，要把整个数据库的最新数据的操作日志都写回磁盘，仍然是一个非常耗时的过程。这时，我们就要继续关注另一个问题了：重写会不会阻塞主线程？</p>
 <h1 id="AOF重写会阻塞吗"><a href="#AOF重写会阻塞吗" class="headerlink" title="AOF重写会阻塞吗?"></a><span style="color:#339AFF;">AOF重写会阻塞吗?</span></h1><p>和AOF日志由主线程写回不同，重写过程是由后台子进程bgrewriteaof来完成的，这也是为了避免阻塞主线程，导致数据库性能下降。</p>
 <p>我把重写的过程总结为<strong>“一个拷贝，两处日志”</strong>。</p>
@@ -720,7 +724,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">781</span>
+                    <span class="site-state-item-count">794</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -777,7 +781,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">16</span>
+                      
+                    
+                    <span class="site-state-item-count">17</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1004,7 +1010,15 @@
                     
                       
                     
-                    <span class="site-state-item-count">56</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">60</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1035,23 +1049,23 @@
                 
                 
                   <li>
-                    <a href="/2022/10/25/企业微信源码/" title="企业微信源码" target="_blank">企业微信源码</a>
+                    <a href="/2022/11/07/使用Redis实现一个分布式锁/" title="使用Redis实现一个分布式锁" target="_blank">使用Redis实现一个分布式锁</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/结课测试-这些Go语言的知识你都掌握了吗？/" title="结课测试 | 这些Go语言的知识你都掌握了吗？" target="_blank">结课测试 | 这些Go语言的知识你都掌握了吗？</a>
+                    <a href="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/" title="14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？" target="_blank">14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/49-程序性能分析基础（下）/" title="49 | 程序性能分析基础（下）" target="_blank">49 | 程序性能分析基础（下）</a>
+                    <a href="/2022/11/06/13-隔离性：为什么使用乐观协议的分布式数据库越来越少/" title="13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?" target="_blank">13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
+                    <a href="/2022/11/06/12-隔离性：看不见的读写冲突，要怎么处理？/" title="12 | 隔离性：看不见的读写冲突，要怎么处理？" target="_blank">12 | 隔离性：看不见的读写冲突，要怎么处理？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/47-基于HTTP协议的网络服务/" title="47 | 基于HTTP协议的网络服务" target="_blank">47 | 基于HTTP协议的网络服务</a>
+                    <a href="/2022/11/06/25｜事务（四）：持久性，吃一碗粉就付一碗粉的钱/" title="25 ｜ 事务（四）：持久性，吃一碗粉就付一碗粉的钱" target="_blank">25 ｜ 事务（四）：持久性，吃一碗粉就付一碗粉的钱</a>
                   </li>
                 
               </ul>
@@ -1112,7 +1126,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">6.8m</span>
+    <span title="站点总字数">6.9m</span>
   
 
   
@@ -1123,7 +1137,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">103:37</span>
+    <span title="站点阅读时长">105:13</span>
   
 </div>
 

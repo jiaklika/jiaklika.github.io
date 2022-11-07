@@ -114,7 +114,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/05/01/33-脑裂：一次奇怪的数据丢失/1.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/33-脑裂：一次奇怪的数据丢失/2.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/33-脑裂：一次奇怪的数据丢失/3.webp">
-<meta property="og:updated_time" content="2022-11-03T04:15:30.932Z">
+<meta property="og:updated_time" content="2022-11-04T15:50:38.703Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="33 | 脑裂：一次奇怪的数据丢失">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -447,7 +447,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-11-03 12:15:30" itemprop="dateModified" datetime="2022-11-03T12:15:30+08:00">2022-11-03</time>
+                <time title="修改时间：2022-11-04 23:50:38" itemprop="dateModified" datetime="2022-11-04T23:50:38+08:00">2022-11-04</time>
               
             
           </span>
@@ -534,21 +534,18 @@
 <p>所谓的脑裂，就是指在主从集群中，同时有两个主节点，它们都能接收写请求。而脑裂最直接的影响，就是客户端不知道应该往哪个主节点写入数据，结果就是不同的客户端会往不同的主节点上写入数据。而且，严重的话，脑裂会进一步导致数据丢失。</p>
 <p>那么，主从集群中为什么会发生脑裂？脑裂为什么又会导致数据丢失呢？我们该如何避免脑裂的发生呢？这节课，我就结合我遇见的这个真实问题，带你一起分析和定位问题，帮助你掌握脑裂的成因、后果和应对方法。</p>
 <h1 id="为什么会发生脑裂？"><a href="#为什么会发生脑裂？" class="headerlink" title="为什么会发生脑裂？"></a><span style="color:#339AFF;">为什么会发生脑裂？</span></h1><p>刚才我提到，我最初发现的问题是，在主从集群中，客户端发送的数据丢失了。所以，我们首先要弄明白，为什么数据会丢失？是不是数据同步出了问题？</p>
-<font size="4">**第一步：确认是不是数据同步出现了问题**</font>
-
+<p><strong><font size="4">第一步：确认是不是数据同步出现了问题</font></strong></p>
 <p>在主从集群中发生数据丢失，最常见的原因就是<strong>主库的数据还没有同步到从库，结果主库发生了故障，等从库升级为主库后，未同步的数据就丢失了</strong>。</p>
 <p>如下图所示，新写入主库的数据a:1、b:3，就因为在主库故障前未同步到从库而丢失了。</p>
 <img src="/2022/05/01/33-脑裂：一次奇怪的数据丢失/1.webp">
 <p>如果是这种情况的数据丢失，我们可以通过比对主从库上的复制进度差值来进行判断，也就是计算master_repl_offset和slave_repl_offset的差值。如果从库上的slave_repl_offset小于原主库的master_repl_offset，那么，我们就可以认定数据丢失是由数据同步未完成导致的。</p>
 <p>我们在部署主从集群时，也监测了主库上的master_repl_offset，以及从库上的slave_repl_offset。但是，当我们发现数据丢失后，我们检查了新主库升级前的slave_repl_offset，以及原主库的master_repl_offset，它们是一致的，也就是说，这个升级为新主库的从库，在升级时已经和原主库的数据保持一致了。那么，为什么还会出现客户端发送的数据丢失呢？</p>
 <p>分析到这里，我们的第一个设想就被推翻了。这时，我们想到，所有的数据操作都是从客户端发送给Redis实例的，那么，是不是可以从客户端操作日志中发现问题呢？紧接着，我们就把目光转到了客户端。</p>
-<font size="4">**第二步：排查客户端的操作日志，发现脑裂现象**</font>
-
+<p><strong><font size="4">第二步：排查客户端的操作日志，发现脑裂现象</font></strong></p>
 <p>在排查客户端的操作日志时，我们发现，在主从切换后的一段时间内，有一个客户端仍然在和原主库通信，并没有和升级的新主库进行交互。这就相当于主从集群中同时有了两个主库。根据这个迹象，我们就想到了在分布式主从集群发生故障时会出现的一个问题：脑裂。</p>
 <p>但是，不同客户端给两个主库发送数据写操作，按道理来说，只会导致新数据会分布在不同的主库上，并不会造成数据丢失。那么，为什么我们的数据仍然丢失了呢？</p>
 <p>到这里，我们的排查思路又一次中断了。不过，在分析问题时，我们一直认为“从原理出发是追本溯源的好方法”。脑裂是发生在主从切换的过程中，我们猜测，肯定是漏掉了主从集群切换过程中的某个环节，所以，我们把研究的焦点投向了主从切换的执行过程。</p>
-<font size="4">**第三步：发现是原主库假故障导致的脑裂**</font>
-
+<p><strong><font size="4">第三步：发现是原主库假故障导致的脑裂</font></strong></p>
 <p>我们是采用哨兵机制进行主从切换的，当主从切换发生时，一定是有超过预设数量（quorum配置项）的哨兵实例和主库的心跳都超时了，才会把主库判断为客观下线，然后，哨兵开始执行切换操作。哨兵切换完成后，客户端会和新主库进行通信，发送请求操作。</p>
 <p>但是，在切换过程中，既然客户端仍然和原主库通信，这就表明，<strong>原主库并没有真的发生故障</strong>（例如主库进程挂掉）。我们猜测，主库是由于某些原因无法处理请求，也没有响应哨兵的心跳，才被哨兵错误地判断为客观下线的。结果，在被判断下线之后，原主库又重新开始处理请求了，而此时，哨兵还没有完成主从切换，客户端仍然可以和原主库通信，客户端发送的写操作就会在原主库上写入数据了。</p>
 <p>为了验证原主库只是“假故障”，我们也查看了原主库所在服务器的资源使用监控记录。</p>
@@ -704,7 +701,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">781</span>
+                    <span class="site-state-item-count">794</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -761,7 +758,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">16</span>
+                      
+                    
+                    <span class="site-state-item-count">17</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -988,7 +987,15 @@
                     
                       
                     
-                    <span class="site-state-item-count">56</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">60</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1019,23 +1026,23 @@
                 
                 
                   <li>
-                    <a href="/2022/10/25/企业微信源码/" title="企业微信源码" target="_blank">企业微信源码</a>
+                    <a href="/2022/11/07/使用Redis实现一个分布式锁/" title="使用Redis实现一个分布式锁" target="_blank">使用Redis实现一个分布式锁</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/结课测试-这些Go语言的知识你都掌握了吗？/" title="结课测试 | 这些Go语言的知识你都掌握了吗？" target="_blank">结课测试 | 这些Go语言的知识你都掌握了吗？</a>
+                    <a href="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/" title="14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？" target="_blank">14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/49-程序性能分析基础（下）/" title="49 | 程序性能分析基础（下）" target="_blank">49 | 程序性能分析基础（下）</a>
+                    <a href="/2022/11/06/13-隔离性：为什么使用乐观协议的分布式数据库越来越少/" title="13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?" target="_blank">13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
+                    <a href="/2022/11/06/12-隔离性：看不见的读写冲突，要怎么处理？/" title="12 | 隔离性：看不见的读写冲突，要怎么处理？" target="_blank">12 | 隔离性：看不见的读写冲突，要怎么处理？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/47-基于HTTP协议的网络服务/" title="47 | 基于HTTP协议的网络服务" target="_blank">47 | 基于HTTP协议的网络服务</a>
+                    <a href="/2022/11/06/25｜事务（四）：持久性，吃一碗粉就付一碗粉的钱/" title="25 ｜ 事务（四）：持久性，吃一碗粉就付一碗粉的钱" target="_blank">25 ｜ 事务（四）：持久性，吃一碗粉就付一碗粉的钱</a>
                   </li>
                 
               </ul>
@@ -1096,7 +1103,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">6.8m</span>
+    <span title="站点总字数">6.9m</span>
   
 
   
@@ -1107,7 +1114,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">103:37</span>
+    <span title="站点阅读时长">105:13</span>
   
 </div>
 

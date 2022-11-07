@@ -103,23 +103,26 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：">
+  <meta name="description" content="思考并回答以下问题：  同步直写策略和异步写回策略分别是什么意思？ 我们要在业务应用中使用事务机制，来保证缓存和数据库的更新具有原子性。怎么理解？">
 <meta name="keywords" content="Redis核心技术与实战">
 <meta property="og:type" content="article">
 <meta property="og:title" content="25 | 缓存异常（上）：如何解决缓存和数据库的数据不一致问题？">
 <meta property="og:url" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:description" content="思考并回答以下问题：  同步直写策略和异步写回策略分别是什么意思？ 我们要在业务应用中使用事务机制，来保证缓存和数据库的更新具有原子性。怎么理解？">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/1.webp">
+<meta property="og:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/2.jpg">
+<meta property="og:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/3.jpg">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/4.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/5.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/6.webp">
 <meta property="og:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/7.webp">
-<meta property="og:updated_time" content="2022-11-02T01:03:33.953Z">
+<meta property="og:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/8.jpg">
+<meta property="og:updated_time" content="2022-11-06T07:13:57.357Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="25 | 缓存异常（上）：如何解决缓存和数据库的数据不一致问题？">
-<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:description" content="思考并回答以下问题：  同步直写策略和异步写回策略分别是什么意思？ 我们要在业务应用中使用事务机制，来保证缓存和数据库的更新具有原子性。怎么理解？">
 <meta name="twitter:image" content="http://yoursite.com/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/1.webp">
 
 
@@ -449,7 +452,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-11-02 09:03:33" itemprop="dateModified" datetime="2022-11-02T09:03:33+08:00">2022-11-02</time>
+                <time title="修改时间：2022-11-06 15:13:57" itemprop="dateModified" datetime="2022-11-06T15:13:57+08:00">2022-11-06</time>
               
             
           </span>
@@ -495,7 +498,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">4.4k</span>
+                <span title="本文字数">4.5k</span>
               
 
               
@@ -530,6 +533,10 @@
 
       
         <p>思考并回答以下问题：</p>
+<ul>
+<li>同步直写策略和异步写回策略分别是什么意思？</li>
+<li>我们要在业务应用中使用事务机制，来保证缓存和数据库的更新具有原子性。怎么理解？</li>
+</ul>
 <a id="more"></a>
 <p>在实际应用Redis缓存时，我们经常会遇到一些异常问题，概括来说有4个方面：缓存中的数据和数据库中的不一致；缓存雪崩；缓存击穿和缓存穿透。</p>
 <p>只要我们使用Redis缓存，就必然会面对缓存和数据库间的一致性保证问题，这也算是Redis缓存应用中的“必答题”了。最重要的是，如果数据不一致，那么业务应用从缓存中读取的数据就不是最新数据，这会导致严重的错误。比如说，我们把电商商品的库存信息缓存在Redis中，如果库存信息不对，那么业务层下单操作就可能出错，这当然是不能接受的。所以，这节课我就重点和你聊聊这个问题。关于缓存雪崩、穿透和击穿等问题，我会在下一节课向你介绍。</p>
@@ -558,12 +565,12 @@
 <p>如果发生删改操作，应用既要更新数据库，也要在缓存中删除数据。这两个操作如果无法保证原子性，也就是说，要不都完成，要不都没完成，此时，就会出现数据不一致问题了。这个问题比较复杂，我们来分析一下。</p>
 <p>我们假设应用先删除缓存，再更新数据库，如果缓存删除成功，但是数据库更新失败，那么，应用再访问数据时，缓存中没有数据，就会发生缓存缺失。然后，应用再访问数据库，但是数据库中的值为旧值，应用就访问到旧值了。</p>
 <p>我来举个例子说明一下，可以先看看下面的图片。</p>
-
+<img src="/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/2.jpg">
 <p>应用要把数据X的值从10更新为3，先在Redis缓存中删除了X的缓存值，但是更新数据库却失败了。如果此时有其他并发的请求访问X，会发现Redis中缓存缺失，紧接着，请求就会访问数据库，读到的却是旧值10。</p>
 <p>你可能会问，如果我们先更新数据库，再删除缓存中的值，是不是就可以解决这个问题呢？我们再来分析下。</p>
 <p>如果应用先完成了数据库的更新，但是，在删除缓存时失败了，那么，数据库中的值是新值，而缓存中的是旧值，这肯定是不一致的。这个时候，如果有其他的并发请求来访问数据，按照正常的缓存访问流程，就会先在缓存中查询，但此时，就会读到旧值了。</p>
 <p>我还是借助一个例子来说明一下。</p>
-
+<img src="/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/3.jpg">
 <p>应用要把数据X的值从10更新为3，先成功更新了数据库，然后在Redis缓存中删除X的缓存，但是这个操作却失败了，这个时候，数据库中X的新值为3，Redis中的X的缓存值为10，这肯定是不一致的。如果刚好此时有其他客户端也发送请求访问X，会先在Redis中查询，该客户端会发现缓存命中，但是读到的却是旧值10。</p>
 <p>好了，到这里，我们可以看到，在更新数据库和删除缓存值的过程中，无论这两个操作的执行顺序谁先谁后，只要有一个操作失败了，就会导致客户端读取到旧值。我画了下面这张表，总结了刚刚所说的这两种情况。</p>
 <img src="/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/4.webp">
@@ -584,7 +591,7 @@
 <img src="/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/6.webp">
 <p>这该怎么办呢？我来给你提供一种解决方案。</p>
 <p><strong>在线程A更新完数据库值以后，我们可以让它先sleep一小段时间，再进行一次缓存删除操作。</strong></p>
-<p>之所以要加上sleep的这段时间，就是为了让线程B能够先从数据库读取数据，再把缺失的数据写入缓存，然后，线程A再进行删除。所以，线程Asleep的时间，就需要大于线程B读取数据再写入缓存的时间。这个时间怎么确定呢？建议你在业务程序运行的时候，统计下线程读数据和写缓存的操作时间，以此为基础来进行估算。</p>
+<p>之所以要加上sleep的这段时间，就是为了让线程B能够先从数据库读取数据，再把缺失的数据写入缓存，然后，线程A再进行删除。所以，线程A sleep的时间，就需要大于线程B读取数据再写入缓存的时间。这个时间怎么确定呢？建议你在业务程序运行的时候，统计下线程读数据和写缓存的操作时间，以此为基础来进行估算。</p>
 <p>这样一来，其它线程读取数据时，会发现缓存缺失，所以会从数据库中读取最新值。因为这个方案会在第一次删除缓存值后，延迟一段时间再次进行删除，所以我们也把它叫做“延迟双删”。</p>
 <p>下面的这段伪代码就是“延迟双删”方案的示例，你可以看下。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">redis.delKey(X)</span><br><span class="line">db.update(X)</span><br><span class="line">Thread.sleep(N)</span><br><span class="line">redis.delKey(X)</span><br></pre></td></tr></table></figure></p>
 <p><strong>情况二：先更新数据库值，再删除缓存值。</strong></p>
@@ -598,7 +605,7 @@
 </ul>
 <h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>在这节课，我们学习了在使用Redis缓存时，最常遇见的一个问题，也就是缓存和数据库不一致的问题。针对这个问题，我们可以分成读写缓存和只读缓存两种情况进行分析。</p>
 <p>对于读写缓存来说，如果我们采用同步写回策略，那么可以保证缓存和数据库中的数据一致。只读缓存的情况比较复杂，我总结了一张表，以便于你更加清晰地了解数据不一致的问题原因、现象和应对方案。</p>
-
+<img src="/2022/05/01/25-缓存异常（上）：如何解决缓存和数据库的数据不一致问题？/8.jpg">
 <p>希望你能把我总结的这张表格放入到你的学习笔记中，时不时复习一下。</p>
 <p>最后，我还想再多说几句。在大多数业务场景下，我们会把Redis作为只读缓存使用。针对只读缓存来说，我们既可以先删除缓存值再更新数据库，也可以先更新数据库再删除缓存。我的建议是，优先使用先更新数据库再删除缓存的方法，原因主要有两个：</p>
 <p>1，先删除缓存值再更新数据库，有可能导致请求因缓存缺失而访问数据库，给数据库带来压力；</p>
@@ -724,7 +731,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">781</span>
+                    <span class="site-state-item-count">794</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -781,7 +788,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">16</span>
+                      
+                    
+                    <span class="site-state-item-count">17</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1008,7 +1017,15 @@
                     
                       
                     
-                    <span class="site-state-item-count">56</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">60</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1039,23 +1056,23 @@
                 
                 
                   <li>
-                    <a href="/2022/10/25/企业微信源码/" title="企业微信源码" target="_blank">企业微信源码</a>
+                    <a href="/2022/11/07/使用Redis实现一个分布式锁/" title="使用Redis实现一个分布式锁" target="_blank">使用Redis实现一个分布式锁</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/结课测试-这些Go语言的知识你都掌握了吗？/" title="结课测试 | 这些Go语言的知识你都掌握了吗？" target="_blank">结课测试 | 这些Go语言的知识你都掌握了吗？</a>
+                    <a href="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/" title="14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？" target="_blank">14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/49-程序性能分析基础（下）/" title="49 | 程序性能分析基础（下）" target="_blank">49 | 程序性能分析基础（下）</a>
+                    <a href="/2022/11/06/13-隔离性：为什么使用乐观协议的分布式数据库越来越少/" title="13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?" target="_blank">13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/48-程序性能分析基础（上）/" title="48 | 程序性能分析基础（上）" target="_blank">48 | 程序性能分析基础（上）</a>
+                    <a href="/2022/11/06/12-隔离性：看不见的读写冲突，要怎么处理？/" title="12 | 隔离性：看不见的读写冲突，要怎么处理？" target="_blank">12 | 隔离性：看不见的读写冲突，要怎么处理？</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/10/10/47-基于HTTP协议的网络服务/" title="47 | 基于HTTP协议的网络服务" target="_blank">47 | 基于HTTP协议的网络服务</a>
+                    <a href="/2022/11/06/25｜事务（四）：持久性，吃一碗粉就付一碗粉的钱/" title="25 ｜ 事务（四）：持久性，吃一碗粉就付一碗粉的钱" target="_blank">25 ｜ 事务（四）：持久性，吃一碗粉就付一碗粉的钱</a>
                   </li>
                 
               </ul>
@@ -1116,7 +1133,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">6.8m</span>
+    <span title="站点总字数">6.9m</span>
   
 
   
@@ -1127,7 +1144,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">103:37</span>
+    <span title="站点阅读时长">105:13</span>
   
 </div>
 

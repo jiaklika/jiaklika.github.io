@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="分布式数据库">
+<meta property="og:type" content="article">
+<meta property="og:title" content="14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？">
+<meta property="og:url" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/1.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/2.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/3.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/4.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/5.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/6.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/7.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/8.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/9.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/10.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/11.webp">
+<meta property="og:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/12.webp">
+<meta property="og:updated_time" content="2022-11-07T02:04:25.519Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/1.webp">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？ | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">专注</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="学如逆水行舟，不进则退">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-11-06 23:45:45" itemprop="dateCreated datePublished" datetime="2022-11-06T23:45:45+08:00">2022-11-06</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-11-07 10:04:25" itemprop="dateModified" datetime="2022-11-07T10:04:25+08:00">2022-11-07</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/分布式/" itemprop="url" rel="index"><span itemprop="name">分布式</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">6k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">5 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<p>我们今天的主题是悲观协议，我会结合第13讲的内容将并发控制技术和你说清楚。在第13讲我们以并发控制的三阶段作为工具，区分了广义上的乐观协议和悲观协议。因为狭义乐观很少使用，所以我们将重点放在了相对乐观上。</p>
+<p>其实，相对乐观和局部悲观是一体两面的关系，识别它的要点就在于是否有全局有效性验证，这也和分布式数据库的架构特点息息相关。但是关于悲观协议，还有很多内容没有提及，下面我们就来填补这一大块空白。</p>
+<h1 id="悲观协议的分类"><a href="#悲观协议的分类" class="headerlink" title="悲观协议的分类"></a><span style="color:#339AFF;">悲观协议的分类</span></h1><p>要搞清楚悲观协议的分类，其实是要先跳出来，从并发控制技术整体的分类体系来看。</p>
+<p>事实上，并发控制的分类体系，连学术界的标准也不统一。比如，在第13讲提到的两本经典教材中，“Principles of Distributed Database Systems”的分类是按照比较宽泛的乐观协议和悲观协议进行分类，子类之间又有很多重叠的概念，理解起来有点复杂。</p>
+<p>而“Transactional Information Systems:Theory,Algorithms,and the Practice of Concurrency Control and Recovery”采用的划分方式，是狭义乐观协议和其他悲观协议。这里狭义乐观协议，就是指我们在第13讲提到过的，基于有效性验证的并发控制，也是学术上定义的OCC。</p>
+<p>我个人认为，狭义乐观协议和其他悲观协议这种分类方式更清晰些，所以就选择了“Transactional Information Systems : Theory, Algorithms, and the Practice of Concurrency Control and Recovery”中的划分体系。下面我摘录了书中的一幅图，用来梳理不同的并发控制协议。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/1.webp">
+<p>这个体系首先分为悲观和乐观两个大类。因为这里的乐观协议是指狭义乐观并发控制，所以包含内容就比较少，只有前向乐观并发控制和后向乐观并发控制；而悲观协议又分为基于锁和非锁两大类，其中基于锁的协议是数量最多的。</p>
+<h1 id="两阶段封锁（Two-Phase-Locking，2PL）"><a href="#两阶段封锁（Two-Phase-Locking，2PL）" class="headerlink" title="两阶段封锁（Two-Phase Locking，2PL）"></a><span style="color:#339AFF;">两阶段封锁（Two-Phase Locking，2PL）</span></h1><p>基于锁的协议显然不只是2PL，还包括有序共享（Ordered Sharing 2PL，O2PL）、利他锁（Altruistic Locking，AL）、只写封锁树（Write-only TreeLocking，WTL）和读写封锁树（Read/Write Tree Locking，RWTL）。但这几种协议在真正的数据库系统中很少使用，所以就不过多介绍了，我们还是把重点放在数据库系统主要使用的2PL上。</p>
+<p>2PL就是事务具备两阶段特点的并发控制协议，这里的两个阶段指加锁阶段和释放锁阶段，并且加锁阶段严格区别于紧接着的释放锁阶段。我们可以通过一张图来加深对2PL理解。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/2.webp">
+<p>在t1时刻之前是加锁阶段，在t1之后则是释放锁阶段，我们可以从时间上明确地把事务执行过程划分为两个阶段。2PL的关键点就是释放锁之后不能再加锁。而根据加锁和释放锁时机的不同，2PL又有一些变体。</p>
+<p>保守两阶段封锁协议（Conservative 2PL，C2PL），事务在开始时设置它需要的所有锁。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/3.webp">
+<p>严格两阶段封锁协议（Strict 2PL，S2PL），事务一直持有已经获得的所有写锁，直到事务终止。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/4.webp">
+<p>强两阶段封锁协议（Strong Strict 2PL，SS2PL），事务一直持有已经获得的所有锁，包括写锁和读锁，直到事务终止。SS2PL与S2PL差别只在于一直持有的锁的类型，所以它们的图形是相同的。</p>
+<p>理解了这几种2PL的变体后，我们再回想一下第13讲中的Percolator模型。当主锁（Primary Lock）没有释放前，所有的记录上的从锁（Secondary Lock）实质上都没有释放，在主锁释放后，所有从锁自然释放。所以，Percolator也属于S2PL。TiDB的乐观锁机制是基于Percolator的，那么TiDB就也是S2PL。</p>
+<p>事实上，S2PL可能是使用最广泛的悲观协议，几乎所有单体数据都依赖S2PL实现可串行化。而在分布式数据库中，甚至需要使用SS2PL来保证可串行化执行，典型的例子是TDSQL。但S2PL模式下，事务持有锁的时间过长，导致系统并发性能较差，所以实际使用中往往不会配置到可串行化级别。这就意味着我们还是没有生产级技术方案，只能期望出现新的方式，既达到可串行化隔离级别，又能有更好的性能。最终，我们等到了一种可能是性能更优的工程化实现，这就是CockroachDB的串行化快照隔离（SSI）。而SSI的核心，就是串行化图检测（SGT）。</p>
+<h1 id="串行化图检测（SGT）"><a href="#串行化图检测（SGT）" class="headerlink" title="串行化图检测（SGT）"></a><span style="color:#339AFF;">串行化图检测（SGT）</span></h1><p>SSI是一种隔离级别的命名，最早来自PostgreSQL，CockroachDB沿用了这个名称。它是在SI基础上实现的可串行化隔离。同样，作为SSI核心的SGT也不是CockroachDB首创，学术界早就提出了这个理论，但真正的工程化实现要晚得多。</p>
+<h2 id="理论来源：PostgreSQL"><a href="#理论来源：PostgreSQL" class="headerlink" title="理论来源：PostgreSQL"></a><span style="color:#339AFF;">理论来源：PostgreSQL</span></h2><p>PostgreSQL在论文“Serializable Snapshot Isolation in PostgreSQL”中最早提出了SSI的工程实现方案，这篇论文也被VLDB2012收录。</p>
+<p>为了更清楚地描述SSI方案，我们先要了解一点理论知识。</p>
+<p>串行化理论的核心是串行化图（SerializableGraph，SG）。这个图用来分析数据库事务操作的冲突情况。每个事务是一个节点，事务之间的关系则表示为一条有向边。那么，什么样的关系可以表示为边呢？</p>
+<p>串行化图的构建规则是这样的，事务作为节点，当一个操作与另一个操作冲突时，在两个事务节点之间就可以画上一条有向边。</p>
+<p>具体来说，事务之间的边又分为三类情况：</p>
+<p>1，写读依赖（WR-Dependencies），第二个操作读取了第一个操作写入的值。</p>
+<p>2，写写依赖（WW-Dependencies），第二个操作覆盖了第一个操作写入的值。</p>
+<p>3，读写反依赖（RW-Anti dependencies），第二个操作覆盖了第一个操作读取的值，可能导致读取值过期。</p>
+<p>我们通过一个例子，看看如何用这几条规则来构建一个简单的串行化图。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/5.webp">
+<p>图中一共有三个事务先后执行，事务T1先执行W(A)，T2再执行R(A)，所以T1与T2之间存在WR依赖，因此形成一条T1指向T2的边；同理，T2的W(B)与T3的R(B)也存在WR依赖，T1的W(A)与T3的R(A)之间也是WR依赖，这样就又形成两条有向边，分别是T2指向T3和T1指向T3。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/6.webp">
+<p>最终，我们看到产生了一个有向无环图（Directed Acyclic Graph，DAG）。能够构建出DAG，就说明相关事务是可串行化执行的，不需要中断任何事务。</p>
+<p>我们可以使用SGT，验证一下典型的死锁情况。我们知道，事务T1和T2分别以不同的顺序写两个数据项，那么就会形成死锁。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/7.webp">
+<p>用串行化图来体现就是这个样子，显然构成了环。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/8.webp">
+<p>在SGT中，WR依赖和WW依赖都与我们的直觉相符，而RW反向依赖就比较难理解了。在PostgreSQL的论文中，专门描述了一个RW反向依赖的场景，这里我把它引用过来，我们一起学习一下。</p>
+<p>这个场景一共需要维护两张表：一张收入表（reciepts）会记入当日的收入情况，每行都会记录一个批次号；另一张独立的控制表（current_batch），里面只有一条记录，就是当前的批次号。你也可以把这里的批次号理解为一个工作日。</p>
+<p>同时，还有三个事务T1、T2、T3。</p>
+<ul>
+<li>T2是记录新的收入（NEW-RECEIPT），从控制表中读取当前的批次号，然后在收入表中插入一条新的记录。</li>
+<li>T3负责关闭当前批次（CLOSE-BATCH），而具体实现是通过将控制表中的批次号递增的方式，这就意味着后续再发生的收入会划归到下一个批次。</li>
+<li>T1是报告（REPORT），读取当前控制表的批次号，处理逻辑是用当前已经加一的批次号再减一。T1用这个批次号作为条件，读取收据表中的所有记录。查询到这个批次，也就是这一日，所有的交易。</li>
+</ul>
+<p>其实，这个例子很像银行存款系统的日终翻牌。</p>
+<p>因为T1要报告当天的收入情况，所以它必须要在T3之后执行。事务T2记录了当天的每笔入账，必须在T3之前执行，这样才能出现在当天的报表中。三者顺序执行可以正常工作，否则就会出现异常，比如下面这样的：</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/9.webp">
+<p>T2先拿到一个批次号x，随后T3执行，批次号关闭后，x这个批次号其实已经过期，但是T2还继续使用x，记录当前的这笔收入。T1正常在T3后执行，此时T2尚未提交，所以T1的报告中漏掉了T2的那笔收入。因为T2使用时过期的批次号x，第二天的报告中也不会统计到这笔收入，最终这笔收入就神奇地消失了。</p>
+<p>在理解了这个例子的异常现象后，我们用串行化图方法来验证一下。我们是把事务中的SQL抽象为对数据项的操作，可以得到下面这张图。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/10.webp">
+<p>图中batch是指批次号，reps是指收入情况。</p>
+<p>接下来，我们按照先后顺序提取有向边，先由T2.R(batch)-&gt;T3.W(batch)，得到T2到T3的RW依赖；再由T3.W(batch)-&gt;T1.R(batch)，得到T3到T1的WR依赖；最后由T1.R(reps)-&gt;T2.W(reps)，得到T1到T2的RW依赖。这样就构成了下面的串行化图。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/11.webp">
+<p>显然这三个事务之间是存在环的，那么这三个事务就是不能串行化的。</p>
+<p>这个异常现象中很有意思的一点是，虽然T1是一个只读事务，但如果没有T1的话，T2与T3不会形成环，依然是可串行化执行的。这里就为我们澄清了一点：我们直觉上认为的只读事务不会影响事务并发机制，其实是不对的。</p>
+<h1 id="工程实现：CockroachDB"><a href="#工程实现：CockroachDB" class="headerlink" title="工程实现：CockroachDB"></a><span style="color:#339AFF;">工程实现：CockroachDB</span></h1><p>RW反向依赖是一个非常特别的存在，而特别之处就在于传统的锁机制无法记录这种情况。因此在论文“SerializableSnapshotIsolationinPostgreSQL”中提出，增加一种锁SIREAD，用来记录快照隔离（SI）上所有执行过的读操作（Read），从而识别RW反向依赖。本质上，SIREAD并不是锁，只是一种标识。但这个方案面临的困境是，读操作涉及到的数据范围实在太大，跟踪标识带来的成本可能比S2PL还要高，也就无法达到最初的目标。</p>
+<p>针对这个问题，CockroachDB做了一个关键设计，读时间戳缓存（ReadTimestampCache），简称RTC。</p>
+<p>基于RTC的新方案是这样的，当执行任何的读取操作时，操作的时间戳都会被记录在所访问节点的本地RTC中。当任何写操作访问这个节点时，都会以将要访问的Key为输入，向RTC查询最大的读时间戳（MRT），如果MRT大于这个写入操作的时间戳，那继续写入就会形成RW依赖。这时就必须终止并重启写入事务，让写入事务拿到一个更大的时间戳重新尝试。</p>
+<p>具体来说，RTC是以Key的范围来组织读时间戳的。这样，当读取操作携带了谓词条件，比如where子句，对应的操作就是一个范围读取，会覆盖若干个Key，那么整个Key的范围也可以被记录在RTC中。这样处理的好处是，可以兼容一种特殊情况。</p>
+<p>例如，事务T1第一次范围读取（RangeScan）数据表，where条件是“&gt;=1and&lt;=5”，读取到1、2、5三个值，T1完成后，事务T2在该表插入了4，因为RTC记录的是范围区间[1,5]，所以4也可以被检测出存在RW依赖。这个地方，有点像MySQL间隙锁的原理。</p>
+<p>RTC是一个大小有限的，采用LRU（LeastRecentlyUsed，最近最少使用）淘汰算法的缓存。当达到存储上限时，最老的时间戳会被抛弃。为了应对缓存超限的情况，会将RTC中出现过的所有Key上最早的那个读时间戳记录下来，作为低水位线（LowWaterMark）。如果一个写操作将要写的Key不在RTC中，则会返回这个低水位线。</p>
+<h1 id="相对乐观"><a href="#相对乐观" class="headerlink" title="相对乐观"></a><span style="color:#339AFF;">相对乐观</span></h1><p>到这里，你应该大概理解了SGT的运行机制，它和传统的S2PL一样属于悲观协议。但SGT没有锁的管理成本，所以性能比S2PL更好。</p>
+<p>CockroachDB基于SGT理论进行工程化，使可串行化真正成为生产级可用的隔离级别。从整体并发控制机制看，CockroachDB和上一讲的TiDB一样，虽然在局部看是悲观协议，但因为不符合严格的VRW顺序，所以在全局来看仍是一个相对乐观的协议。</p>
+<p>这种乐观协议同样存在第13讲提到的问题，所以CockroachDB也在原有基础上进行了改良，通过增加全局的锁表（LockTable），使用加锁的方式，先进行一轮全局有效性验证，确定无冲突的情况下，再使用单个节点的SGT。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>有关悲观协议的内容就聊到这里了，我们一起梳理下今天课程的重点。</p>
+<p>1，并发控制机制的划分方法很多，没有统一标准，我们使用了TransactionalInformationSystems:Theory,Algorithms,andthePracticeofConcurrencyControlandRecovery提出的划分标准，分为悲观协议与乐观协议两种。这里的乐观协议是上一讲提到的狭义乐观协议，悲观协议又分为锁和非锁两大类，我们简单介绍了2PL这一个分支。</p>
+<p>2，我们回顾了Percolator模型，按照S2PL的定义，Percoloatro本质就是S2PL，因此TiDB的乐观锁也属于S2PL。</p>
+<p>3，S2PL是数据库并发控制的主流技术，但是锁管理复杂，在实现串行化隔离级别时开销太大。而后，我们讨论了非锁协议中的串行化图检测（SGT）。PostgreSQL最早提出了SGT的工程实现方式SSI。CockroachDB在此基础上又进行了优化，降低了SIREAD的开销，是生产级的可串行化隔离。</p>
+<p>4，CockroachDB最初和TiDB一样都是局部采用悲观协议，而不做全局有效性验证，是广义的乐观协议。后来，CockroachDB同样也将乐观协议改为悲观协议，采用的方式是增加全局的锁表，进行全局有效性验证，而后再转入单个的SGT处理。</p>
+<p>今天的课程中，我们提到了串行化理论，只有当相关事务形成DAG图时，这些事务才是可串行化的。这个理论不仅适用于SGT，2PL的最终调度结果也同样是DAG图。在更大范围内，批量任务调度时DAG也同样被作为衡量标准，例如Spark。</p>
+<img src="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/12.webp">
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>课程的最后，我们来看看今天的思考题。在第11讲中我们提到了MVCC。有的数据库教材中将MVCC作为一种重要的并发控制技术，与乐观协议、悲观协议并列，但我们今天并没有单独提到它。所以，我的问题是，你觉得该如何理解MVCC与乐观协议、悲观协议的关系呢？</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/分布式数据库/" rel="tag"># 分布式数据库</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/11/06/13-隔离性：为什么使用乐观协议的分布式数据库越来越少/" rel="next" title="13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?">
+                <i class="fa fa-chevron-left"></i> 13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/11/07/使用Redis实现一个分布式锁/" rel="prev" title="使用Redis实现一个分布式锁">
+                使用Redis实现一个分布式锁 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">学如逆水行舟，不进则退</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">794</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">17</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">60</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2022/11/07/使用Redis实现一个分布式锁/" title="使用Redis实现一个分布式锁" target="_blank">使用Redis实现一个分布式锁</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/" title="14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？" target="_blank">14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/11/06/13-隔离性：为什么使用乐观协议的分布式数据库越来越少/" title="13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?" target="_blank">13 | 隔离性：为什么使用乐观协议的分布式数据库越来越少?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/11/06/12-隔离性：看不见的读写冲突，要怎么处理？/" title="12 | 隔离性：看不见的读写冲突，要怎么处理？" target="_blank">12 | 隔离性：看不见的读写冲突，要怎么处理？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/11/06/25｜事务（四）：持久性，吃一碗粉就付一碗粉的钱/" title="25 ｜ 事务（四）：持久性，吃一碗粉就付一碗粉的钱" target="_blank">25 ｜ 事务（四）：持久性，吃一碗粉就付一碗粉的钱</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#悲观协议的分类"><span class="nav-number">1.</span> <span class="nav-text">悲观协议的分类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#两阶段封锁（Two-Phase-Locking，2PL）"><span class="nav-number">2.</span> <span class="nav-text">两阶段封锁（Two-Phase Locking，2PL）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#串行化图检测（SGT）"><span class="nav-number">3.</span> <span class="nav-text">串行化图检测（SGT）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#理论来源：PostgreSQL"><span class="nav-number">3.1.</span> <span class="nav-text">理论来源：PostgreSQL</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#工程实现：CockroachDB"><span class="nav-number">4.</span> <span class="nav-text">工程实现：CockroachDB</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#相对乐观"><span class="nav-number">5.</span> <span class="nav-text">相对乐观</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">6.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#思考题"><span class="nav-number">7.</span> <span class="nav-text">思考题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2022</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">6.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">105:13</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
