@@ -114,7 +114,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/09/09/11-怎么给字符串字段加索引？/1.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/09/11-怎么给字符串字段加索引？/2.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/09/11-怎么给字符串字段加索引？/3.webp">
-<meta property="og:updated_time" content="2022-09-14T03:47:23.415Z">
+<meta property="og:updated_time" content="2022-11-08T00:34:14.166Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="11 | 怎么给字符串字段加索引？">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -447,7 +447,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-09-14 11:47:23" itemprop="dateModified" datetime="2022-09-14T11:47:23+08:00">2022-09-14</time>
+                <time title="修改时间：2022-11-08 08:34:14" itemprop="dateModified" datetime="2022-11-08T08:34:14+08:00">2022-11-08</time>
               
             
           </span>
@@ -567,14 +567,14 @@
 <p>首先，你可以使用下面这个语句，算出这个列上有多少个不同的值：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">count</span>(<span class="keyword">distinct</span> email) <span class="keyword">as</span> L <span class="keyword">from</span> SUser;</span><br></pre></td></tr></table></figure></p>
 <p>然后，依次选取不同长度的前缀来看这个值，比如我们要看一下4~7个字节的前缀索引，可以用这个语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> </span><br><span class="line">    <span class="keyword">count</span>(<span class="keyword">distinct</span> <span class="keyword">left</span>(email,<span class="number">4</span>)）<span class="keyword">as</span> L4,</span><br><span class="line">    <span class="keyword">count</span>(<span class="keyword">distinct</span> <span class="keyword">left</span>(email,<span class="number">5</span>)）<span class="keyword">as</span> L5,</span><br><span class="line">    <span class="keyword">count</span>(<span class="keyword">distinct</span> <span class="keyword">left</span>(email,<span class="number">6</span>)）<span class="keyword">as</span> L6,</span><br><span class="line">    <span class="keyword">count</span>(<span class="keyword">distinct</span> <span class="keyword">left</span>(email,<span class="number">7</span>)）<span class="keyword">as</span> L7,</span><br><span class="line"><span class="keyword">from</span> SUser;</span><br></pre></td></tr></table></figure></p>
 <p>当然，使用前缀索引很可能会损失区分度，所以你需要预先设定一个可以接受的损失比例，比如5%。然后，在返回的L4~L7中，找出不小于<code>L*95%</code>的值，假设这里L6、L7都满足，你就可以选择前缀长度为6。</p>
-<h1 id="前缀索引对覆盖索引的影响"><a href="#前缀索引对覆盖索引的影响" class="headerlink" title="前缀索引对覆盖索引的影响"></a>前缀索引对覆盖索引的影响</h1><p>前面我们说了使用前缀索引可能会增加扫描行数，这会影响到性能。其实，前缀索引的影响不止如此，我们再看一下另外一个场景。</p>
+<h1 id="前缀索引对覆盖索引的影响"><a href="#前缀索引对覆盖索引的影响" class="headerlink" title="前缀索引对覆盖索引的影响"></a><span style="color:#339AFF;">前缀索引对覆盖索引的影响</span></h1><p>前面我们说了使用前缀索引可能会增加扫描行数，这会影响到性能。其实，前缀索引的影响不止如此，我们再看一下另外一个场景。</p>
 <p>你先来看看这个SQL语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">id</span>,email <span class="keyword">from</span> SUser <span class="keyword">where</span> email=<span class="string">'zhangssxyz@xxx.com'</span>;</span><br></pre></td></tr></table></figure></p>
 <p>与前面例子中的SQL语句<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">id</span>,<span class="keyword">name</span>,email <span class="keyword">from</span> SUser <span class="keyword">where</span> email=<span class="string">'zhangssxyz@xxx.com'</span>;</span><br></pre></td></tr></table></figure></p>
 <p>相比，这个语句只要求返回id和email字段。</p>
 <p>所以，如果使用index1（即email整个字符串的索引结构）的话，可以利用覆盖索引，从index1查到结果后直接就返回了，不需要回到ID索引再去查一次。而如果使用index2（即email(6)索引结构）的话，就不得不回到ID索引再去判断email字段的值。</p>
 <p>即使你将index2的定义修改为email(18)的前缀索引，这时候虽然index2已经包含了所有的信息，但InnoDB还是要回到id索引再查一下，因为系统并不确定前缀索引的定义是否截断了完整信息。</p>
 <p>也就是说，使用前缀索引就用不上覆盖索引对查询性能的优化了，这也是你在选择是否使用前缀索引时需要考虑的一个因素。</p>
-<h1 id="其他方式"><a href="#其他方式" class="headerlink" title="其他方式"></a>其他方式</h1><p>对于类似于邮箱这样的字段来说，使用前缀索引的效果可能还不错。但是，遇到前缀的区分度不够好的情况时，我们要怎么办呢？</p>
+<h1 id="其他方式"><a href="#其他方式" class="headerlink" title="其他方式"></a><span style="color:#339AFF;">其他方式</span></h1><p>对于类似于邮箱这样的字段来说，使用前缀索引的效果可能还不错。但是，遇到前缀的区分度不够好的情况时，我们要怎么办呢？</p>
 <p>比如，我们国家的身份证号，一共18位，其中前6位是地址码，所以同一个县的人的身份证号前6位一般会是相同的。</p>
 <p>假设你维护的数据库是一个市的公民信息系统，这时候如果对身份证号做长度为6的前缀索引的话，这个索引的区分度就非常低了。</p>
 <p>按照我们前面说的方法，可能你需要创建长度为12以上的前缀索引，才能够满足区分度要求。</p>
@@ -592,7 +592,7 @@
 <p>1，从占用的额外空间来看，倒序存储方式在主键索引上，不会消耗额外的存储空间，而hash字段方法需要增加一个字段。当然，倒序存储方式使用4个字节的前缀长度应该是不够的，如果再长一点，这个消耗跟额外这个hash字段也差不多抵消了。</p>
 <p>2，在CPU消耗方面，倒序方式每次写和读的时候，都需要额外调用一次reverse函数，而hash字段的方式需要额外调用一次crc32()函数。如果只从这两个函数的计算复杂度来看的话，reverse函数额外消耗的CPU资源会更小些。</p>
 <p>3，从查询效率上看，使用hash字段方式的查询性能相对更稳定一些。因为crc32算出来的值虽然有冲突的概率，但是概率非常小，可以认为每次查询的平均扫描行数接近1。而倒序存储方式毕竟还是用的前缀索引的方式，也就是说还是会增加扫描行数。</p>
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>在今天这篇文章中，我跟你聊了聊字符串字段创建索引的场景。我们来回顾一下，你可以使用的方式有：</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>在今天这篇文章中，我跟你聊了聊字符串字段创建索引的场景。我们来回顾一下，你可以使用的方式有：</p>
 <p>1，直接创建完整索引，这样可能比较占用空间；</p>
 <p>2，创建前缀索引，节省空间，但会增加查询扫描次数，并且不能使用覆盖索引；</p>
 <p>3，倒序存储，再创建前缀索引，用于绕过字符串本身前缀的区分度不够的问题；</p>
@@ -601,7 +601,7 @@
 <p>好了，又到了最后的问题时间。</p>
 <p>如果你在维护一个学校的学生信息数据库，学生登录名的统一格式是<code>”学号@gmail.com&quot;</code>,而学号的规则是：十五位的数字，其中前三位是所在城市编号、第四到第六位是学校编号、第七位到第十位是入学年份、最后五位是顺序编号。</p>
 <p>系统登录的时候都需要学生输入登录名和密码，验证正确后才能继续使用系统。就只考虑登录验证这个行为的话，你会怎么设计这个登录名的索引呢？</p>
-<h1 id="上期问题时间"><a href="#上期问题时间" class="headerlink" title="上期问题时间"></a>上期问题时间</h1><p>上篇文章中的第一个例子，评论区有几位同学说没有复现，大家要检查一下隔离级别是不是RR（RepeatableRead，可重复读），创建的表t是不是InnoDB引擎。我把复现过程做成了一个<a href="https://time.geekbang.org/e575249f-7967-4980-b6bb-ef27208447ba" target="_blank" rel="noopener">视频</a>，供你参考。</p>
+<h1 id="上期问题时间"><a href="#上期问题时间" class="headerlink" title="上期问题时间"></a><span style="color:#339AFF;">上期问题时间</span></h1><p>上篇文章中的第一个例子，评论区有几位同学说没有复现，大家要检查一下隔离级别是不是RR（RepeatableRead，可重复读），创建的表t是不是InnoDB引擎。我把复现过程做成了一个<a href="https://time.geekbang.org/e575249f-7967-4980-b6bb-ef27208447ba" target="_blank" rel="noopener">视频</a>，供你参考。</p>
 <p>在上一篇文章最后，我给你留的问题是，为什么经过这个操作序列，explain的结果就不对了？这里，我来为你分析一下原因。</p>
 <p>delete语句删掉了所有的数据，然后再通过callidata()插入了10万行数据，看上去是覆盖了原来的10万行。</p>
 <p>但是，sessionA开启了事务并没有提交，所以之前插入的10万行数据是不能删除的。这样，之前的数据每一行数据都有两个版本，旧版本是delete之前的数据，新版本是标记为deleted的数据。</p>
@@ -1144,7 +1144,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">105:14</span>
+    <span title="站点阅读时长">105:15</span>
   
 </div>
 
