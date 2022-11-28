@@ -117,7 +117,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/11/19/18｜依赖管理：Go-Module-用法与原理/4.webp">
 <meta property="og:image" content="http://yoursite.com/2022/11/19/18｜依赖管理：Go-Module-用法与原理/5.webp">
 <meta property="og:image" content="http://yoursite.com/2022/11/19/18｜依赖管理：Go-Module-用法与原理/6.webp">
-<meta property="og:updated_time" content="2022-11-23T02:46:08.495Z">
+<meta property="og:updated_time" content="2022-11-25T08:31:00.865Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="18 ｜ 依赖管理：GoModule用法与原理">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -450,7 +450,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-11-23 10:46:08" itemprop="dateModified" datetime="2022-11-23T10:46:08+08:00">2022-11-23</time>
+                <time title="修改时间：2022-11-25 16:31:00" itemprop="dateModified" datetime="2022-11-25T16:31:00+08:00">2022-11-25</time>
               
             
           </span>
@@ -536,34 +536,33 @@
 <p>我们知道，一个大型程序会引入大量必要的第三方库，这就让这个程序形成了复杂的依赖关系网络。这种复杂性可能引发一系列问题，例如<strong>依赖过多、多重依赖、依赖冲突、依赖回圈等</strong>。因此，需要有专门的工具对程序的依赖进行管理。</p>
 <p>Go语言中的依赖管理经历了长时间的演进过程。在Go 1.5之前，Go官方通过GOPATH对依赖进行管理。但是由于GOPATH存在诸多问题，社区和官方尝试了诸多新的依赖管理工具，中间出现的Godep、Glide、Vendor等工具都不如人意，最终笑到最后的是在Go 1.11后引入，并在Go 1.13之后成为Go依赖管理主流的Go Modules。</p>
 <p>让我们先来看看GOPATH和它的不足之处。</p>
-<h1 id="GOPATH"><a href="#GOPATH" class="headerlink" title="GOPATH"></a>GOPATH</h1><h2 id="什么是GOPATH？"><a href="#什么是GOPATH？" class="headerlink" title="什么是GOPATH？"></a>什么是GOPATH？</h2><p>在Go 1.8及以上版本中，如果用户不指定GOPATH，GOPATH的路径就是默认的。我们可以通过输入<code>go env</code>或者<code>go env gopath</code>查看GOPATH的具体配置：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">C:\\Windows\\system32&gt; go env</span><br><span class="line"><span class="built_in">set</span> GOPATH=C:\\Users\\jackson\\go</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<h1 id="GOPATH"><a href="#GOPATH" class="headerlink" title="GOPATH"></a><span style="color:#339AFF;">GOPATH</span></h1><h2 id="什么是GOPATH？"><a href="#什么是GOPATH？" class="headerlink" title="什么是GOPATH？"></a><span style="color:#00ACC1;">什么是GOPATH？</span></h2><p>在Go 1.8及以上版本中，如果用户不指定GOPATH，GOPATH的路径就是默认的。我们可以通过输入<code>go env</code>或者<code>go env gopath</code>查看GOPATH的具体配置：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">C:\\Windows\\system32&gt; go env</span><br><span class="line"><span class="built_in">set</span> GOPATH=C:\\Users\\jackson\\go</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
 <p>GOPATH的路径在Mac和Linux操作系统下为$HOME/go，而在Windows操作系统下为%USERPROFILE%\go。我们可以把GOPATH可以理解为Go语言的工作空间，它内部存储了src、bin、pkg三个文件夹：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">go/</span><br><span class="line">├── bin</span><br><span class="line">├── pkg</span><br><span class="line">└── src</span><br></pre></td></tr></table></figure></p>
 <p>$GOPATH/bin目录下存储了通过<code>go install</code>安装的二进制文件。操作系统使用$PATH环境变量来查找不需要完整路径即可执行的二进制应用程序。建议将$GOPATH/bin目录添加到全局$PATH变量中。</p>
 <p>$GOPATH/pkg目录下会有一个文件夹（文件名根据操作系统的不同而有所不同，例如在Mac操作系统下为darwin_amd64）存储预编译的obj文件，以加快程序的后续编译。大多数开发人员不需要访问此目录。我们在后面还会看到，pkg下的mod文件会存储Go Modules的依赖。</p>
 <p>$GOPATH/src目录下存储项目的Go代码。通常包含多个由Git管理的存储库，每个存储库中都包含一个或多个package，每个package有多个目录，每个目录下都包含一个或多个Go源文件。整个路径看起来是下面的样子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">go/</span><br><span class="line">├── bin</span><br><span class="line">     └── main.exe</span><br><span class="line">├── pkg</span><br><span class="line">     ├── darwin_amd64</span><br><span class="line">     └── mod</span><br><span class="line">└── src</span><br><span class="line">    ├── github.com</span><br><span class="line">    │   ├── tylfin</span><br><span class="line">    │   │   ├── dynatomic</span><br><span class="line">    │   │   └── geospy</span><br><span class="line">    │   └── uudashr</span><br><span class="line">    │       └── gopkgs</span><br><span class="line">    └── golang.org</span><br><span class="line">        └── x</span><br><span class="line">            └── tools</span><br></pre></td></tr></table></figure></p>
 <p>在Go的早期版本中，可以使用<code>go get</code>指令从GitHub或其他地方获取Go项目代码。这时程序会默认将代码存储到$GOPATH/src目录下。例如，在拉取<code>go get github.com/dreamerjackson/theWayToGolang</code>时，目录结构如下所示：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">go/</span><br><span class="line">├── bin</span><br><span class="line">├── pkg</span><br><span class="line">└── src</span><br><span class="line">    └── github.com</span><br><span class="line">           └── dreamerjackson</span><br><span class="line">                     └── theWayToGolang</span><br></pre></td></tr></table></figure></p>
 <p>当我们使用<code>go get -u xxx</code>时，会将该项目以及项目所依赖的所有其他项目一并下载到$GOPATH/src目录下。</p>
-<p>在GOPATH模式下，如果我们在项目中导入了一个第三方包，例如<code>import &quot;github.com/gobuffalo/buffalo&quot;</code>。</p>
-<p>那么，实际引用的是$GOPATH/src/github.com/gobuffalo/buffalo文件中的代码。</p>
-<h2 id="GOPATH的落幕与依赖管理的历史"><a href="#GOPATH的落幕与依赖管理的历史" class="headerlink" title="GOPATH的落幕与依赖管理的历史"></a>GOPATH的落幕与依赖管理的历史</h2><p>GOPATH借鉴了谷歌内部使用的Blaze系统。在Blaze中，所有项目的源代码共用一个代码仓库。<code>go get</code>仅仅需要获取Master分支上最新的代码，不需要指定依赖的版本。</p>
+<p>在GOPATH模式下，如果我们在项目中导入了一个第三方包，例如<code>import &quot;github.com/gobuffalo/buffalo&quot;</code>。那么，实际引用的是$GOPATH/src/github.com/gobuffalo/buffalo文件中的代码。</p>
+<h2 id="GOPATH的落幕与依赖管理的历史"><a href="#GOPATH的落幕与依赖管理的历史" class="headerlink" title="GOPATH的落幕与依赖管理的历史"></a><span style="color:#00ACC1;">GOPATH的落幕与依赖管理的历史</span></h2><p>GOPATH借鉴了谷歌内部使用的Blaze系统。在Blaze中，所有项目的源代码共用一个代码仓库。<code>go get</code>仅仅需要获取Master分支上最新的代码，不需要指定依赖的版本。</p>
 <p>GOPATH这种版本管理方式配置简单，容易理解，在谷歌内部不会出现问题。但是在开源领域，一个GOPATH走天下的情况就行不通了。由于依赖的第三方包总是在变，而且还没有严格的约束，直接拉取外部包的最新版本时，甚至可能出现一更新依赖代码都编译不过的情况。因此，我们迫切需要新的依赖管理工具。</p>
 <p>2015年，Go 1.5版本首次实验性地加入了Vendor机制。项目的所有第三方依赖都可以存放在当前项目的Vendor目录下，再也不用为了应用不同版本的依赖对GOPATH环境变量“偷梁换柱”了，Go编译器优先感知和使用Vendor目录下缓存的第三方包。</p>
 <p>但即便有了Vendor的支持，Vendor内第三方依赖包代码的管理依旧不规范，要么需要手动处理，要么是借助Godep这样的第三方包管理工具。在这期间，社区也出现了大量的依赖管理工具，有点乱花渐欲迷人眼的态势。直到Go Modules出现，一锤定音。</p>
-<p>2018年初，Go team的技术负责人RussCox在博客上连续发表七篇文章，系统阐述了新的包依赖管理工具:vgo。vgo的主要思路包括：语义版本控制、最小版本选择、引入Go Modules等。</p>
+<p>2018年初，Go team的技术负责人RussCox在博客上连续发表七篇文章，系统阐述了新的包依赖管理工具：vgo。vgo的主要思路包括：语义版本控制、最小版本选择、引入Go Modules等。</p>
 <p>2018年5月，RussCox的提案被接收，此后vgo代码被并入了Go主干，并正式命名为Modules。</p>
 <p>2018年8月，Go 1.11发布，Modules作为官方试验一同发布。</p>
 <p>2019年9月，Go 1.13发布，只要目录下有go.mod文件，Go编译器都会默认使用Modules来管理依赖。同时，新版本还添加了GOPROXY、GOSUMDB、GOPRIVATE等多个与依赖管理有关的环境变量。</p>
-<h1 id="Go-Modules"><a href="#Go-Modules" class="headerlink" title="Go Modules"></a>Go Modules</h1><p>在好的依赖管理出现之前，有一些问题长期困扰Go语言的开发人员：</p>
+<h1 id="Go-Modules"><a href="#Go-Modules" class="headerlink" title="Go Modules"></a><span style="color:#339AFF;">Go Modules</span></h1><p>在好的依赖管理出现之前，有一些问题长期困扰Go语言的开发人员：</p>
 <ul>
 <li>能不能让Go工程代码脱离GOPATH？</li>
 <li>能否处理版本依赖问题并且自动选择最兼容的依赖版本？</li>
 <li>能否在本地管理依赖项，自定义依赖项？</li>
 </ul>
 <p>Go Modules巧妙解决了上面这些问题。</p>
-<h2 id="import路径问题"><a href="#import路径问题" class="headerlink" title="import路径问题"></a>import路径问题</h2><p>在GOPATH中，“导入路径”与“项目在文件系统中的目录结构和名称”必须是匹配的。但是，如果我们希望项目的实际路径和导入路径不同，例如import路径为github.com/gobuffalo/buffalo，我们希望项目的实际路径在另一个任意的文件目录下(例如，/users/gobuffalo/buffalo)，这个期待能否实现呢？</p>
-<p>答案是肯定的。Go Modules可以通过在go.mod文件中指定模块名来解决这一问题。go.mod文件如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## go.mod</span></span><br><span class="line">01 module github.com/gobuffalo/buffalo</span><br><span class="line">02</span><br><span class="line">...</span><br><span class="line">06</span><br></pre></td></tr></table></figure></p>
+<h2 id="import路径问题"><a href="#import路径问题" class="headerlink" title="import路径问题"></a><span style="color:#00ACC1;">import路径问题</span></h2><p>在GOPATH中，“导入路径”与“项目在文件系统中的目录结构和名称”必须是匹配的。但是，如果我们希望项目的实际路径和导入路径不同，例如import路径为github.com/gobuffalo/buffalo，我们希望项目的实际路径在另一个任意的文件目录下(例如，/users/gobuffalo/buffalo)，这个期待能否实现呢？</p>
+<p>答案是肯定的。Go Modules可以通过在go.mod文件中指定模块名来解决这一问题。go.mod文件如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## &lt;span style="color:#00ACC1;"&gt;go.mod</span></span><br><span class="line">01 module github.com/gobuffalo/buffalo</span><br><span class="line">02</span><br><span class="line">...</span><br><span class="line">06</span><br></pre></td></tr></table></figure></p>
 <p>go.mod文件的第一行指定了模块名，开发人员可以用模块名引用当前项目中任何package的路径名。这样，无论当前项目路径在什么位置，都可以使用模块名来解析代码内部的import。</p>
-<h2 id="代码捆绑和版本控制问题"><a href="#代码捆绑和版本控制问题" class="headerlink" title="代码捆绑和版本控制问题"></a>代码捆绑和版本控制问题</h2><p>对于任何版本控制（VCS，version control system）工具，我们都能在任何提交的commit处打上tag标记。</p>
+<h2 id="代码捆绑和版本控制问题"><a href="#代码捆绑和版本控制问题" class="headerlink" title="代码捆绑和版本控制问题"></a><span style="color:#00ACC1;">代码捆绑和版本控制问题</span></h2><p>对于任何版本控制（VCS，version control system）工具，我们都能在任何提交的commit处打上tag标记。</p>
 <img src="/2022/11/19/18｜依赖管理：Go-Module-用法与原理/1.webp">
 <p>开发人员可以使用VCS工具引用特定标签，将软件包的任何指定版本克隆到本地。当我们引用一个第三方包时，出于测试等不同的目的，可能并不总是希望应用项目最新的代码，而是想要应用某一个特定的，与当前项目兼容的代码。</p>
 <p>对于特定第三方库来说，维护者可能并没有意识到有人在使用他们的代码，或者代码库由于某种原因进行了巨大的不兼容更新。因此，我们希望能够明确使用的第三方包的版本，这样才能完成可重复的构建，并且希望能够自动下载、管理依赖包。一个依赖管理工具至少需要考虑下面几个问题。</p>
@@ -580,10 +579,14 @@
 <p>在mod目录下，我们能够看到模块名路径中的第一部分即为顶级文件夹，如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">~/go/pkg/mod » ls -l  </span><br><span class="line">drwxr-xr-x    6 jackson  staff    192  1 15 20:50 cache</span><br><span class="line">drwxr-xr-x    7 jackson  staff    224  2 20 17:50 cloud.google.com</span><br><span class="line">drwxr-xr-x    3 jackson  staff     96  2 18 12:03 git.apache.org</span><br><span class="line">drwxr-xr-x  327 jackson  staff  10464  2 28 00:02 github.com</span><br><span class="line">drwxr-xr-x    8 jackson  staff    256  2 20 17:27 gitlab.followme.com</span><br><span class="line">drwxr-xr-x    6 jackson  staff    192  2 19 22:05 go.etcd.io</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
 <p>当我们打开一个实际的模块时（例如github.com/nats-io），会看到许多与NATS库有关的模块及其版本：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">~/go/pkg/mod » ls -l github.com/nats-io</span><br><span class="line">total 0</span><br><span class="line">dr-x------  24 jackson  staff   768  1 17 10:27 gnatsd@v1.4.1</span><br><span class="line">dr-x------  15 jackson  staff   480  2 17 22:22 go-nats-streaming@v0.4.0</span><br><span class="line">dr-x------  26 jackson  staff   832  2 19 22:05 go-nats@v1.7.0</span><br><span class="line">dr-x------  26 jackson  staff   832  1 17 10:27 go-nats@v1.7.2</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
 <p>为了拥有一个干净的工作环境，我们可以用下面的指令清空缓存区。但是要注意，在正常的工作流程中，是不需要执行这段代码的：$goclean-modcache</p>
-<p>Go Modules实践我们从GOPATH外开始一个新的项目讲解Go Modules的使用方法和原理。首先新建一个文件夹和一个main.go文件：</p>
-<p>接着在当前目录下，执行下面这段指令，初始化module：</p>
-<p>gomodinit指令的功能很简单，即自动生成一个go.mod文件，后面紧跟的路径就是自定义的模块名。习惯上，我们会以托管代码仓库的URL作为模块名。go.mod文件位于项目的根目录，内容如下所示，第一行就是模块名（此例中，代码放置在这个目录下）。</p>
-<p>go.mod文件第三行指定了当前模块中使用的Go的版本，不同的Go版本可能对应不同的依赖管理行为。例如，Go1.17之后，才会有通过Go Modules分支修剪来加速依赖拉取和编译的特性。如果你想深入了解不同的Go版本在依赖管理上的差异，可以阅读这篇文章。引入第三方模块接下来，我们要书写初始化的代码片段。</p>
+<h2 id="Go-Modules实践"><a href="#Go-Modules实践" class="headerlink" title="Go Modules实践"></a>Go Modules实践</h2><p>我们从GOPATH外开始一个新的项目讲解Go Modules的使用方法和原理。首先新建一个文件夹和一个main.go文件：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> <span class="variable">$HOME</span></span><br><span class="line">$ mkdir mathlib</span><br><span class="line">$ <span class="built_in">cd</span> mathlib</span><br><span class="line">$ touch main.go</span><br></pre></td></tr></table></figure></p>
+<p>接着在当前目录下，执行下面这段指令，初始化module：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/mathlib » go mod init github.com/dreamerjackson/mathlib</span><br></pre></td></tr></table></figure></p>
+<p><code>go mod init</code>指令的功能很简单，即自动生成一个go.mod文件，后面紧跟的路径就是自定义的模块名。习惯上，我们会以托管代码仓库的URL作为模块名。go.mod文件位于项目的根目录，内容如下所示，第一行就是模块名（此例中，代码放置在这个目录下）。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">module github.com/dreamerjackson/mathlib</span><br><span class="line"></span><br><span class="line">go 1.13</span><br></pre></td></tr></table></figure></p>
+<p>go.mod文件第三行指定了当前模块中使用的Go的版本，不同的Go版本可能对应不同的依赖管理行为。例如，Go1.17之后，才会有通过Go Modules分支修剪来加速依赖拉取和编译的特性。如果你想深入了解不同的Go版本在依赖管理上的差异，可以阅读这篇文章。</p>
+<ul>
+<li>引入第三方模块</li>
+</ul>
+<p>接下来，我们要书写初始化的代码片段。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"github.com/dreamerjackson/mydiv"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>我在代码片段中导入了为了讲解Go Modules而特地引入的github.com/dreamerjackson/mydiv，它的作用是进行简单的除法操作，同时我还引入了另一个包（github.com/pkg/errors）用于包装错误，代码如下：</p>
 <p>在GoLand中，我们可以看到导入的package是红色的，这是因为这个时候在Go Modules的缓存中找不到这个package。</p>
 <img src="/2022/11/19/18｜依赖管理：Go-Module-用法与原理/2.webp">
@@ -646,7 +649,7 @@
 <p>最后，我们接着执行golist，进一步确认模块v1与v2是共存的，验证成功～</p>
 <p>伪版本当我们引入了一个没有用语义版本管理的模块，或者我们希望用某一个特殊的commit快照进行测试时，导入模块的版本会是伪版本，例如：v0.0.0-20191109021931-daa7c04131f5就是一个伪版本。伪版本包含了3个部分：基本版本前缀：通常为vX.0.0或vX.Y.Z-0。vX.Y.Z-0表明该commit快照派生自某一个语义版本，vX.0.0表明该commit快照找不到派生的语义版本；时间戳：格式为“yyyymmddhhmmss”，它是创建commit的UTC时间；最后是长度为12的commit号。我们在Go代码库的设计中，应该严格遵守语义版本的规范，尽可能保证代码具有向后兼容性。我在实践中看到过很多依赖库由于代码不兼容带来了许多问题，v1与v2版本如果同时存在也会增加理解的成本，这些都是我们要尽量避免的。</p>
 <p>总结我们这节课就讲到这里。这节课，我们简单梳理了一下Go语言的依赖管理进程。在Go1.5之前，Go官方主要使用GOPATH管理依赖，但是由于GOPATH存在很多问题，在后续的版本中，GOPATH逐渐式微。Go1.13之后，Go Modules成为了Go项目依赖管理的主流方式。Go Modules提供了脱离GOPATH管理Go代码的方式。同时提供了代码捆绑、版本控制、依赖管理的功能，供全球开发人员使用、构建、下载、授权、验证、获取、缓存和重用模块。Go Modules让世界各地的开发者能够始终得到完全相同的代码，而不管它被构建了多少次，从何处获取及由谁获取。</p>
-<h1 id="写在最后"><a href="#写在最后" class="headerlink" title="写在最后"></a>写在最后</h1><p>最近，我们收到了一些同学对于一门实战课程还未看到代码的困惑，这里我统一做一个回复。</p>
+<h1 id="写在最后"><a href="#写在最后" class="headerlink" title="写在最后"></a><span style="color:#339AFF;">写在最后</span></h1><p>最近，我们收到了一些同学对于一门实战课程还未看到代码的困惑，这里我统一做一个回复。</p>
 <p>我们的这个专栏，内容比较庞大。想要交付给大家的不只是一个实战项目，更会介绍为什么要这样去写代码。所以在专栏的前期，我做了一些铺垫。回顾一下目前为止的知识：</p>
 <ul>
 <li>1-3讲，我们回顾了Go的基础知识，也看到了一条完整的进阶学习路线；</li>
@@ -660,7 +663,7 @@
 </ul>
 <p>可以看到，我想打造的这个专栏拥有一条比较全面、完整的逻辑链，前面这些篇幅都是围绕着整个项目展开的。我的教育理念和课程设计可能并不能满足每个人的需求，但是相信很快你会看到自己想要看到的内容。这些前期的知识，后面回过头来看，也许别有一番滋味。</p>
 <p>在未来，我们也会在不违背课程设计初衷的前提下做更多实战侧的调整。也期待过段时间，还能够看到你们的反馈。</p>
-<h1 id="课后题"><a href="#课后题" class="headerlink" title="课后题"></a>课后题</h1><p>最后，我也给你留一道思考题。你认为应该如何解决Go项目常常遇到的循环依赖问题？</p>
+<h1 id="课后题"><a href="#课后题" class="headerlink" title="课后题"></a><span style="color:#339AFF;">课后题</span></h1><p>最后，我也给你留一道思考题。你认为应该如何解决Go项目常常遇到的循环依赖问题？</p>
 
       
     </div>
@@ -780,7 +783,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">815</span>
+                    <span class="site-state-item-count">817</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1113,6 +1116,14 @@
                 
                 
                   <li>
+                    <a href="/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/" title target="_blank"></a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/11/25/20｜面向组合：接口的使用场景与底层原理/" title="20｜面向组合：接口的使用场景与底层原理" target="_blank">20｜面向组合：接口的使用场景与底层原理</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/11/22/19｜从正则表达式到CSS选择器：4种网页文本处理手段/" title="19 ｜ 从正则表达式到CSS选择器：4种网页文本处理手段" target="_blank">19 ｜ 从正则表达式到CSS选择器：4种网页文本处理手段</a>
                   </li>
                 
@@ -1122,14 +1133,6 @@
                 
                   <li>
                     <a href="/2022/11/19/17｜巨人的肩膀：HTTP协议与Go标准库原理/" title="17 ｜ 巨人的肩膀：HTTP协议与Go标准库原理" target="_blank">17 ｜ 巨人的肩膀：HTTP协议与Go标准库原理</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/11/19/16｜网络爬虫：一次HTTP请求的魔幻旅途/" title="16 ｜ 网络爬虫：一次HTTP请求的魔幻旅途" target="_blank">16 ｜ 网络爬虫：一次HTTP请求的魔幻旅途</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/11/13/07｜冰川之下：深入Go高并发网络模型/" title="07 ｜ 冰川之下：深入Go高并发网络模型" target="_blank">07 ｜ 冰川之下：深入Go高并发网络模型</a>
                   </li>
                 
               </ul>
@@ -1155,7 +1158,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#GOPATH"><span class="nav-number">1.</span> <span class="nav-text">GOPATH</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是GOPATH？"><span class="nav-number">1.1.</span> <span class="nav-text">什么是GOPATH？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#GOPATH的落幕与依赖管理的历史"><span class="nav-number">1.2.</span> <span class="nav-text">GOPATH的落幕与依赖管理的历史</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Go-Modules"><span class="nav-number">2.</span> <span class="nav-text">Go Modules</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#import路径问题"><span class="nav-number">2.1.</span> <span class="nav-text">import路径问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#代码捆绑和版本控制问题"><span class="nav-number">2.2.</span> <span class="nav-text">代码捆绑和版本控制问题</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#写在最后"><span class="nav-number">3.</span> <span class="nav-text">写在最后</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#课后题"><span class="nav-number">4.</span> <span class="nav-text">课后题</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#GOPATH"><span class="nav-number">1.</span> <span class="nav-text">GOPATH</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是GOPATH？"><span class="nav-number">1.1.</span> <span class="nav-text">什么是GOPATH？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#GOPATH的落幕与依赖管理的历史"><span class="nav-number">1.2.</span> <span class="nav-text">GOPATH的落幕与依赖管理的历史</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Go-Modules"><span class="nav-number">2.</span> <span class="nav-text">Go Modules</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#import路径问题"><span class="nav-number">2.1.</span> <span class="nav-text">import路径问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#代码捆绑和版本控制问题"><span class="nav-number">2.2.</span> <span class="nav-text">代码捆绑和版本控制问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-Modules实践"><span class="nav-number">2.3.</span> <span class="nav-text">Go Modules实践</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#写在最后"><span class="nav-number">3.</span> <span class="nav-text">写在最后</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#课后题"><span class="nav-number">4.</span> <span class="nav-text">课后题</span></a></li></ol></div>
             
 
           </div>
@@ -1201,7 +1204,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">106:28</span>
+    <span title="站点阅读时长">106:42</span>
   
 </div>
 
