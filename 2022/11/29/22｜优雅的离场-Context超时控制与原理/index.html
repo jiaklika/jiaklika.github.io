@@ -113,7 +113,7 @@
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2022/11/29/22｜优雅的离场-Context超时控制与原理/1.jpg">
 <meta property="og:image" content="http://yoursite.com/2022/11/29/22｜优雅的离场-Context超时控制与原理/2.jpg">
-<meta property="og:updated_time" content="2022-11-30T02:39:20.782Z">
+<meta property="og:updated_time" content="2022-11-30T05:42:07.687Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="22｜优雅的离场：Context超时控制与原理">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -446,7 +446,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-11-30 10:39:20" itemprop="dateModified" datetime="2022-11-30T10:39:20+08:00">2022-11-30</time>
+                <time title="修改时间：2022-11-30 13:42:07" itemprop="dateModified" datetime="2022-11-30T13:42:07+08:00">2022-11-30</time>
               
             
           </span>
@@ -537,7 +537,7 @@
 <p>那么Context的作用是什么？应该如何去使用它？Context的最佳实践又是怎样的？让我们带着这些疑问开始这节课的学习。</p>
 <h1 id="我们为什么需要Context？"><a href="#我们为什么需要Context？" class="headerlink" title="我们为什么需要Context？"></a><span style="color:#339AFF;">我们为什么需要Context？</span></h1><p>协程在Go中是非常轻量级的资源，它可以被动态地创建和销毁。例如，在典型的HTTP服务器中，每个新建立的连接都会新建一个协程。我们之前介绍HTTP请求时就说过，标准库内部在处理时创建了多个协程。当请求完成后，协程也随之被销毁。但是，请求连接可能临时终止也可能超时。这个时候，我们希望安全并及时地停止协程和与协程关联的子协程，避免白白消耗资源。</p>
 <p>在没有Context之前我们一般会怎么做呢？我们需要借助通道的close机制，这个机制会唤醒所有监听该通道的协程，并触发相应的退出逻辑。写法大致如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> &lt;-c:</span><br><span class="line">    <span class="comment">// 业务逻辑</span></span><br><span class="line">    <span class="keyword">case</span> &lt;-done:</span><br><span class="line">    fmt.Println(<span class="string">"退出协程"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>随着Go语言的发展，越来越多的程序都开始需要进行这样的处理。然而不同的程序，甚至同一程序的不同代码片段，它们的退出逻辑的命名和处理方式都会有所不同。例如，有的将退出通道命名为了done，有的命名为了closed，有的采取了函数包裹的形式<code>&lt;-g.dnoe()</code>。如果有一套统一的规范，代码的语义将会更加清晰明了。例如，引入了Context之后，退出协程的规范写法将是“<code>&lt;-ctx.Done()</code>”。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Stream</span><span class="params">(ctx context.Context, out <span class="keyword">chan</span>&lt;- Value)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        v, err := DoSomething(ctx)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">            <span class="keyword">return</span> ctx.Err()</span><br><span class="line">        <span class="keyword">case</span> out &lt;- v:</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>随着Go语言的发展，越来越多的程序都开始需要进行这样的处理。然而不同的程序，甚至同一程序的不同代码片段，它们的退出逻辑的命名和处理方式都会有所不同。例如，有的将退出通道命名为了done，有的命名为了closed，有的采取了函数包裹的形式<code>&lt;-g.done()</code>。如果有一套统一的规范，代码的语义将会更加清晰明了。例如，引入了Context之后，退出协程的规范写法将是“<code>&lt;-ctx.Done()</code>”。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Stream</span><span class="params">(ctx context.Context, out <span class="keyword">chan</span>&lt;- Value)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        v, err := DoSomething(ctx)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">            <span class="keyword">return</span> ctx.Err()</span><br><span class="line">        <span class="keyword">case</span> out &lt;- v:</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>为了对超时进行规范处理，在Go 1.7之后，Go官方引入了Context来实现协程的退出。不仅如此，Context还提供了跨协程、甚至是跨服务的退出管理。 </p>
 <p><strong>Context本身的含义是上下文，我们可以理解为它内部携带了超时信息、退出信号，以及其他一些上下文相关的值（例如携带本次请求中上下游的唯一标识trace_id）</strong>。由于Context携带了上下文信息，父子协程就可以“联动”了。</p>
 <p>我们举个例子来看看Context是怎么处理协程级联退出情况的。</p>
@@ -639,6 +639,10 @@
 
           <div class="post-nav-prev post-nav-item">
             
+              <a href="/2022/12/01/23｜偷梁换柱：为爬虫安上代理的翅膀/" rel="prev" title="23｜偷梁换柱：为爬虫安上代理的翅膀">
+                23｜偷梁换柱：为爬虫安上代理的翅膀 <i class="fa fa-chevron-right"></i>
+              </a>
+            
           </div>
         </div>
       
@@ -708,7 +712,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">818</span>
+                    <span class="site-state-item-count">821</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1041,23 +1045,23 @@
                 
                 
                   <li>
+                    <a href="/2022/12/06/25-运筹帷幄-协程的运行机制与调度器原理/" title="25 | 运筹帷幄: 协程的运行机制与调度器原理" target="_blank">25 | 运筹帷幄: 协程的运行机制与调度器原理</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/12/06/24｜日志处理：日志规范与最佳实践/" title="24｜日志处理：日志规范与最佳实践" target="_blank">24｜日志处理：日志规范与最佳实践</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2022/12/01/23｜偷梁换柱：为爬虫安上代理的翅膀/" title="23｜偷梁换柱：为爬虫安上代理的翅膀" target="_blank">23｜偷梁换柱：为爬虫安上代理的翅膀</a>
+                  </li>
+                
+                  <li>
                     <a href="/2022/11/29/22｜优雅的离场-Context超时控制与原理/" title="22｜优雅的离场：Context超时控制与原理" target="_blank">22｜优雅的离场：Context超时控制与原理</a>
                   </li>
                 
                   <li>
                     <a href="/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/" title="21｜采集引擎：实战接口抽象与模拟浏览器访问" target="_blank">21｜采集引擎：实战接口抽象与模拟浏览器访问</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/11/25/20｜面向组合：接口的使用场景与底层原理/" title="20｜面向组合：接口的使用场景与底层原理" target="_blank">20｜面向组合：接口的使用场景与底层原理</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/11/22/19｜从正则表达式到CSS选择器：4种网页文本处理手段/" title="19 ｜ 从正则表达式到CSS选择器：4种网页文本处理手段" target="_blank">19 ｜ 从正则表达式到CSS选择器：4种网页文本处理手段</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2022/11/19/18｜依赖管理：Go-Module-用法与原理/" title="18 ｜ 依赖管理：GoModule用法与原理" target="_blank">18 ｜ 依赖管理：GoModule用法与原理</a>
                   </li>
                 
               </ul>
@@ -1129,7 +1133,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">106:55</span>
+    <span title="站点阅读时长">108:15</span>
   
 </div>
 
