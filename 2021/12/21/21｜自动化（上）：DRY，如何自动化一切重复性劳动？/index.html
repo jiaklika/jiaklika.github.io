@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2022-10-11T11:04:30.119Z">
+<meta property="og:updated_time" content="2022-12-14T09:25:36.346Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="21 ｜ 自动化（上）：DRY，如何自动化一切重复性劳动？">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-10-11 19:04:30" itemprop="dateModified" datetime="2022-10-11T19:04:30+08:00">2022-10-11</time>
+                <time title="修改时间：2022-12-14 17:25:36" itemprop="dateModified" datetime="2022-12-14T17:25:36+08:00">2022-12-14</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">6.6k</span>
+                <span title="本文字数">12k</span>
               
 
               
@@ -503,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">6 分钟</span>
+                <span title="阅读时长">11 分钟</span>
               
             </div>
           
@@ -525,24 +525,52 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-<p>不知道你有没有听过这种说法，优秀程序员应该有三大美德：懒惰、急躁和傲慢，这句话是Perl语言的发明者LarryWall说的。其中懒惰这一点指的就是，程序员为了懒惰，不重复做同样的事情，会思考是否能把一切重复性的劳动自动化（don’trepeatyourself）。而框架开发到这里，我们也需要思考，有哪些重复性劳动可以自动化么？从第十章到现在我们一直在说，框架核心是服务提供者，在开发具体应用时，一定会有很多需求要创建各种各样的服务，毕竟“一切皆服务”；而每次创建服务的时候，我们都需要至少编写三个文件，服务接口、服务提供者、服务实例。如果能自动生成三个文件，提供一个“自动化创建服务的工具”，应该能节省不少的操作。</p>
-<p>说到创建工具，我们经常需要为了一个事情而创建一个命令行工具，而每次创建命令行工具，也都需要创建固定的Command.go文件，其中有固定的Command结构，这些代码我们能不能偷个懒，“自动化创建命令行工具”呢？另外之前我们做过几次中间件的迁移，先将源码拷贝复制，再修改对应的Gin路径，这个操作也是颇为繁琐的。那么，我们是否可以写一个“自动化中间件迁移工具”，一个命令自动复制和替换呢？这些命令都是可以实现的，这节课我们就来尝试完成这三项自动化，“自动化创建服务工具”，“自动化创建命令行工具”，以及“自动化中间件迁移工具”。</p>
-<p>自动化创建服务工具在创建各种各样的服务时，“自动化创建服务工具”能帮我们节省不少开发时间。我们先思考下这个工具应该如何实现。既然之前已经引入cobra，将框架修改为可以支持命令行工具，创建命令并不是一个难事，我们来定义一套创建服务的provider命令即可。照旧先设计好要创建的命令，再一一实现。命令创建“自动化创建服务工具”如何设计命令层级呢？我们设计一个一级命令和两个二级命令：</p>
-<p>./hadeprovider一级命令，provider，打印帮助信息；./hadeprovidernew二级命令，创建一个服务；./hadeproviderlist二级命令，列出容器内的所有服务，列出它们的字符串凭证。首先将provider的这两个二级命令，都存放在command/provider.go中。而对应的一级命令providerCommand是一个打印帮助信息的空实现。</p>
-<p>预先将两个二级命令挂载到这个一级命令中，在framework/command/provider.go：</p>
-<p>并且在framework/command/kernel.go，将这个一级命令挂载到一级命令rootCommand中：</p>
-<p>下面来实现这两个二级命令new和list。List命令的实现先说./hadeproviderlist这个命令，因为列出容器内的所有服务是比较简单的。还记得吗，在十一章实现服务容器的时候，其中有一个providers，它存储所有的服务容器提供者，放在文件framework/container.go中：</p>
-<p>我们只需要将这个providers进行遍历，根据其中每个ServiceProvider的Name()方法，获取字符串凭证列表即可。所以，在framework/container.go的HadeContainer中，增加一个NameList方法，返回所有提供服务者的字符串凭证，方法也很简单，直接遍历这个providers字段。</p>
-<p>而在framework/command/provider.go中的providerListCommand命令中，我们调用这个命令并且打印出来。</p>
+<p>框架开发到这里，我们也需要思考，有哪些重复性劳动可以自动化么？</p>
+<p>从第十章到现在我们一直在说，框架核心是服务提供者，在开发具体应用时，一定会有很多需求要创建各种各样的服务，毕竟“一切皆服务”；而每次创建服务的时候，我们都需要至少编写三个文件，服务接口、服务提供者、服务实例。如果能自动生成三个文件，提供一个“自动化创建服务的工具”，应该能节省不少的操作。</p>
+<p>说到创建工具，我们经常需要为了一个事情而创建一个命令行工具，而每次创建命令行工具，也都需要创建固定的Command.go文件，其中有固定的Command结构，这些代码我们能不能偷个懒，“自动化创建命令行工具”呢？</p>
+<p>另外之前我们做过几次中间件的迁移，先将源码拷贝复制，再修改对应的Gin路径，这个操作也是颇为繁琐的。那么，我们是否可以写一个“自动化中间件迁移工具”，一个命令自动复制和替换呢？</p>
+<p>这些命令都是可以实现的，这节课我们就来尝试完成这三项自动化，“自动化创建服务工具”，“自动化创建命令行工具”，以及“自动化中间件迁移工具”。</p>
+<h1 id="自动化创建服务工具"><a href="#自动化创建服务工具" class="headerlink" title="自动化创建服务工具"></a>自动化创建服务工具</h1><p>在创建各种各样的服务时，“自动化创建服务工具”能帮我们节省不少开发时间。我们先思考下这个工具应该如何实现。</p>
+<p>既然之前已经引入cobra，将框架修改为可以支持命令行工具，创建命令并不是一个难事，我们来定义一套创建服务的provider命令即可。照旧先设计好要创建的命令，再一一实现。</p>
+<h2 id="命令创建"><a href="#命令创建" class="headerlink" title="命令创建"></a>命令创建</h2><p>“自动化创建服务工具”如何设计命令层级呢？我们设计一个一级命令和两个二级命令：</p>
+<ul>
+<li>./hadeprovider一级命令，provider，打印帮助信息；</li>
+<li>./hadeprovidernew二级命令，创建一个服务；</li>
+<li>./hadeproviderlist二级命令，列出容器内的所有服务，列出它们的字符串凭证。</li>
+</ul>
+<p>首先将provider的这两个二级命令，都存放在command/provider.go中。而对应的一级命令providerCommand是一个打印帮助信息的空实现。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// providerCommand 一级命令</span></span><br><span class="line"><span class="keyword">var</span> providerCommand = &amp;cobra.Command&#123;</span><br><span class="line">    Use:   <span class="string">"provider"</span>,</span><br><span class="line">    Short: <span class="string">"服务提供相关命令"</span>,</span><br><span class="line">    RunE: <span class="function"><span class="keyword">func</span><span class="params">(c *cobra.Command, args []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">len</span>(args) == <span class="number">0</span> &#123;</span><br><span class="line">            c.Help()</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>预先将两个二级命令挂载到这个一级命令中，在framework/command/provider.go：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 初始化provider相关服务</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">initProviderCommand</span><span class="params">()</span> *<span class="title">cobra</span>.<span class="title">Command</span></span> &#123;</span><br><span class="line">    providerCommand.AddCommand(providerCreateCommand)</span><br><span class="line">    providerCommand.AddCommand(providerListCommand)</span><br><span class="line">    <span class="keyword">return</span> providerCommand</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>并且在framework/command/kernel.go，将这个一级命令挂载到一级命令rootCommand中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddKernelCommands</span><span class="params">(root *cobra.Command)</span></span> &#123;</span><br><span class="line">    <span class="comment">// provider一级命令</span></span><br><span class="line">    root.AddCommand(initProviderCommand()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>下面来实现这两个二级命令new和list。</p>
+<h1 id="List命令的实现"><a href="#List命令的实现" class="headerlink" title="List命令的实现"></a>List命令的实现</h1><p>先说./hadeproviderlist这个命令，因为列出容器内的所有服务是比较简单的。还记得吗，在十一章实现服务容器的时候，其中有一个providers，它存储所有的服务容器提供者，放在文件framework/container.go中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HadeContainer 是服务容器的具体实现</span></span><br><span class="line"><span class="keyword">type</span> HadeContainer <span class="keyword">struct</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// providers 存储注册的服务提供者，key 为字符串凭证</span></span><br><span class="line">    providers <span class="keyword">map</span>[<span class="keyword">string</span>]ServiceProvider</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们只需要将这个providers进行遍历，根据其中每个ServiceProvider的Name()方法，获取字符串凭证列表即可。</p>
+<p>所以，在framework/container.go的HadeContainer中，增加一个NameList方法，返回所有提供服务者的字符串凭证，方法也很简单，直接遍历这个providers字段。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NameList 列出容器中所有服务提供者的字符串凭证</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hade *HadeContainer)</span> <span class="title">NameList</span><span class="params">()</span> []<span class="title">string</span></span> &#123;</span><br><span class="line">    ret := []<span class="keyword">string</span>&#123;&#125;</span><br><span class="line">    <span class="keyword">for</span> _, provider := <span class="keyword">range</span> hade.providers &#123;</span><br><span class="line">        name := provider.Name()</span><br><span class="line">        ret = <span class="built_in">append</span>(ret, name)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而在framework/command/provider.go中的providerListCommand命令中，我们调用这个命令并且打印出来。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// providerListCommand 列出容器内的所有服务</span></span><br><span class="line"><span class="keyword">var</span> providerListCommand = &amp;cobra.Command&#123;</span><br><span class="line">    Use:   <span class="string">"list"</span>,</span><br><span class="line">    Short: <span class="string">"列出容器内的所有服务"</span>,</span><br><span class="line">    RunE: <span class="function"><span class="keyword">func</span><span class="params">(c *cobra.Command, args []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        container := c.GetContainer()</span><br><span class="line">        hadeContainer := container.(*framework.HadeContainer)</span><br><span class="line">        <span class="comment">// 获取字符串凭证</span></span><br><span class="line">        list := hadeContainer.NameList()</span><br><span class="line">        <span class="comment">// 打印</span></span><br><span class="line">        <span class="keyword">for</span> _, line := <span class="keyword">range</span> list &#123;</span><br><span class="line">            <span class="built_in">println</span>(line)</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>可以验证一下。编译./hadebuildself并且执行./hadeproviderlist，可以看到如下信息：</p>
-<p>你可以很清晰看到容器中绑定了哪些服务提供者，它们的字符串凭证是什么。这样我们在定义一个新的服务的时候，可以很方便看到哪些服务提供者的关键字已经被使用了，避免使用已有的服务关键字。下面我们来说稍微复杂一点的创建服务的命令./hadeprovidernew。new命令的实现在实际业务开发过程中，我们一想到一个服务，比如去某个用户系统获取信息，一定会想到创建服务的三步骤：创建一个用户系统的交互协议contract.go、再创建一个提供协议的用户服务提供者provider.go、最后才实现具体的用户服务实例service.go。</p>
-<p>每次都需要创建这三个文件，且这三个文件的文件大框架都有套路可言。那我们如何将这些重复的套路性的代码自动化生成呢？首先这里有一个增加参数的过程，我们需要知道要创建服务的服务名是什么？创建这个服务的文件夹名字是什么？当然了，这些参数也可以使用在命令后面增加flag参数的方式来表示。但是其实还有一种更便捷的方式：交互。交互的表现形式如：</p>
-<p>这种命令行交互的方式是不是更智能化？但是如何实现呢？这里我们借助一个第三方库survey。这个库目前在GitHub上已经有2.7k个star，最新版本是v2版本，使用的是MITLicense协议，可以放心使用。这个survey库支持多种交互模式：单行输入、多行输入、单选、多选、y/n确认选择，在项目GitHub首页上就能很清晰看到这个库的使用方式。</p>
-<p>在providernew命令中，我们也可以用survey来增加交互性。通过交互，我们可以确认用户想创建的服务凭证，以及想把这个服务创建在app/provider/下的哪个目录中。当然，在用户通过交互输入了服务凭证和服务目录之后，是需要进行参数判断的。服务凭证需要和容器中已注册服务的字符串凭证进行比较，如果已经存在了，应该报错；而服务目录如果已经存在，也应该直接报错。如果都验证ok了，最后一步就是在app/provider/下创建对应的服务目录，在目录下创建contract.go、provider.go、service.go三个文件，并且在三个文件中根据预先定义好的模版填充内容。这里我们如何实现呢？使用模版、变更模版中的某些字段、形成新的文本，这个你应该能联想到Golang标准库中的text/template库。这个库的使用方法比较多，我这里把我们用得到的方法解说一下，解析contract.go文件的生成过程，就可以了解其使用方法了。</p>
-<p>上面代码的逻辑最核心的就是创建模版的template.Must和渲染模版的t.Execute方法。但是在创建模版之前，我们使用了一个template.FuncMap方法，它比较不好理解，主要作用就是在模版中，让我们可以使用定义的模版方法来控制渲染效果。这个FuncMap结构定义了模版中支持的模版方法，比如我支持title这个方法，这个方法实际调用的是string.Title函数，把字符串首字母大写。在刚才的代码中，我们使用contractTmp来创建模版，在渲染contractTmp的时候，传递了一个name变量。假设这个name变量代表的是字符串user，而我希望创建一个字符串“NameKey”的变量，可以这么定义contractTmp：</p>
-<p>注意到了么，其中的实际上是相当于调用了strings.Title(name)的方法填充，能将字符串name替换为字符串Name。而定义好了FuncMap之后，我们随后使用了os.Create创建contract.go文件，然后初始化template：</p>
-<p>这行代码的几个函数我们来看看。template.Must表示后面的template创建必须成功，否则会panic。这种Must的方法来简化代码的error处理逻辑，在标准库中经常使用。我们的hade框架的MustMake也是同样的原理。template.New()方法，创建一个text/template的Template结构，其中的参数contract字符串是为这个Template结构命名的，后面的Funcs()方法是将签名定义的模版函数注册到这个Template结构中，最后的Parse()是使用这个Template结构解析具体的模版文本。定义好了模版t之后，使用代码：</p>
-<p>来将变量name注册进入模版t，并且输出到f。这里的f，是我们之前创建的contract.go文件。也就是使用变量name解析模版t，输出到contract.go文件中。这里的变量可以是一个struct结构，也可以是基础变量，比如我们这里定义的字符串。在模版中就代表这个结构。所以再回顾前面定义的contractTmp模版，你会看出其中变量name为字符串user的时候，最终的显示是什么吗？好，创建服务命令的所有思路我们就梳理清楚了，最后也贴出完整的代码供你参考，关键步骤都在注释中详细说明了，实现并不难：</p>
+<p>你可以很清晰看到容器中绑定了哪些服务提供者，它们的字符串凭证是什么。这样我们在定义一个新的服务的时候，可以很方便看到哪些服务提供者的关键字已经被使用了，避免使用已有的服务关键字。</p>
+<p>下面我们来说稍微复杂一点的创建服务的命令./hadeprovidernew。</p>
+<h2 id="new命令的实现"><a href="#new命令的实现" class="headerlink" title="new命令的实现"></a>new命令的实现</h2><p>在实际业务开发过程中，我们一想到一个服务，比如去某个用户系统获取信息，一定会想到创建服务的三步骤：创建一个用户系统的交互协议contract.go、再创建一个提供协议的用户服务提供者provider.go、最后才实现具体的用户服务实例service.go。</p>
+<p>每次都需要创建这三个文件，且这三个文件的文件大框架都有套路可言。那我们如何将这些重复的套路性的代码自动化生成呢？</p>
+<p>首先这里有一个增加参数的过程，我们需要知道要创建服务的服务名是什么？创建这个服务的文件夹名字是什么？当然了，这些参数也可以使用在命令后面增加flag参数的方式来表示。但是其实还有一种更便捷的方式：交互。</p>
+<p>交互的表现形式如：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">输入：./hade provider new (我想创建一个服务)</span><br><span class="line">输出：请输入服务名称(服务凭证):</span><br><span class="line">输入：demo</span><br><span class="line">输出：请求输入服务目录名称(默认和服务名称相同)：</span><br><span class="line">输入：demo</span><br><span class="line">输出：创建服务成功, 文件夹地址：xxxxx</span><br><span class="line">输出：请不要忘记挂载新创建的服务</span><br></pre></td></tr></table></figure></p>
+<p>这种命令行交互的方式是不是更智能化？但是如何实现呢？</p>
+<p>这里我们借助一个第三方库survey。这个库目前在GitHub上已经有2.7k个star，最新版本是v2版本，使用的是MITLicense协议，可以放心使用。这个survey库支持多种交互模式：单行输入、多行输入、单选、多选、y/n确认选择，在项目GitHub首页上就能很清晰看到这个库的使用方式。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">name := <span class="literal">false</span></span><br><span class="line"><span class="comment">// 使用survey.XXX 的方式来选择交互形式</span></span><br><span class="line">prompt := &amp;survey.Confirm&#123;</span><br><span class="line">    Message: <span class="string">"Do you like pie?"</span>,</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 使用&amp;将最终的选择存储进入变量</span></span><br><span class="line">survey.AskOne(prompt, &amp;name)</span><br></pre></td></tr></table></figure></p>
+<p>在providernew命令中，我们也可以用survey来增加交互性。通过交互，我们可以确认用户想创建的服务凭证，以及想把这个服务创建在app/provider/下的哪个目录中。</p>
+<p>当然，在用户通过交互输入了服务凭证和服务目录之后，是需要进行参数判断的。服务凭证需要和容器中已注册服务的字符串凭证进行比较，如果已经存在了，应该报错；而服务目录如果已经存在，也应该直接报错。</p>
+<p>如果都验证ok了，最后一步就是在app/provider/下创建对应的服务目录，在目录下创建contract.go、provider.go、service.go三个文件，并且在三个文件中根据预先定义好的模版填充内容。这里我们如何实现呢？使用模版、变更模版中的某些字段、形成新的文本，这个你应该能联想到Golang标准库中的text/template库。</p>
+<p>这个库的使用方法比较多，我这里把我们用得到的方法解说一下，解析contract.go文件的生成过程，就可以了解其使用方法了。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建title这个模版方法</span></span><br><span class="line">funcs := template.FuncMap&#123;<span class="string">"title"</span>: strings.Title&#125;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//  创建contract.go</span></span><br><span class="line">    file := filepath.Join(pFolder, folder, <span class="string">"contract.go"</span>)</span><br><span class="line">    f, err := os.Create(file)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.Cause(err)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 使用contractTmp模版来初始化template，并且让这个模版支持title方法，即支持&#123;&#123;.|title&#125;&#125;</span></span><br><span class="line">    t := template.Must(template.New(<span class="string">"contract"</span>).Funcs(funcs).Parse(contractTmp))</span><br><span class="line">    <span class="comment">// 将name传递进入到template中渲染，并且输出到contract.go 中</span></span><br><span class="line">    <span class="keyword">if</span> err := t.Execute(f, name); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.Cause(err)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面代码的逻辑最核心的就是创建模版的template.Must和渲染模版的t.Execute方法。</p>
+<p>但是在创建模版之前，我们使用了一个template.FuncMap方法，它比较不好理解，主要作用就是在模版中，让我们可以使用定义的模版方法来控制渲染效果。这个FuncMap结构定义了模版中支持的模版方法，比如我支持title这个方法，这个方法实际调用的是string.Title函数，把字符串首字母大写。</p>
+<p>在刚才的代码中，我们使用contractTmp来创建模版，在渲染contractTmp的时候，传递了一个name变量。假设这个name变量代表的是字符串user，而我希望创建一个字符串“NameKey”的变量，可以这么定义contractTmp：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> contractTmp <span class="keyword">string</span> = <span class="string">`package &#123;&#123;.&#125;&#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">const &#123;&#123;.|title&#125;&#125;Key = "&#123;&#123;.&#125;&#125;"</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">type Service interface &#123;</span></span><br><span class="line"><span class="string">    // 请在这里定义你的方法</span></span><br><span class="line"><span class="string">    Foo() string</span></span><br><span class="line"><span class="string">&#125;</span></span><br><span class="line"><span class="string">`</span></span><br></pre></td></tr></table></figure></p>
+<p>注意到了么，其中的实际上是相当于调用了strings.Title(name)的方法填充，能将字符串name替换为字符串Name。</p>
+<p>而定义好了FuncMap之后，我们随后使用了os.Create创建contract.go文件，然后初始化template：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">t := template.Must(template.New(<span class="string">"contract"</span>).Funcs(funcs).Parse(contractTmp))</span><br></pre></td></tr></table></figure></p>
+<p>这行代码的几个函数我们来看看。</p>
+<p>template.Must表示后面的template创建必须成功，否则会panic。这种Must的方法来简化代码的error处理逻辑，在标准库中经常使用。我们的hade框架的MustMake也是同样的原理。</p>
+<p>template.New()方法，创建一个text/template的Template结构，其中的参数contract字符串是为这个Template结构命名的，后面的Funcs()方法是将签名定义的模版函数注册到这个Template结构中，最后的Parse()是使用这个Template结构解析具体的模版文本。</p>
+<p>定义好了模版t之后，使用代码：</p>
+<p>来将变量name注册进入模版t，并且输出到f。这里的f，是我们之前创建的contract.go文件。也就是使用变量name解析模版t，输出到contract.go文件中。</p>
+<p>这里的变量可以是一个struct结构，也可以是基础变量，比如我们这里定义的字符串。在模版中就代表这个结构。所以再回顾前面定义的contractTmp模版，你会看出其中变量name为字符串user的时候，最终的显示是什么吗？</p>
+<p>好，创建服务命令的所有思路我们就梳理清楚了，最后也贴出完整的代码供你参考，关键步骤都在注释中详细说明了，实现并不难：</p>
 <p>最后我们验证一下这个创建服务命令。同样编译./hade命令之后，执行./hadeprovidernew,定义服务凭证为user，目录名称同样为user。能看到app/provider/目录下创建了user文件夹，其中有contract.go、provider.go、service.go三个文件：</p>
 <p>其中每个文件的定义都完整，且可以直接再次编译通过，验证完成！自动化创建命令行工具到这里我们就完成了创建服务工具的自动化。开头提到具体运营一个应用的时候，我们也会经常需要创建一个自定义的命令行。比如运营一个网站，可能会创建一个命令来统计网站注册人数，也可能要创建一个命令来定期检查是否有违禁的文章需要封禁等。所以自动创建命令行工具在实际工作中是非常有必要的。同服务命令一样，我们可以有一套创建命令行工具的命令。./hadecommand一级命令，显示帮助信息./hadecommandlist二级命令，列出所有控制台命令./hadecommandnew二级命令，创建一个控制台命令</p>
 <p>command相关的命令和provider的命令的实现基本是一致的。这里我们简要解说下重点，具体对应的代码详情可以参考GitHub上的framework/command/cmd.go文件。一级命令./hadecommand我们就不说了，是简单地显示帮助信息。二级命令./hadecommandlist。功能是列出所有的控制台命令。这个功能实际上和直接调用./hade显示的帮助信息差不多，把一级根命令全部列了出来，只不过我们使用了一个更为语义化的./hadecommandlist来显示。</p>
@@ -553,12 +581,22 @@
 <p>而我们的Gin框架地址为：</p>
 <p>所以我们不能使用import直接使用这些中间件，那么有没有一个办法，能直接一键迁移gin-contrib下的某个中间件呢？比如git@github.com:gin-contrib/cors.git，直接拷贝并且自动修改好Gin框架引用地址，放到我们的app/http/middleware/目录中。于是就有了这个./hademiddlewaremigragte命令。下面就梳理一下这个命令的逻辑步骤。以下载cors中间件为例，我们的思路是从GitHub上将这个cors项目复制下来，并且删除这个项目的一些不必要的文件。</p>
 <p>什么是不必要的文件呢？.git目录、go.mod、go.sum，这些都是作为一个“项目”才会需要的，而我们要把项目中的这些删掉，让它成为一个文件，存放在我们的app/http/middleware/cors目录下。最后再遍历这个目录的所有文件，将所有出现“github.com/gin-gonic/gin”的地方替换为“github.com/gohade/hade/framework/gin”就可以了。从git上复制一个项目，在Golang中可以使用一个第三方库go-git，这个第三方库已经有2.7k个star，且基于Apache的Licence，是可以直接import使用的。目前这个库最新的版本为v5。它的使用方式如下：</p>
-<p>将某个Git的URL地址使用gitclone，下载到/tmp/foo目录，并且把输出也输出到控制台。我们也可以使用这样的方式进行复制。具体的代码逻辑也不难，归纳一下，migrate的实现步骤如下：参数中获取中间件名称；使用go-git，将对应的gin-contrib的项目clone到目录/app/http/middleware；删除不必要的文件go.mod、go.sum、.git；替换关键字“github.com/gin-gonic/gin”。在framework/command/middleware.go中，对应的代码如下：</p>
-<p>我们可以下载cors项目做一下验证，运行./hademiddlewaremigrate命令，并且输入cors。你会在控制台看到这些信息：并且在目录中看到cors中间件已经完整下载下来了。</p>
-<p>然后，可以直接在app/http/route.go中直接使用这个cors中间件：</p>
-<p>验证完成！今天所有代码都保存在GitHub上的geekbang/21分支了。附上目录结构供你对比查看，只修改了framework/command/目录下的cmd.go、provider.go、middleware.go文件。</p>
-<p>小结今天增加的命令不少，自动化创建服务工具、命令行工具，以及中间件迁移工具，这些命令都为我们后续开发应用提供了不少便利。其实每个自动化命令行工具实现的思路都是差不多的，先思考清楚对于这个工具我们要自动化生成什么，然后使用代码和对应的模版生成对应的文件，并且替换其中特有的单词。原理不复杂，但是对于实际的工作，是非常有帮助的。这一节课你应该可以感受到之前将cobra引入我们的框架是一个多么正确的决定，在cobra之上，我们才能实现这些方便的自动化工具。</p>
-<p>思考题我们实现的自动化服务./hadecommandlist命令，目前只展示了一级命令，在写这篇文章的时候我反思了一下，其实可以扩展成为树形结构展示，同时展示一级/二级/三级/命令。你可以想想如何实现，如果可以的话，可以去github.com/gohade/hade项目中提交一个mergerequest来补充这个功能吧！</p>
+<p>将某个Git的URL地址使用gitclone，下载到/tmp/foo目录，并且把输出也输出到控制台。</p>
+<p>我们也可以使用这样的方式进行复制。具体的代码逻辑也不难，归纳一下，migrate的实现步骤如下：</p>
+<p>1，参数中获取中间件名称；</p>
+<p>2，使用go-git，将对应的gin-contrib的项目clone到目录/app/http/middleware；</p>
+<p>3，删除不必要的文件go.mod、go.sum、.git；</p>
+<p>4，替换关键字“github.com/gin-gonic/gin”。</p>
+<p>在framework/command/middleware.go中，对应的代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 从gin-contrib中迁移中间件</span></span><br><span class="line"><span class="keyword">var</span> middlewareMigrateCommand = &amp;cobra.Command&#123;</span><br><span class="line">    Use:   <span class="string">"migrate"</span>,</span><br><span class="line">    Short: <span class="string">"迁移gin-contrib中间件, 迁移地址：https://github.com/gin-contrib/[middleware].git"</span>,</span><br><span class="line">    RunE: <span class="function"><span class="keyword">func</span><span class="params">(c *cobra.Command, args []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        container := c.GetContainer()</span><br><span class="line">        fmt.Println(<span class="string">"迁移一个Gin中间件"</span>)</span><br><span class="line">        <span class="comment">// step1: 获取参数</span></span><br><span class="line">        <span class="keyword">var</span> repo <span class="keyword">string</span></span><br><span class="line">        &#123;</span><br><span class="line">            prompt := &amp;survey.Input&#123;</span><br><span class="line">                Message: <span class="string">"请输入中间件名称："</span>,</span><br><span class="line">            &#125;</span><br><span class="line">            err := survey.AskOne(prompt, &amp;repo)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> err</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// step2 : 下载git到一个目录中</span></span><br><span class="line">        appService := container.MustMake(contract.AppKey).(contract.App)</span><br><span class="line"></span><br><span class="line">        middlewarePath := appService.MiddlewareFolder()</span><br><span class="line">        url := <span class="string">"https://github.com/gin-contrib/"</span> + repo + <span class="string">".git"</span></span><br><span class="line">        fmt.Println(<span class="string">"下载中间件 gin-contrib:"</span>)</span><br><span class="line">        fmt.Println(url)</span><br><span class="line">        _, err := git.PlainClone(path.Join(middlewarePath, repo), <span class="literal">false</span>, &amp;git.CloneOptions&#123;</span><br><span class="line">            URL:      url,</span><br><span class="line">            Progress: os.Stdout,</span><br><span class="line">        &#125;)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// step3:删除不必要的文件 go.mod, go.sum, .git</span></span><br><span class="line">        repoFolder := path.Join(middlewarePath, repo)</span><br><span class="line">        fmt.Println(<span class="string">"remove "</span> + path.Join(repoFolder, <span class="string">"go.mod"</span>))</span><br><span class="line">        os.Remove(path.Join(repoFolder, <span class="string">"go.mod"</span>))</span><br><span class="line">        fmt.Println(<span class="string">"remove "</span> + path.Join(repoFolder, <span class="string">"go.sum"</span>))</span><br><span class="line">        os.Remove(path.Join(repoFolder, <span class="string">"go.sum"</span>))</span><br><span class="line">        fmt.Println(<span class="string">"remove "</span> + path.Join(repoFolder, <span class="string">".git"</span>))</span><br><span class="line">        os.RemoveAll(path.Join(repoFolder, <span class="string">".git"</span>))</span><br><span class="line"></span><br><span class="line">        <span class="comment">// step4 : 替换关键词</span></span><br><span class="line">        filepath.Walk(repoFolder, <span class="function"><span class="keyword">func</span><span class="params">(path <span class="keyword">string</span>, info os.FileInfo, err error)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">            <span class="keyword">if</span> info.IsDir() &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> filepath.Ext(path) != <span class="string">".go"</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            c, err := ioutil.ReadFile(path)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> err</span><br><span class="line">            &#125;</span><br><span class="line">            isContain := bytes.Contains(c, []<span class="keyword">byte</span>(<span class="string">"github.com/gin-gonic/gin"</span>))</span><br><span class="line">            <span class="keyword">if</span> isContain &#123;</span><br><span class="line">                fmt.Println(<span class="string">"更新文件:"</span> + path)</span><br><span class="line">                c = bytes.ReplaceAll(c, []<span class="keyword">byte</span>(<span class="string">"github.com/gin-gonic/gin"</span>), []<span class="keyword">byte</span>(<span class="string">"github.com/gohade/hade/framework/gin"</span>))</span><br><span class="line">                err = ioutil.WriteFile(path, c, <span class="number">0644</span>)</span><br><span class="line">                <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                    <span class="keyword">return</span> err</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们可以下载cors项目做一下验证，运行./hademiddlewaremigrate命令，并且输入cors。你会在控制台看到这些信息：</p>
+<p>并且在目录中看到cors中间件已经完整下载下来了。</p>
+<p>然后，可以直接在app/http/route.go中直接使用这个cors中间件：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment">// Routes 绑定业务层路由</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Routes</span><span class="params">(r *gin.Engine)</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 使用cors中间件</span></span><br><span class="line">    r.Use(cors.Default())</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>验证完成！</p>
+<p>今天所有代码都保存在GitHub上的geekbang/21分支了。附上目录结构供你对比查看，只修改了framework/command/目录下的cmd.go、provider.go、middleware.go文件。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>今天增加的命令不少，自动化创建服务工具、命令行工具，以及中间件迁移工具，这些命令都为我们后续开发应用提供了不少便利。</p>
+<p>其实每个自动化命令行工具实现的思路都是差不多的，先思考清楚对于这个工具我们要自动化生成什么，然后使用代码和对应的模版生成对应的文件，并且替换其中特有的单词。原理不复杂，但是对于实际的工作，是非常有帮助的。</p>
+<p>这一节课你应该可以感受到之前将cobra引入我们的框架是一个多么正确的决定，在cobra之上，我们才能实现这些方便的自动化工具。</p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h1><p>我们实现的自动化服务./hadecommandlist命令，目前只展示了一级命令，在写这篇文章的时候我反思了一下，其实可以扩展成为树形结构展示，同时展示一级/二级/三级/命令。你可以想想如何实现，如果可以的话，可以去github.com/gohade/hade项目中提交一个mergerequest来补充这个功能吧！</p>
 
       
     </div>
@@ -651,8 +689,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -669,7 +716,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">821</span>
+                    <span class="site-state-item-count">832</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -971,7 +1018,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">62</span>
+                      
+                    
+                    <span class="site-state-item-count">63</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1002,23 +1051,23 @@
                 
                 
                   <li>
-                    <a href="/2022/12/06/25-运筹帷幄-协程的运行机制与调度器原理/" title="25 | 运筹帷幄: 协程的运行机制与调度器原理" target="_blank">25 | 运筹帷幄: 协程的运行机制与调度器原理</a>
+                    <a href="/2022/12/15/第十一诫-丧失对工作和生活的激情/" title="第十一诫 丧失对工作和生活的激情" target="_blank">第十一诫 丧失对工作和生活的激情</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/12/06/24｜日志处理：日志规范与最佳实践/" title="24｜日志处理：日志规范与最佳实践" target="_blank">24｜日志处理：日志规范与最佳实践</a>
+                    <a href="/2022/12/15/第十诫-对未来心里恐惧，悲观主义色彩浓厚/" title="第十诫 对未来心里恐惧，悲观主义色彩浓厚" target="_blank">第十诫 对未来心里恐惧，悲观主义色彩浓厚</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/12/01/23｜偷梁换柱：为爬虫安上代理的翅膀/" title="23｜偷梁换柱：为爬虫安上代理的翅膀" target="_blank">23｜偷梁换柱：为爬虫安上代理的翅膀</a>
+                    <a href="/2022/12/15/第九诫-信息错位，沟通不畅/" title="第九诫 信息错位，沟通不畅" target="_blank">第九诫 信息错位，沟通不畅</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/11/29/22｜优雅的离场-Context超时控制与原理/" title="22｜优雅的离场：Context超时控制与原理" target="_blank">22｜优雅的离场：Context超时控制与原理</a>
+                    <a href="/2022/12/15/第八诫-行政作风盛行，团队臃肿/" title="第八诫 行政作风盛行，团队臃肿" target="_blank">第八诫 行政作风盛行，团队臃肿</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/" title="21｜采集引擎：实战接口抽象与模拟浏览器访问" target="_blank">21｜采集引擎：实战接口抽象与模拟浏览器访问</a>
+                    <a href="/2022/12/15/第七诫-自己不去把握，完全信赖专家/" title="第七诫 自己不去把握，完全信赖专家" target="_blank">第七诫 自己不去把握，完全信赖专家</a>
                   </li>
                 
               </ul>
@@ -1033,6 +1082,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#自动化创建服务工具"><span class="nav-number">1.</span> <span class="nav-text">自动化创建服务工具</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#命令创建"><span class="nav-number">1.1.</span> <span class="nav-text">命令创建</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#List命令的实现"><span class="nav-number">2.</span> <span class="nav-text">List命令的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#new命令的实现"><span class="nav-number">2.1.</span> <span class="nav-text">new命令的实现</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">3.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#思考题"><span class="nav-number">4.</span> <span class="nav-text">思考题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1062,7 +1128,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">7.1m</span>
+    <span title="站点总字数">7.2m</span>
   
 
   
@@ -1073,7 +1139,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">108:15</span>
+    <span title="站点阅读时长">109:17</span>
   
 </div>
 

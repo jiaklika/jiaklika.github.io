@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2022-10-11T11:04:07.421Z">
+<meta property="og:updated_time" content="2022-12-15T03:13:19.325Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="22 ｜ 自动化（下）：DRY，如何自动化一切重复性劳动？">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-10-11 19:04:07" itemprop="dateModified" datetime="2022-10-11T19:04:07+08:00">2022-10-11</time>
+                <time title="修改时间：2022-12-15 11:13:19" itemprop="dateModified" datetime="2022-12-15T11:13:19+08:00">2022-12-15</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">5.6k</span>
+                <span title="本文字数">13k</span>
               
 
               
@@ -503,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">5 分钟</span>
+                <span title="阅读时长">12 分钟</span>
               
             </div>
           
@@ -525,26 +525,78 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-<p>上一节课我们增加了自动化创建服务工具、命令行工具，以及中间件迁移工具。你会发现，这些工具实现起来并不复杂，但是在实际工作中却非常有用。今天我们继续思考还能做点什么。我们的框架是定义了业务的目录结构的，每次创建一个新的应用，都需要将AppService中定义的目录结构创建好，如果这个行为能自动化，实现一个命令就能创建一个定义好所有目录结构，甚至有demo示例的新应用呢？是不是有点心动，这就是我们今天要实现的工具了，听起来功能有点庞大，所以我们还是慢慢来，先设计再实现。初始化脚手架设计</p>
-<p>这个功能倒不是什么新想法，有用过Vue的同学就知道，Vue官网有介绍一个vuecreate命令，可以从零开始创建一个包含基本Vue结构的目录，这个目录可以直接编译运行。在初始化一个Vue项目的时候，大多数刚接触Vue的同学对框架的若干文件还不熟悉，很容易建立错误vue的目录结构，而这个工具能帮Vue新手们有效规避这种错误。同理，我们的框架也有基本的hade结构的目录，初学者在创建hade应用的时候，也大概率容易建立错误目录。所以参考这一点，让自己的框架也有这么一个命令，能直接创建一个新的包含hade框架业务脚手架目录的命令。这样，能很大程度方便使用者就在这个脚手架目录上不断开发，完成所需的业务功能。</p>
-<p>我们要设计的命令是一个一级命令./hadenew。一般来说，新建命令创建一个脚手架，要做的事情就是：确定目标目录，如果没有就创建目录创建业务模块目录初始化gomodule模块，补充模块名称、框架版本号在业务模块目录中创建对应的文件代码我们跟着这个思路走。先梳理一下在这个命令中，要传入的参数有哪些？</p>
-<p>首先是目录，在控制台目录之下要创建一个子目录，这个子目录的名称，是需要用户传递进入的。不过，这个参数记得做一下验证，如果子目录已经存在了，给用户一个提示，是直接删除原先的子目录？还是停止操作？如果用户需要删除原先的子目录，我们就直接删除。其次是需要用户传入新应用的模块名称，也就是go.mod中的module后面的名称，一般会设置为应用的项目地址，比如github.com/jianfengye/testdemo。关于模块名称，我们要详细做一下解说。业务、框架模块地址一直到这一节课的GitHub地址，不知道你有没有疑惑，别的框架，比如Gin、Echo，都是把框架代码放在GitHub上，比如github/gin-gonic/gin，而业务代码是单独存放的。但我们这个项目github.com/gohade/coredemo，却是把业务代码和框架代码都放在一个项目中？</p>
-<p>其实是这样，这个项目github.com/gohade/coredemo，是我为geekbang这个课程单独设置的项目，将hade框架的每个实现步骤，重新在这个项目做了一次还原。而github.com/gohade/hade才是我们最终的项目地址。所以不管在coredemo这个项目还是hade这个项目，go.mod中的module都是叫做github.com/gohade/hade。但是即使是最终的github.com/gohade/hade项目，我们的业务代码app目录和框架目录framework目录也是在一个项目里的，按道理说在这个hade项目中，应该只有framework目录的内容即可啊？</p>
-<p>这里我是这么设计的，将framework目录和其他的业务目录都同时放在github.com/gohade/hade项目中，这样这个项目也同时就是我们hade框架的一个示例项目。只是这个项目带着framework目录而已。后续如果要创建一个新的业务项目，比如github.com/jianfengye/testdemo。我们不是做加法把业务文件夹一点点复制过来，而是做依赖这个github.com/gohade/hade项目做减法，把不必要的文件夹（比如框架文件夹）删掉。即我们只需要直接拷贝这个github.com/gohade/hade项目，并且将其中的framework目录删除，保留业务目录，同时把go.mod中的原先的“github.com/gohade/hade”模块名修改为github.com/jianfengye/testdemo这个模块名，用到hade框架的部分直接引用“github.com/gohade/hade/framework”即可。这就是说，如果你要创建的项目的模块名为github.com/jianfengye/testdemo，go.mod应该如下：</p>
+<p>上一节课我们增加了自动化创建服务工具、命令行工具，以及中间件迁移工具。你会发现，这些工具实现起来并不复杂，但是在实际工作中却非常有用。今天我们继续思考还能做点什么。</p>
+<p>我们的框架是定义了业务的目录结构的，每次创建一个新的应用，都需要将AppService中定义的目录结构创建好，如果这个行为能自动化，实现一个命令就能创建一个定义好所有目录结构，甚至有demo示例的新应用呢？是不是有点心动，这就是我们今天要实现的工具了，听起来功能有点庞大，所以我们还是慢慢来，先设计再实现。</p>
+<h1 id="初始化脚手架设计"><a href="#初始化脚手架设计" class="headerlink" title="初始化脚手架设计"></a>初始化脚手架设计</h1><p>这个功能倒不是什么新想法，有用过Vue的同学就知道，Vue官网有介绍一个vuecreate命令，可以从零开始创建一个包含基本Vue结构的目录，这个目录可以直接编译运行。</p>
+<p>在初始化一个Vue项目的时候，大多数刚接触Vue的同学对框架的若干文件还不熟悉，很容易建立错误vue的目录结构，而这个工具能帮Vue新手们有效规避这种错误。</p>
+<p>同理，我们的框架也有基本的hade结构的目录，初学者在创建hade应用的时候，也大概率容易建立错误目录。所以参考这一点，让自己的框架也有这么一个命令，能直接创建一个新的包含hade框架业务脚手架目录的命令。这样，能很大程度方便使用者就在这个脚手架目录上不断开发，完成所需的业务功能。</p>
+<p>我们要设计的命令是一个一级命令./hadenew。一般来说，新建命令创建一个脚手架，要做的事情就是：</p>
+<ul>
+<li>确定目标目录，如果没有就创建目录</li>
+<li>创建业务模块目录</li>
+<li>初始化gomodule模块，补充模块名称、框架版本号</li>
+<li>在业务模块目录中创建对应的文件代码</li>
+</ul>
+<p>我们跟着这个思路走。先梳理一下在这个命令中，要传入的参数有哪些？</p>
+<p>首先是目录，在控制台目录之下要创建一个子目录，这个子目录的名称，是需要用户传递进入的。不过，这个参数记得做一下验证，如果子目录已经存在了，给用户一个提示，是直接删除原先的子目录？还是停止操作？如果用户需要删除原先的子目录，我们就直接删除。</p>
+<p>其次是需要用户传入新应用的模块名称，也就是go.mod中的module后面的名称，一般会设置为应用的项目地址，比如github.com/jianfengye/testdemo。关于模块名称，我们要详细做一下解说。</p>
+<h1 id="业务、框架模块地址"><a href="#业务、框架模块地址" class="headerlink" title="业务、框架模块地址"></a>业务、框架模块地址</h1><p>一直到这一节课的GitHub地址，不知道你有没有疑惑，别的框架，比如Gin、Echo，都是把框架代码放在GitHub上，比如github/gin-gonic/gin，而业务代码是单独存放的。但我们这个项目github.com/gohade/coredemo，却是把业务代码和框架代码都放在一个项目中？</p>
+<p>其实是这样，这个项目github.com/gohade/coredemo，是我为geekbang这个课程单独设置的项目，将hade框架的每个实现步骤，重新在这个项目做了一次还原。而github.com/gohade/hade才是我们最终的项目地址。所以不管在coredemo这个项目还是hade这个项目，go.mod中的module都是叫做github.com/gohade/hade。</p>
+<p>但是即使是最终的github.com/gohade/hade项目，我们的业务代码app目录和框架目录framework目录也是在一个项目里的，按道理说在这个hade项目中，应该只有framework目录的内容即可啊？</p>
+<p>这里我是这么设计的，将framework目录和其他的业务目录都同时放在github.com/gohade/hade项目中，这样这个项目也同时就是我们hade框架的一个示例项目。只是这个项目带着framework目录而已。</p>
+<p>后续如果要创建一个新的业务项目，比如github.com/jianfengye/testdemo。我们不是做加法把业务文件夹一点点复制过来，而是做依赖这个github.com/gohade/hade项目做减法，把不必要的文件夹（比如框架文件夹）删掉。</p>
+<p>即我们只需要直接拷贝这个github.com/gohade/hade项目，并且将其中的framework目录删除，保留业务目录，同时把go.mod中的原先的“github.com/gohade/hade”模块名修改为github.com/jianfengye/testdemo这个模块名，用到hade框架的部分直接引用“github.com/gohade/hade/framework”即可。</p>
+<p>这就是说，如果你要创建的项目的模块名为github.com/jianfengye/testdemo，go.mod应该如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这里是你的模块地址</span></span><br><span class="line">module github.com/jianfengye/testdemo</span><br><span class="line"></span><br><span class="line"><span class="keyword">go</span> <span class="number">1.15</span></span><br><span class="line"></span><br><span class="line">require (</span><br><span class="line">    <span class="comment">// 这里引用github.com/gohade/hade</span></span><br><span class="line">    github.com/gohade/hade v0<span class="number">.0</span><span class="number">.2</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">)</span><br></pre></td></tr></table></figure></p>
 <p>目录应该和github.com/gohade/hade只有一处不同：没有framework目录。</p>
-<p>而在你自己的github.com/jianfengye/testdemo项目中的所有文件，如果是框架中的，也就是要使用hade已有的服务提供者、中间件、命令行的时候，是使用importgithub.com/gohade/hade/framework；而在使用自己的服务提供者、中间件、命令行，所有在业务目录内的结构的时候，是使用importgithub.com/jianfengye/testdemo/xxx。比如main.go就形如：</p>
-<p>说到这里相信你应该理解了，最终我们这个框架只维护github.com/gohade/hade这么一个项目，这个项目中的framework目录，存放的是框架所有的代码，而framework之外的目录和文件都是示例代码。所以，回到今天的主题，让./hadenew命令创建一个脚手架，要做的事情现在就变成了：下载github.com/gohade/hade项目到目标文件夹删除framework目录修改go.mod中的模块名称修改go.mod中的require信息，增加requiregithub.com/gohade/hade修改所有文件使用业务目录的地方，将原本使用“github.com/gohade/hade/app”的所有引用改成“[模块名称]/app”也就是说第二个输入，我们需要用户确切输入一个模块名称。</p>
-<p>框架的版本号信息除了新建时必须的子目录的名称和新建模块的名称，第三个需要用户输入的是hade的版本号。我们的hade框架是会不断变化的，和Golang语言一样，使用形如v1.2.3这样的版本号进行迭代，v代表版本的英文缩写，1代表的是大版本，只有非常大变更的时候我们才会更新这个版本；2代表的是小版本，有接口变更或者类库变更之类的时候我们会迭代这个版本；3代表的是补丁版本，如果发现有需要补丁修复的地方，就会使用这个版本。而每个hade框架版本对应的脚手架，也有可能有一定变化的。因为在脚手架中，我们会把框架的使用示例等放在应用代码中。hade框架的每个版本发布时，都会打对应的tag，每个tag我们都会在GitHub上发布一个release版本与之对应，比如截止到10/7日，已经发布了v0.0.1和v0.0.2两个tag和release版本，你可以直接通过GitHub地址来进行查看。</p>
-<p>所以回到./hadenew命令，第三个需要用户输入的就是这个版本号，如果用户需要创建一个v0.0.1版本的hade脚手架，则需要输入v0.0.1，如果用户没有输入，我们默认使用最新的版本。好了，简单总结一下，用户目前输入的三个信息：目录名，最终是“当前执行目录+目录名”模块名，最终创建应用的module版本号，对应的hade的release版本号用户输入相关的代码如下，在我们的framework/command/new.go中：</p>
-<p>初始化脚手架具体实现有了这三个信息，我们将之前讨论的hadenew命令的步骤再详细展开讨论：下载github.com/gohade/hade项目到目标文件夹删除framework目录修改go.mod中的模块名称修改go.mod中的require信息，增加requiregithub.com/gohade/hade修改所有文件使用业务目录的地方，将原本使用“github.com/gohade/hade/app”的所有引用改成“[模块名称]/app”第一步下载稍微复杂一点，我们重点说，剩下四步就是简单的按部就班了。</p>
-<p>项目下载因为有版本号更新的可能，其中的第一步“复制github.com/gohade/hade项目到目标文件夹”，我们就要变化为“下载github.com/gohade/hade的某个release版本到目标文件夹”。这个能怎么做呢？可以想到GitHub有提供对外的开放平台接口api.github.com，你可以看它的官方文档地址。我们可以通过开放平台接口，对公共的GitHub仓库进行信息查询。比如要查看某个GitHub仓库的release分支，可以通过调用“/repos/{owner}/{repo}/releases”，而获取某个GitHub仓库的最新release分支，可以通过调用“/repos/{owner}/{repo}/releases/latest”。使用GitHub的开放平台接口，是可以直接调用，但是这个方法有个明显的问题，我们还要手动封装这个接口调用。</p>
-<p>其实更简单的方式是，使用Google给我们提供好的Golang语言的SDK，go-github。这个库本质就是封装了GitHub的调用接口。比如获取仓库github.com/gohade/hade的release分支：</p>
-<p>而获取它最新release分支也很简单：</p>
-<p>在返回的RepositoryRelease结构中，我们可以找到下载这个release版本的各种信息。其中包括release版本对应的版本号信息和zip下载地址：</p>
-<p>库信息了解到这里，我们回到刚才要执行的第一步“下载github.com/gohade/hade的某个release版本到目标文件夹”，就可以使用这个zip下载地址，下载对应的zip包，并且使用unzip解压这个zip目录。对于下载zip包，直接使用http.Get就能下载了。这个函数我们封装在framework/util/file.go中：</p>
-<p>而unzip解压，我们可以使用Golang标准库的archive/zip，来读取zip包中的内容，然后将每个文件都复制到目标目录中。unzip的基本逻辑就是使用zip包读取压缩文件，然后遍历压缩文件中的文件夹，将对应的文件和文件夹都复制到目标目录中。具体代码存放在framework/util/zip.go中，代码中也做了对应注释：</p>
-<p>但是你在调试的过程中就会发现，下载的zip包中带有一层目录，gohade-hade-xxxx，目录下面才是我们需要的hade库的真实代码。如果直接复制zip包，就会在目标文件夹下创建gohade-hade-xxx目录，但是这个目录层级并不是我们想要的。所以这里要修改“下载github.com/gohade/hade的某个release版本到目标文件夹”的实现步骤，大致思路就是通过创建和删除一个临时目录，来达到把zip包解压的目的。具体操作就是，先创建临时目录template-hade-version-[timestamp]，然后下载release的zip包地址临时目录，并命名为template.zip，在临时目录中解压zip包template.zip，生成gohade-hade-xxxx目录。这个时候就完成了一半，拿到了需要的hade库真实代码。</p>
-<p>之后，查找临时目录中名为gohade-hade-开头的目录，定位到gohade-hade-xxx目录，将这个目录使用os.rename移动成为目标文件夹。最后收尾删除临时目录。对应代码在framework/command/new.go中：</p>
+<p>而在你自己的github.com/jianfengye/testdemo项目中的所有文件，如果是框架中的，也就是要使用hade已有的服务提供者、中间件、命令行的时候，是使用importgithub.com/gohade/hade/framework；而在使用自己的服务提供者、中间件、命令行，所有在业务目录内的结构的时候，是使用importgithub.com/jianfengye/testdemo/xxx。</p>
+<p>比如main.go就形如：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="comment">// 业务的目录app内的文件</span></span><br><span class="line">    <span class="string">"github.com/jianfengye/testdemo/app/console"</span></span><br><span class="line">    <span class="string">"github.com/jianfengye/testdemo/app/http"</span></span><br><span class="line">    <span class="comment">// 框架目录的文件</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework"</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework/provider/app"</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework/provider/config"</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework/provider/distributed"</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework/provider/env"</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework/provider/id"</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework/provider/kernel"</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework/provider/log"</span></span><br><span class="line">    <span class="string">"github.com/gohade/hade/framework/provider/trace"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 初始化服务容器</span></span><br><span class="line">    container := framework.NewHadeContainer()</span><br><span class="line">    <span class="comment">// 绑定App服务提供者</span></span><br><span class="line">    container.Bind(&amp;app.HadeAppProvider&#123;&#125;)</span><br><span class="line">    <span class="comment">// 后续初始化需要绑定的服务提供者...</span></span><br><span class="line">    container.Bind(&amp;env.HadeEnvProvider&#123;&#125;)</span><br><span class="line">    container.Bind(&amp;distributed.LocalDistributedProvider&#123;&#125;)</span><br><span class="line">    container.Bind(&amp;config.HadeConfigProvider&#123;&#125;)</span><br><span class="line">    container.Bind(&amp;id.HadeIDProvider&#123;&#125;)</span><br><span class="line">    container.Bind(&amp;trace.HadeTraceProvider&#123;&#125;)</span><br><span class="line">    container.Bind(&amp;log.HadeLogServiceProvider&#123;&#125;)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将HTTP引擎初始化,并且作为服务提供者绑定到服务容器中</span></span><br><span class="line">    <span class="keyword">if</span> engine, err := http.NewHttpEngine(); err == <span class="literal">nil</span> &#123;</span><br><span class="line">        container.Bind(&amp;kernel.HadeKernelProvider&#123;HttpEngine: engine&#125;)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 运行root命令</span></span><br><span class="line">    console.RunCommand(container)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>说到这里相信你应该理解了，最终我们这个框架只维护github.com/gohade/hade这么一个项目，这个项目中的framework目录，存放的是框架所有的代码，而framework之外的目录和文件都是示例代码。</p>
+<p>所以，回到今天的主题，让./hadenew命令创建一个脚手架，要做的事情现在就变成了：</p>
+<ul>
+<li>下载github.com/gohade/hade项目到目标文件夹</li>
+<li>删除framework目录</li>
+<li>修改go.mod中的模块名称</li>
+<li>修改go.mod中的require信息，增加requiregithub.com/gohade/hade</li>
+<li>修改所有文件使用业务目录的地方，将原本使用“github.com/gohade/hade/app”的所有引用改成“[模块名称]/app”</li>
+</ul>
+<p>也就是说第二个输入，我们需要用户确切输入一个模块名称。</p>
+<h1 id="框架的版本号信息"><a href="#框架的版本号信息" class="headerlink" title="框架的版本号信息"></a>框架的版本号信息</h1><p>除了新建时必须的子目录的名称和新建模块的名称，第三个需要用户输入的是hade的版本号。</p>
+<p>我们的hade框架是会不断变化的，和Golang语言一样，使用形如v1.2.3这样的版本号进行迭代，v代表版本的英文缩写，1代表的是大版本，只有非常大变更的时候我们才会更新这个版本；2代表的是小版本，有接口变更或者类库变更之类的时候我们会迭代这个版本；3代表的是补丁版本，如果发现有需要补丁修复的地方，就会使用这个版本。</p>
+<p>而每个hade框架版本对应的脚手架，也有可能有一定变化的。因为在脚手架中，我们会把框架的使用示例等放在应用代码中。</p>
+<p>hade框架的每个版本发布时，都会打对应的tag，每个tag我们都会在GitHub上发布一个release版本与之对应，比如截止到10/7日，已经发布了v0.0.1和v0.0.2两个tag和release版本，你可以直接通过GitHub地址来进行查看。</p>
+<p>所以回到./hadenew命令，第三个需要用户输入的就是这个版本号，如果用户需要创建一个v0.0.1版本的hade脚手架，则需要输入v0.0.1，如果用户没有输入，我们默认使用最新的版本。</p>
+<p>好了，简单总结一下，用户目前输入的三个信息：</p>
+<ul>
+<li>目录名，最终是“当前执行目录+目录名”</li>
+<li>模块名，最终创建应用的module版本号，对应的hade的release</li>
+<li>版本号</li>
+</ul>
+<p>用户输入相关的代码如下，在我们的framework/command/new.go中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> name <span class="keyword">string</span></span><br><span class="line"><span class="keyword">var</span> folder <span class="keyword">string</span></span><br><span class="line"><span class="keyword">var</span> mod <span class="keyword">string</span></span><br><span class="line"><span class="keyword">var</span> version <span class="keyword">string</span></span><br><span class="line"><span class="keyword">var</span> release *github.RepositoryRelease</span><br><span class="line">&#123;</span><br><span class="line">    prompt := &amp;survey.Input&#123;</span><br><span class="line">        Message: <span class="string">"请输入目录名称："</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    err := survey.AskOne(prompt, &amp;name)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    folder = filepath.Join(currentPath, name)</span><br><span class="line">    <span class="keyword">if</span> util.Exists(folder) &#123;</span><br><span class="line">        isForce := <span class="literal">false</span></span><br><span class="line">        prompt2 := &amp;survey.Confirm&#123;</span><br><span class="line">            Message: <span class="string">"目录"</span> + folder + <span class="string">"已经存在,是否删除重新创建？(确认后立刻执行删除操作！)"</span>,</span><br><span class="line">            Default: <span class="literal">false</span>,</span><br><span class="line">        &#125;</span><br><span class="line">        err := survey.AskOne(prompt2, &amp;isForce)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> isForce &#123;</span><br><span class="line">            <span class="keyword">if</span> err := os.RemoveAll(folder); err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> err</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            fmt.Println(<span class="string">"目录已存在，创建应用失败"</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">    prompt := &amp;survey.Input&#123;</span><br><span class="line">        Message: <span class="string">"请输入模块名称(go.mod中的module, 默认为文件夹名称)："</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    err := survey.AskOne(prompt, &amp;mod)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> mod == <span class="string">""</span> &#123;</span><br><span class="line">        mod = name</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 获取hade的版本</span></span><br><span class="line">    client := github.NewClient(<span class="literal">nil</span>)</span><br><span class="line">    prompt := &amp;survey.Input&#123;</span><br><span class="line">        Message: <span class="string">"请输入版本名称(参考 https://github.com/gohade/hade/releases，默认为最新版本)："</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    err := survey.AskOne(prompt, &amp;version)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> version != <span class="string">""</span> &#123;</span><br><span class="line">        <span class="comment">// 确认版本是否正确</span></span><br><span class="line">        release, _, err = client.Repositories.GetReleaseByTag(context.Background(), <span class="string">"gohade"</span>, <span class="string">"hade"</span>, version)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> || release == <span class="literal">nil</span> &#123;</span><br><span class="line">            fmt.Println(<span class="string">"版本不存在，创建应用失败，请参考 https://github.com/gohade/hade/releases"</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> version == <span class="string">""</span> &#123;</span><br><span class="line">        release, _, err = client.Repositories.GetLatestRelease(context.Background(), <span class="string">"gohade"</span>, <span class="string">"hade"</span>)</span><br><span class="line">        version = release.GetTagName()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="初始化脚手架具体实现"><a href="#初始化脚手架具体实现" class="headerlink" title="初始化脚手架具体实现"></a>初始化脚手架具体实现</h1><p>有了这三个信息，我们将之前讨论的hadenew命令的步骤再详细展开讨论：</p>
+<ul>
+<li>下载github.com/gohade/hade项目到目标文件夹</li>
+<li>删除framework目录</li>
+<li>修改go.mod中的模块名称</li>
+<li>修改go.mod中的require信息，增加requiregithub.com/gohade/hade</li>
+<li>修改所有文件使用业务目录的地方，将原本使用“github.com/gohade/hade/app”的所有引用改成“[模块名称]/app”</li>
+</ul>
+<p>第一步下载稍微复杂一点，我们重点说，剩下四步就是简单的按部就班了。</p>
+<h2 id="项目下载"><a href="#项目下载" class="headerlink" title="项目下载"></a>项目下载</h2><p>因为有版本号更新的可能，其中的第一步“复制github.com/gohade/hade项目到目标文件夹”，我们就要变化为“下载github.com/gohade/hade的某个release版本到目标文件夹”。</p>
+<p>这个能怎么做呢？可以想到GitHub有提供对外的开放平台接口api.github.com，你可以看它的官方文档地址。</p>
+<p>我们可以通过开放平台接口，对公共的GitHub仓库进行信息查询。比如要查看某个GitHub仓库的release分支，可以通过调用“/repos/{owner}/{repo}/releases”，而获取某个GitHub仓库的最新release分支，可以通过调用“/repos/{owner}/{repo}/releases/latest”。</p>
+<p>使用GitHub的开放平台接口，是可以直接调用，但是这个方法有个明显的问题，我们还要手动封装这个接口调用。</p>
+<p>其实更简单的方式是，使用Google给我们提供好的Golang语言的SDK，go-github。这个库本质就是封装了GitHub的调用接口。比如获取仓库github.com/gohade/hade的release分支：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">client := github.NewClient(<span class="literal">nil</span>)</span><br><span class="line">releases, _, err = client.Repositories.GetReleases(context.Background(), <span class="string">"gohade"</span>, <span class="string">"hade"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>而获取它最新release分支也很简单：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">client := github.NewClient(<span class="literal">nil</span>)</span><br><span class="line">release, _, err = client.Repositories.GetLatestRelease(context.Background(), <span class="string">"gohade"</span>, <span class="string">"hade"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>在返回的RepositoryRelease结构中，我们可以找到下载这个release版本的各种信息。其中包括release版本对应的版本号信息和zip下载地址：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RepositoryRelease represents a GitHub release in a repository.</span></span><br><span class="line"><span class="keyword">type</span> RepositoryRelease <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 对应的版本号信息</span></span><br><span class="line">    TagName                *<span class="keyword">string</span> <span class="string">`json:"tag_name,omitempty"`</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// release版本的zip下载地址</span></span><br><span class="line">    ZipballURL  *<span class="keyword">string</span>         <span class="string">`json:"zipball_url,omitempty"`</span></span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>库信息了解到这里，我们回到刚才要执行的第一步“下载github.com/gohade/hade的某个release版本到目标文件夹”，就可以使用这个zip下载地址，下载对应的zip包，并且使用unzip解压这个zip目录。</p>
+<p>对于下载zip包，直接使用http.Get就能下载了。这个函数我们封装在framework/util/file.go中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DownloadFile</span><span class="params">(filepath <span class="keyword">string</span>, url <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取</span></span><br><span class="line">    resp, err := http.Get(url)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建目标文件</span></span><br><span class="line">    out, err := os.Create(filepath)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> out.Close()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 拷贝内容</span></span><br><span class="line">    _, err = io.Copy(out, resp.Body)</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而unzip解压，我们可以使用Golang标准库的archive/zip，来读取zip包中的内容，然后将每个文件都复制到目标目录中。unzip的基本逻辑就是使用zip包读取压缩文件，然后遍历压缩文件中的文件夹，将对应的文件和文件夹都复制到目标目录中。</p>
+<p>具体代码存放在framework/util/zip.go中，代码中也做了对应注释：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Unzip 解压缩zip文件，复制文件和目录都到目标目录中</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Unzip</span><span class="params">(src <span class="keyword">string</span>, dest <span class="keyword">string</span>)</span> <span class="params">([]<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> filenames []<span class="keyword">string</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用archive/zip读取</span></span><br><span class="line">    r, err := zip.OpenReader(src)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> filenames, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> r.Close()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 所有内部文件都读取</span></span><br><span class="line">    <span class="keyword">for</span> _, f := <span class="keyword">range</span> r.File &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 目标路径</span></span><br><span class="line">        fpath := filepath.Join(dest, f.Name)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> !strings.HasPrefix(fpath, filepath.Clean(dest)+<span class="keyword">string</span>(os.PathSeparator)) &#123;</span><br><span class="line">            <span class="keyword">return</span> filenames, fmt.Errorf(<span class="string">"%s: illegal file path"</span>, fpath)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        filenames = <span class="built_in">append</span>(filenames, fpath)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> f.FileInfo().IsDir() &#123;</span><br><span class="line">            <span class="comment">// 如果是目录，则创建目录</span></span><br><span class="line">            os.MkdirAll(fpath, os.ModePerm)</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//否则创建文件</span></span><br><span class="line">        <span class="keyword">if</span> err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> filenames, err</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> filenames, err</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        rc, err := f.Open()</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> filenames, err</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 复制内容</span></span><br><span class="line">        _, err = io.Copy(outFile, rc)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        outFile.Close()</span><br><span class="line">        rc.Close()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> filenames, err</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> filenames, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>但是你在调试的过程中就会发现，下载的zip包中带有一层目录，gohade-hade-xxxx，目录下面才是我们需要的hade库的真实代码。如果直接复制zip包，就会在目标文件夹下创建gohade-hade-xxx目录，但是这个目录层级并不是我们想要的。</p>
+<p>所以这里要修改“下载github.com/gohade/hade的某个release版本到目标文件夹”的实现步骤，大致思路就是通过创建和删除一个临时目录，来达到把zip包解压的目的。</p>
+<p>具体操作就是，先创建临时目录template-hade-version-[timestamp]，然后下载release的zip包地址临时目录，并命名为template.zip，在临时目录中解压zip包template.zip，生成gohade-hade-xxxx目录。这个时候就完成了一半，拿到了需要的hade库真实代码。</p>
+<p>之后，查找临时目录中名为gohade-hade-开头的目录，定位到gohade-hade-xxx目录，将这个目录使用os.rename移动成为目标文件夹。最后收尾删除临时目录。</p>
+<p>对应代码在framework/command/new.go中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">templateFolder := filepath.Join(currentPath, <span class="string">"template-hade-"</span>+version+<span class="string">"-"</span>+cast.ToString(time.Now().Unix()))</span><br><span class="line">os.Mkdir(templateFolder, os.ModePerm)</span><br><span class="line">fmt.Println(<span class="string">"创建临时目录"</span>, templateFolder)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 拷贝template项目</span></span><br><span class="line">url := release.GetZipballURL()</span><br><span class="line">err := util.DownloadFile(filepath.Join(templateFolder, <span class="string">"template.zip"</span>), url)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line">fmt.Println(<span class="string">"下载zip包到template.zip"</span>)</span><br><span class="line"></span><br><span class="line">_, err = util.Unzip(filepath.Join(templateFolder, <span class="string">"template.zip"</span>), templateFolder)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取folder下的gohade-hade-xxx相关解压目录</span></span><br><span class="line">fInfos, err := ioutil.ReadDir(templateFolder)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> _, fInfo := <span class="keyword">range</span> fInfos &#123;</span><br><span class="line">    <span class="comment">// 找到解压后的文件夹</span></span><br><span class="line">    <span class="keyword">if</span> fInfo.IsDir() &amp;&amp; strings.Contains(fInfo.Name(), <span class="string">"gohade-hade-"</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> err := os.Rename(filepath.Join(templateFolder, fInfo.Name()), folder); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">fmt.Println(<span class="string">"解压zip包"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> err := os.RemoveAll(templateFolder); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line">fmt.Println(<span class="string">"删除临时文件夹"</span>, templateFolder)</span><br></pre></td></tr></table></figure></p>
 <p>第一步的源码复制完成之后，就是后面很简单的四步了，我直接把顺序写在注释中了，你可以对照代码看，同样在framework/command/new.go中：</p>
 <p>验证最后我们验证下。使用./hadenew创建一个目录名称为testdemo、模块名为github.com/jianfengye/testdemo、版本为最新版本v0.0.2的脚手架。</p>
 <p>进入testdemo目录，执行gobuild命令可直接编译，并且生成了可运行的二进制文件。</p>
@@ -597,8 +649,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2021/12/21/23｜管理接口：如何集成swagger自动生成文件？/" rel="prev" title="23 ｜ 管理接口：如何集成swagger自动生成文件？">
-                23 ｜ 管理接口：如何集成swagger自动生成文件？ <i class="fa fa-chevron-right"></i>
+              <a href="/2021/12/21/23｜管理接口：如何集成swagger自动生成文件？/" rel="prev" title="23｜管理接口：如何集成swagger自动生成文件？">
+                23｜管理接口：如何集成swagger自动生成文件？ <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -643,8 +695,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -661,7 +722,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">821</span>
+                    <span class="site-state-item-count">832</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -963,7 +1024,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">62</span>
+                      
+                    
+                    <span class="site-state-item-count">63</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -994,23 +1057,23 @@
                 
                 
                   <li>
-                    <a href="/2022/12/06/25-运筹帷幄-协程的运行机制与调度器原理/" title="25 | 运筹帷幄: 协程的运行机制与调度器原理" target="_blank">25 | 运筹帷幄: 协程的运行机制与调度器原理</a>
+                    <a href="/2022/12/15/第十一诫-丧失对工作和生活的激情/" title="第十一诫 丧失对工作和生活的激情" target="_blank">第十一诫 丧失对工作和生活的激情</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/12/06/24｜日志处理：日志规范与最佳实践/" title="24｜日志处理：日志规范与最佳实践" target="_blank">24｜日志处理：日志规范与最佳实践</a>
+                    <a href="/2022/12/15/第十诫-对未来心里恐惧，悲观主义色彩浓厚/" title="第十诫 对未来心里恐惧，悲观主义色彩浓厚" target="_blank">第十诫 对未来心里恐惧，悲观主义色彩浓厚</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/12/01/23｜偷梁换柱：为爬虫安上代理的翅膀/" title="23｜偷梁换柱：为爬虫安上代理的翅膀" target="_blank">23｜偷梁换柱：为爬虫安上代理的翅膀</a>
+                    <a href="/2022/12/15/第九诫-信息错位，沟通不畅/" title="第九诫 信息错位，沟通不畅" target="_blank">第九诫 信息错位，沟通不畅</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/11/29/22｜优雅的离场-Context超时控制与原理/" title="22｜优雅的离场：Context超时控制与原理" target="_blank">22｜优雅的离场：Context超时控制与原理</a>
+                    <a href="/2022/12/15/第八诫-行政作风盛行，团队臃肿/" title="第八诫 行政作风盛行，团队臃肿" target="_blank">第八诫 行政作风盛行，团队臃肿</a>
                   </li>
                 
                   <li>
-                    <a href="/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/" title="21｜采集引擎：实战接口抽象与模拟浏览器访问" target="_blank">21｜采集引擎：实战接口抽象与模拟浏览器访问</a>
+                    <a href="/2022/12/15/第七诫-自己不去把握，完全信赖专家/" title="第七诫 自己不去把握，完全信赖专家" target="_blank">第七诫 自己不去把握，完全信赖专家</a>
                   </li>
                 
               </ul>
@@ -1025,6 +1088,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#初始化脚手架设计"><span class="nav-number">1.</span> <span class="nav-text">初始化脚手架设计</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#业务、框架模块地址"><span class="nav-number">2.</span> <span class="nav-text">业务、框架模块地址</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#框架的版本号信息"><span class="nav-number">3.</span> <span class="nav-text">框架的版本号信息</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#初始化脚手架具体实现"><span class="nav-number">4.</span> <span class="nav-text">初始化脚手架具体实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#项目下载"><span class="nav-number">4.1.</span> <span class="nav-text">项目下载</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1054,7 +1134,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">7.1m</span>
+    <span title="站点总字数">7.2m</span>
   
 
   
@@ -1065,7 +1145,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">108:15</span>
+    <span title="站点阅读时长">109:17</span>
   
 </div>
 
