@@ -103,18 +103,20 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="Go语言第一课">
 <meta property="og:type" content="article">
 <meta property="og:title" content="08｜入口函数与包初始化：搞清Go程序的执行次序">
 <meta property="og:url" content="http://yoursite.com/2023/01/01/08｜入口函数与包初始化：搞清Go程序的执行次序/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-01-03T05:57:39.296Z">
+<meta property="og:image" content="http://yoursite.com/2023/01/01/08｜入口函数与包初始化：搞清Go程序的执行次序/1.webp">
+<meta property="og:updated_time" content="2023-01-14T02:14:25.691Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="08｜入口函数与包初始化：搞清Go程序的执行次序">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2023/01/01/08｜入口函数与包初始化：搞清Go程序的执行次序/1.webp">
 
 
 
@@ -443,7 +445,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-01-03 13:57:39" itemprop="dateModified" datetime="2023-01-03T13:57:39+08:00">2023-01-03</time>
+                <time title="修改时间：2023-01-14 10:14:25" itemprop="dateModified" datetime="2023-01-14T10:14:25+08:00">2023-01-14</time>
               
             
           </span>
@@ -489,7 +491,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">11k</span>
               
 
               
@@ -503,7 +505,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">10 分钟</span>
               
             </div>
           
@@ -524,10 +526,93 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
+<p>在刚开始学习Go语言的时候，我们可能经常会遇到这样一个问题：一个Go项目中有数十个Go包，每个包中又有若干常量、变量、各种函数和方法，那Go代码究竟是从哪里开始执行的呢？后续的执行顺序又是什么样的呢？</p>
+<p>事实上，了解这门语言编写应用的执行次序，对我们写出结构合理、逻辑清晰的程序大有裨益，无论你用的是归属为哪种编程范式的编程语言，过程式的、面向对象的、函数式的，或是其他编程范式的，我都建议你深入了解一下。</p>
+<p>所以今天这节课，我就带你来了解一下Go程序的执行次序，这样在后续阅读和理解Go代码的时候，你就好比拥有了“通往宝藏的地图”，可以直接沿着Go代码执行次序这张“地图”去阅读和理解Go代码了，不会在庞大的代码库中迷失了。</p>
+<p>Go程序由一系列Go包组成，代码的执行也是在各个包之间跳转。和其他语言一样，Go也拥有自己的用户层入口：<strong>main函数</strong>。这节课我们就从main函数入手，逐步展开，最终带你掌握Go程序的执行次序。</p>
+<p>那么下面，我们就先来看看Go应用的入口函数。</p>
+<h1 id="main-main函数：Go应用的入口函数"><a href="#main-main函数：Go应用的入口函数" class="headerlink" title="main.main函数：Go应用的入口函数"></a><span style="color:#339AFF;">main.main函数：Go应用的入口函数</span></h1><p>Go语言中有一个特殊的函数：main包中的main函数，也就是<strong>main.main</strong>，它是所有Go可执行程序的用户层执行逻辑的入口函数。Go程序在用户层面的执行逻辑，会在这个函数内按照它的调用顺序展开。</p>
+<p>main函数的函数原型是这样的：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 用户层执行逻辑</span></span><br><span class="line">    ... ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>你会发现，main函数的函数原型非常简单，没有参数也没有返回值。而且，Go语言要求：<strong>可执行程序的main包必须定义main函数，否则Go编译器会报错</strong>。在启动了多个Goroutine的Go应用中，main.main函数将在Go应用的主Goroutine中执行。</p>
+<p>不过很有意思的是，在多Goroutine的Go应用中，相较于main.main作为Go应用的入口，main.main函数返回的意义其实更大，因为main函数返回就意味着整个Go程序的终结，而且你也不用管这个时候是否还有其他子Goroutine正在执行。</p>
+<p>另外还值得我们注意的是，除了main包外，其他包也可以拥有自己的名为main的函数或方法。但按照Go的可见性规则（小写字母开头的标识符为非导出标识符），非main包中自定义的main函数仅限于包内使用，就像下面代码这样，这是一段在非main包中定义main函数的代码片段：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> pkg1</span><br><span class="line">  </span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    main()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">"main func for pkg1"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>你可以看到，这里main函数就主要是用来在包pkg1内部使用的，它是没法在包外使用的。</p>
+<p>好，现在我们已经了解了Go应用的入口函数main.main的特性。<strong>不过对于main包的main函数来说，你还需要明确一点，就是它虽然是用户层逻辑的入口函数，但它却不一定是用户层第一个被执行的函数</strong>。</p>
+<p>这是为什么呢？这跟Go语言的另一个函数init有关。</p>
+<h1 id="init函数：Go包的初始化函数"><a href="#init函数：Go包的初始化函数" class="headerlink" title="init函数：Go包的初始化函数"></a><span style="color:#339AFF;">init函数：Go包的初始化函数</span></h1><p>除了前面讲过的main.main函数之外，Go语言还有一个特殊函数，它就是用于<strong>进行包初始化的init函数了</strong>。</p>
+<p>和main.main函数一样，init函数也是一个无参数无返回值的函数：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 包初始化逻辑</span></span><br><span class="line">    ... ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>那我们现在回到前面这个“main函数不一定是用户层第一个被执行的函数”的问题，其实就是因为，如果main包依赖的包中定义了init函数，或者是main包自身定义了init函数，那么Go程序在这个包初始化的时候，就会自动调用它的init函数，因此这些init函数的执行就都会发生在main函数之前。</p>
+<p>不过对于init函数来说，我们还需要注意一点，就是在Go程序中我们不能手工显式地调用init，否则就会收到编译错误，就像下面这个示例，它表示的手工显式调用init函数的错误做法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">"init invoked"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    init()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这样，在构建并运行上面这些示例代码之后，Go编译器会报下面这个错误：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run call_init.go </span><br><span class="line">./call_init.go:10:2: undefined: init</span><br></pre></td></tr></table></figure></p>
+<p>实际上，Go包可以拥有不止一个init函数，每个组成Go包的Go源文件中，也可以定义多个init函数。</p>
+<p>所以说，在初始化Go包时，Go会按照一定的次序，逐一、顺序地调用这个包的init函数。一般来说，先传递给Go编译器的源文件中的init函数，会先被执行；而同一个源文件中的多个init函数，会按声明顺序依次执行。</p>
+<p>那么，现在我们就知晓了main.main函数可能并不是第一个被执行的函数的原因了。所以，当我们要在main.main函数执行之前，执行一些函数或语句的时候，我们只需要将它放入init函数中就可以了。</p>
+<p>了解了这两个函数的执行顺序之后，我们现在就来整体地看看，一个Go包的初始化是以何种次序和逻辑进行的。</p>
+<h1 id="Go包的初始化次序"><a href="#Go包的初始化次序" class="headerlink" title="Go包的初始化次序"></a><span style="color:#339AFF;">Go包的初始化次序</span></h1><p>我们从程序逻辑结构角度来看，Go包是程序逻辑封装的基本单元，每个包都可以理解为是一个“自治”的、封装良好的、对外部暴露有限接口的基本单元。一个Go程序就是由一组包组成的，程序的初始化就是这些包的初始化。每个Go包还会有自己的依赖包、常量、变量、init函数（其中main包有main函数）等。</p>
+<p>在这里你要注意：<strong>我们在阅读和理解代码的时候，需要知道这些元素在在程序初始化过程中的初始化顺序，这样便于我们确定在某一行代码处这些元素的当前状态</strong>。</p>
+<p>下面，我们就通过一张流程图，来了解学习下Go包的初始化次序：</p>
+<img src="/2023/01/01/08｜入口函数与包初始化：搞清Go程序的执行次序/1.webp">
+<p>Go包的初始化次序这里，我们来看看具体的初始化步骤。</p>
+<p>首先，main包依赖pkg1和pkg4两个包，所以第一步，Go会根据包导入的顺序，先去初始化main包的第一个依赖包pkg1。</p>
+<p>第二步，Go在进行包初始化的过程中，会采用“深度优先”的原则，递归初始化各个包的依赖包。在上图里，pkg1包依赖pkg2包，pkg2包依赖pkg3包，pkg3没有依赖包，于是Go在pkg3包中按照“常量-&gt;变量-&gt;init函数”的顺序先对pkg3包进行初始化；</p>
+<p>紧接着，在pkg3包初始化完毕后，Go会回到pkg2包并对pkg2包进行初始化，接下来再回到pkg1包并对pkg1包进行初始化。在调用完pkg1包的init函数后，Go就完成了main包的第一个依赖包pkg1的初始化。</p>
+<p>接下来，Go会初始化main包的第二个依赖包pkg4，pkg4包的初始化过程与pkg1包类似，也是先初始化它的依赖包pkg5，然后再初始化自身；</p>
+<p>然后，当Go初始化完pkg4包后也就完成了对main包所有依赖包的初始化，接下来初始化main包自身。</p>
+<p>最后，在main包中，Go同样会按照“常量-&gt;变量-&gt;init函数”的顺序进行初始化，执行完这些初始化工作后才正式进入程序的入口函数main函数。</p>
+<p>现在，我们可以通过一段代码示例来验证一下Go程序启动后，Go包的初始化次序是否是正确的，示例程序的结构如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">prog-init-order</span><br><span class="line">├── go.mod</span><br><span class="line">├── main.go</span><br><span class="line">├── pkg1</span><br><span class="line">│   └── pkg1.go</span><br><span class="line">├── pkg2</span><br><span class="line">│   └── pkg2.go</span><br><span class="line">└── pkg3</span><br><span class="line">    └── pkg3.go</span><br></pre></td></tr></table></figure></p>
+<p>我们设定的各个包的依赖关系如下：</p>
+<ul>
+<li>main包依赖pkg1包和pkg2包；</li>
+<li>pkg1包和pkg2包都依赖pkg3包。</li>
+</ul>
+<p>这里我只列出了main包的代码，pkg1、pkg2和pkg3包的代码与main包都是类似的，你可以自己尝试去列一下。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    _ <span class="string">"github.com/bigwhite/prog-init-order/pkg1"</span></span><br><span class="line">    _ <span class="string">"github.com/bigwhite/prog-init-order/pkg2"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    _  = constInitCheck()</span><br><span class="line">    v1 = variableInit(<span class="string">"v1"</span>)</span><br><span class="line">    v2 = variableInit(<span class="string">"v2"</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    c1 = <span class="string">"c1"</span></span><br><span class="line">    c2 = <span class="string">"c2"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">constInitCheck</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> c1 != <span class="string">""</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"main: const c1 has been initialized"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> c2 != <span class="string">""</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"main: const c2 has been initialized"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">""</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">variableInit</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"main: var %s has been initialized\n"</span>, name)</span><br><span class="line">    <span class="keyword">return</span> name</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">"main: first init func invoked"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">"main: second init func invoked"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// do nothing</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们可以看到，在main包中其实并没有使用pkg1和pkg2中的函数或方法，而是直接通过空导入的方式“触发”pkg1包和pkg2包的初始化（pkg2包也是通过空导入的方式依赖pkg3包的），下面是这个程序的运行结果：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$go</span> run main.go</span><br><span class="line">pkg3: const c has been initialized</span><br><span class="line">pkg3: var v has been initialized</span><br><span class="line">pkg3: init func invoked</span><br><span class="line">pkg1: const c has been initialized</span><br><span class="line">pkg1: var v has been initialized</span><br><span class="line">pkg1: init func invoked</span><br><span class="line">pkg2: const c has been initialized</span><br><span class="line">pkg2: var v has been initialized</span><br><span class="line">pkg2: init func invoked</span><br><span class="line">main: const c1 has been initialized</span><br><span class="line">main: const c2 has been initialized</span><br><span class="line">main: var v1 has been initialized</span><br><span class="line">main: var v2 has been initialized</span><br><span class="line">main: first init func invoked</span><br><span class="line">main: second init func invoked</span><br></pre></td></tr></table></figure></p>
+<p>你看，正如我们预期的那样，Go运行时是按照“pkg3-&gt;pkg1-&gt;pkg2-&gt;main”的顺序，来对Go程序的各个包进行初始化的，而在包内，则是以“常量-&gt;变量-&gt;init函数”的顺序进行初始化。此外，main包的两个init函数，会按照在源文件main.go中的出现次序进行调用。</p>
+<p>还有一点，pkg1包和pkg2包都依赖pkg3包，但根据Go语言规范，一个被多个包依赖的包仅会初始化一次，因此这里的pkg3包仅会被初始化了一次。</p>
+<p>所以简而言之，记住Go包的初始化次序并不难，你只需要记住这三点就可以了：</p>
+<ul>
+<li>依赖包按“深度优先”的次序进行初始化；</li>
+<li>每个包内按以“常量-&gt;变量-&gt;init函数”的顺序进行初始化；</li>
+<li>包内的多个init函数按出现次序进行自动调用。</li>
+</ul>
+<p>到这里，我们已经知道了Go程序中包的初始化次序，也了解了每个包中常量、变量以及init函数的运行次序，以及init函数作为包初始化函数的一些特性。</p>
+<p>搞完了这些最主线的内容之后，不知你有没有发现，我们好像还忘记了一件事：我们好像忘记分析init函数的用途了？别急，我们现在就把这落下的功课补上，看看作为Go包初始化函数的init函数，在日常Go语言开发中怎么来使用呢？</p>
+<h1 id="init函数的用途"><a href="#init函数的用途" class="headerlink" title="init函数的用途"></a><span style="color:#339AFF;">init函数的用途</span></h1><p>其实，init函数的这些常用用途，与init函数在Go包初始化过程中的次序密不可分。我们前面讲过，Go包初始化时，init函数的初始化次序在变量之后，这给了开发人员在init函数中对包级变量进行进一步检查与操作的机会。</p>
+<p><strong>这里我们先来看init函数的第一个常用用途：重置包级变量值。</strong></p>
+<p>init函数就好比Go包真正投入使用之前唯一的“质检员”，负责对包内部以及暴露到外部的包级数据（主要是包级变量）的初始状态进行检查。在Go标准库中，我们能发现很多init函数被用于检查包级变量的初始状态的例子，标准库flag包对init函数的使用就是其中的一个，这里我们简单来分析一下。</p>
+<p>flag包定义了一个导出的包级变量CommandLine，如果用户没有通过flag.NewFlagSet创建新的代表命令行标志集合的实例，那么CommandLine就会作为flag包各种导出函数背后，默认的代表命令行标志集合的实例。</p>
+<p>而在flag包初始化的时候，由于init函数初始化次序在包级变量之后，因此包级变量CommandLine会在init函数之前被初始化了，你可以看一下下面的代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> CommandLine = NewFlagSet(os.Args[<span class="number">0</span>], ExitOnError)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewFlagSet</span><span class="params">(name <span class="keyword">string</span>, errorHandling ErrorHandling)</span> *<span class="title">FlagSet</span></span> &#123;</span><br><span class="line">    f := &amp;FlagSet&#123;</span><br><span class="line">    name:          name,</span><br><span class="line">    errorHandling: errorHandling,</span><br><span class="line">&#125;</span><br><span class="line">    f.Usage = f.defaultUsage</span><br><span class="line">    <span class="keyword">return</span> f</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *FlagSet)</span> <span class="title">defaultUsage</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> f.name == <span class="string">""</span> &#123;</span><br><span class="line">        fmt.Fprintf(f.Output(), <span class="string">"Usage:\n"</span>)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        fmt.Fprintf(f.Output(), <span class="string">"Usage of %s:\n"</span>, f.name)</span><br><span class="line">    &#125;</span><br><span class="line">    f.PrintDefaults()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们可以看到，在通过NewFlagSet创建CommandLine变量绑定的FlagSet类型实例时，CommandLine的Usage字段被赋值为default Usage。</p>
+<p>也就是说，如果保持现状，那么使用flag包默认CommandLine的用户就无法自定义usage的输出了。于是，flag包在init函数中重置了CommandLine的Usage字段：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    CommandLine.Usage = commandLineUsage <span class="comment">// 重置CommandLine的Usage字段</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">commandLineUsage</span><span class="params">()</span></span> &#123;</span><br><span class="line">    Usage()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> Usage = <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Fprintf(CommandLine.Output(), <span class="string">"Usage of %s:\n"</span>, os.Args[<span class="number">0</span>])</span><br><span class="line">    PrintDefaults()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个时候我们会发现，CommandLine的Usage字段，设置为了一个flag包内的未导出函数commandLineUsage，后者则直接使用了flag包的另外一个导出包变量Usage。这样，就可以通过init函数，将CommandLine与包变量Usage关联在一起了。</p>
+<p>然后，当用户将自定义的usage赋值给了flag.Usage后，就相当于改变了默认代表命令行标志集合的CommandLine变量的Usage。这样当flag包完成初始化后，CommandLine变量便处于一个合理可用的状态了。</p>
+<p><strong>init函数的第二个常用用途，是实现对包级变量的复杂初始化。</strong></p>
+<p>有些包级变量需要一个比较复杂的初始化过程，有些时候，使用它的类型零值（每个Go类型都具有一个零值定义）或通过简单初始化表达式不能满足业务逻辑要求，而init函数则非常适合完成此项工作，标准库http包中就有这样一个典型示例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    http2VerboseLogs    <span class="keyword">bool</span> <span class="comment">// 初始化时默认值为false</span></span><br><span class="line">    http2logFrameWrites <span class="keyword">bool</span> <span class="comment">// 初始化时默认值为false</span></span><br><span class="line">    http2logFrameReads  <span class="keyword">bool</span> <span class="comment">// 初始化时默认值为false</span></span><br><span class="line">    http2inTests        <span class="keyword">bool</span> <span class="comment">// 初始化时默认值为false</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    e := os.Getenv(<span class="string">"GODEBUG"</span>)</span><br><span class="line">    <span class="keyword">if</span> strings.Contains(e, <span class="string">"http2debug=1"</span>) &#123;</span><br><span class="line">        http2VerboseLogs = <span class="literal">true</span> <span class="comment">// 在init中对http2VerboseLogs的值进行重置</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> strings.Contains(e, <span class="string">"http2debug=2"</span>) &#123;</span><br><span class="line">        http2VerboseLogs = <span class="literal">true</span> <span class="comment">// 在init中对http2VerboseLogs的值进行重置</span></span><br><span class="line">        http2logFrameWrites = <span class="literal">true</span> <span class="comment">// 在init中对http2logFrameWrites的值进行重置</span></span><br><span class="line">        http2logFrameReads = <span class="literal">true</span> <span class="comment">// 在init中对http2logFrameReads的值进行重置</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们可以看到，标准库http包定义了一系列布尔类型的特性开关变量，它们默认处于关闭状态（即值为false），但我们可以通过GODEBUG环境变量的值，开启相关特性开关。</p>
+<p>可是这样一来，简单地将这些变量初始化为类型零值，就不能满足要求了，所以http包在init函数中，就根据环境变量GODEBUG的值，对这些包级开关变量进行了复杂的初始化，从而保证了这些开关变量在http包完成初始化后，可以处于合理状态。</p>
+<p><strong>说完了这个，我们现在来讲init函数的第三个常用用途：在init函数中实现“注册模式”。</strong></p>
+<p>为了让你更好地理解，首先我们来看一段使用lib/pq包访问PostgreSQL数据库的代码示例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"database/sql"</span></span><br><span class="line">    _ <span class="string">"github.com/lib/pq"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    db, err := sql.Open(<span class="string">"postgres"</span>, <span class="string">"user=pqgotest dbname=pqgotest sslmode=verify-full"</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Fatal(err)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    age := <span class="number">21</span></span><br><span class="line">    rows, err := db.Query(<span class="string">"SELECT name FROM users WHERE age = $1"</span>, age)</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其实，这是一段“神奇”的代码，你可以看到示例代码是以空导入的方式导入lib/pq包的，main函数中没有使用pq包的任何变量、函数或方法，这样就实现了对PostgreSQL数据库的访问。而这一切的奥秘，全在pq包的init函数中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    sql.Register(<span class="string">"postgres"</span>, &amp;Driver&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个奥秘就在，我们其实是利用了用空导入的方式导入lib/pq包时产生的一个“副作用”，也就是lib/pq包作为main包的依赖包，它的init函数会在pq包初始化的时候得以执行。</p>
+<p>从上面代码中，我们可以看到在pq包的init函数中，pq包将自己实现的sql驱动注册到了sql包中。这样只要应用层代码在Open数据库的时候，传入驱动的名字（这里是“postgres”），那么通过<code>sql.Open</code>函数，返回的数据库实例句柄对数据库进行的操作，实际上调用的都是pq包中相应的驱动实现。</p>
+<p>实际上，这种<strong>通过在init函数中注册自己的实现的模式，就有效降低了Go包对外的直接暴露，尤其是包级变量的暴露</strong>，从而避免了外部通过包级变量对包状态的改动。</p>
+<p>另外，从标准库database/sql包的角度来看，这种“注册模式”实质是一种工厂设计模式的实现，sql.Open函数就是这个模式中的工厂方法，它根据外部传入的驱动名称“生产”出不同类别的数据库实例句柄。</p>
+<p>这种“注册模式”在标准库的其他包中也有广泛应用，比如说，使用标准库image包获取各种格式图片的宽和高：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"image"</span></span><br><span class="line">    _ <span class="string">"image/gif"</span> <span class="comment">// 以空导入方式注入gif图片格式驱动</span></span><br><span class="line">    _ <span class="string">"image/jpeg"</span> <span class="comment">// 以空导入方式注入jpeg图片格式驱动</span></span><br><span class="line">    _ <span class="string">"image/png"</span> <span class="comment">// 以空导入方式注入png图片格式驱动</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 支持png, jpeg, gif</span></span><br><span class="line">    width, height, err := imageSize(os.Args[<span class="number">1</span>]) <span class="comment">// 获取传入的图片文件的宽与高</span></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"get image size error:"</span>, err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Printf(<span class="string">"image size: [%d, %d]\n"</span>, width, height)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">imageSize</span><span class="params">(imageFile <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">int</span>, <span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">    f, _ := os.Open(imageFile) <span class="comment">// 打开图文文件</span></span><br><span class="line">    <span class="keyword">defer</span> f.Close()</span><br><span class="line"></span><br><span class="line">    img, _, err := image.Decode(f) <span class="comment">// 对文件进行解码，得到图片实例</span></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>, <span class="number">0</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    b := img.Bounds() <span class="comment">// 返回图片区域</span></span><br><span class="line">    <span class="keyword">return</span> b.Max.X, b.Max.Y, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>你可以看到，上面这个示例程序支持png、jpeg、gif三种格式的图片，而达成这一目标的原因，正是image/png、image/jpeg和image/gif包都在各自的init函数中，将自己“注册”到image的支持格式列表中了，你可以看看下面这个代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// $GOROOT/src/image/png/reader.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    image.RegisterFormat(<span class="string">"png"</span>, pngHeader, Decode, DecodeConfig)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $GOROOT/src/image/jpeg/reader.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    image.RegisterFormat(<span class="string">"jpeg"</span>, <span class="string">"\xff\xd8"</span>, Decode, DecodeConfig)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $GOROOT/src/image/gif/reader.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    image.RegisterFormat(<span class="string">"gif"</span>, <span class="string">"GIF8?a"</span>, Decode, DecodeConfig)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>那么，现在我们了解了init函数的常见用途。init函数之所以可以胜任这些工作，恰恰是因为它在Go应用初始化次序中的特殊“位次”，也就是main函数之前，常量和变量初始化之后。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>好了，我们今天这一节课就到这里了。</p>
+<p>在这一节课中，我们一起了解了Go应用的用户层入口函数main.main、包初始化函数init，还有Go程序包的初始化次序和包内各种语法元素的初始化次序。</p>
+<p>其中，你需要重点关注init函数具备的几种行为特征：</p>
+<ul>
+<li>执行顺位排在包内其他语法元素的后面；</li>
+<li>每个init函数在整个Go程序生命周期内仅会被执行一次；</li>
+<li>init函数是顺序执行的，只有当一个init函数执行完毕后，才会去执行下一个init函数。</li>
+</ul>
+<p>基于上面这些特征，init函数十分适合做一些包级数据初始化工作以及包级数据初始状态的检查工作，我们也通过实例讲解了init函数的这些常见用途。</p>
+<p>最后，大多Go程序都是并发程序，程序会启动多个Goroutine并发执行程序逻辑，这里你一定要注意主Goroutine的优雅退出，也就是主Goroutine要根据实际情况来决定，是否要等待其他子Goroutine做完清理收尾工作退出后再行退出。</p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>今天我给你留了一个思考题：当init函数在检查包数据初始状态时遇到失败或错误的情况，我们该如何处理呢？</p>
+
       
     </div>
 
@@ -619,8 +704,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -637,7 +731,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">859</span>
+                    <span class="site-state-item-count">858</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -974,10 +1068,6 @@
                 
                 
                   <li>
-                    <a href="/2023/01/02/玉米年内突破3000元-吨，2023年能否走出大行情？/" title="玉米年内突破3000元/吨，2023年能否走出大行情？" target="_blank">玉米年内突破3000元/吨，2023年能否走出大行情？</a>
-                  </li>
-                
-                  <li>
                     <a href="/2023/01/02/38｜成果优化：怎么实现一个TCP服务器？（下）/" title="38｜成果优化：怎么实现一个TCP服务器？（下）" target="_blank">38｜成果优化：怎么实现一个TCP服务器？（下）</a>
                   </li>
                 
@@ -993,6 +1083,10 @@
                     <a href="/2023/01/02/35｜即学即练：如何实现一个轻量级线程池？/" title="35｜即学即练：如何实现一个轻量级线程池？" target="_blank">35｜即学即练：如何实现一个轻量级线程池？</a>
                   </li>
                 
+                  <li>
+                    <a href="/2023/01/02/34｜并发：如何使用共享变量？/" title="34｜并发：如何使用共享变量？" target="_blank">34｜并发：如何使用共享变量？</a>
+                  </li>
+                
               </ul>
             </div>
         
@@ -1005,6 +1099,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#main-main函数：Go应用的入口函数"><span class="nav-number">1.</span> <span class="nav-text">main.main函数：Go应用的入口函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#init函数：Go包的初始化函数"><span class="nav-number">2.</span> <span class="nav-text">init函数：Go包的初始化函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Go包的初始化次序"><span class="nav-number">3.</span> <span class="nav-text">Go包的初始化次序</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#init函数的用途"><span class="nav-number">4.</span> <span class="nav-text">init函数的用途</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">5.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#思考题"><span class="nav-number">6.</span> <span class="nav-text">思考题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1034,7 +1145,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">7.4m</span>
+    <span title="站点总字数">7.5m</span>
   
 
   
@@ -1045,7 +1156,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">111:47</span>
+    <span title="站点阅读时长">112:57</span>
   
 </div>
 
