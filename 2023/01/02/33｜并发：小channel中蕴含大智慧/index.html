@@ -111,10 +111,13 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-01-03T02:54:23.634Z">
+<meta property="og:image" content="http://yoursite.com/2023/01/02/33｜并发：小channel中蕴含大智慧/1.webp">
+<meta property="og:image" content="http://yoursite.com/2023/01/02/33｜并发：小channel中蕴含大智慧/2.webp">
+<meta property="og:updated_time" content="2023-02-17T02:26:55.096Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="33｜并发：小channel中蕴含大智慧">
 <meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2023/01/02/33｜并发：小channel中蕴含大智慧/1.webp">
 
 
 
@@ -443,7 +446,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-01-03 10:54:23" itemprop="dateModified" datetime="2023-01-03T10:54:23+08:00">2023-01-03</time>
+                <time title="修改时间：2023-02-17 10:26:55" itemprop="dateModified" datetime="2023-02-17T10:26:55+08:00">2023-02-17</time>
               
             
           </span>
@@ -489,7 +492,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">9k</span>
+                <span title="本文字数">10k</span>
               
 
               
@@ -503,7 +506,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">8 分钟</span>
+                <span title="阅读时长">10 分钟</span>
               
             </div>
           
@@ -525,45 +528,151 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-<p>通过上两节课的学习，我们知道了Go语言实现了基于CSP（CommunicatingSequentialProcesses）理论的并发方案。Go语言的CSP模型的实现包含两个主要组成部分：一个是Goroutine，它是Go应用并发设计的基本构建与执行单元；另一个就是channel，它在并发模型中扮演着重要的角色。channel既可以用来实现Goroutine间的通信，还可以实现Goroutine间的同步。它就好比Go并发设计这门“武功”的秘籍口诀，可以说，学会在Go并发设计时灵活运用channel，才能说真正掌握了Go并发设计的真谛。所以，在这一讲中，我们就来系统学习channel这一并发原语的基础语法与常见使用方法。作为一等公民的channelGo对并发的原生支持可不是仅仅停留在口号上的，Go在语法层面将并发原语channel作为一等公民对待。在前面的第21讲中我们已经学过“一等公民”这个概念了，如果你记不太清了可以回去复习一下。那channel作为一等公民意味着什么呢？</p>
-<p>这意味着我们可以像使用普通变量那样使用channel，比如，定义channel类型变量、给channel变量赋值、将channel作为参数传递给函数/方法、将channel作为返回值从函数/方法中返回，甚至将channel发送到其他channel中。这就大大简化了channel原语的使用，提升了我们开发者在做并发设计和实现时的体验。创建channel和切片、结构体、map等一样，channel也是一种复合数据类型。也就是说，我们在声明一个channel类型变量时，必须给出其具体的元素类型，比如下面的代码这样：</p>
-<p>这句代码里，我们声明了一个元素为int类型的channel类型变量ch。如果channel类型变量在声明时没有被赋予初值，那么它的默认值为nil。并且，和其他复合数据类型支持使用复合类型字面值作为变量初始值不同，为channel类型变量赋初值的唯一方法就是使用make这个Go预定义的函数，比如下面代码：</p>
-<p>这里，我们声明了两个元素类型为int的channel类型变量ch1和ch2，并给这两个变量赋了初值。但我们看到，两个变量的赋初值操作使用的make调用的形式有所不同。第一行我们通过make(chanT)创建的、元素类型为T的channel类型，是无缓冲channel，而第二行中通过带有capacity参数的make(chanT,capacity)创建的元素类型为T、缓冲区长度为capacity的channel类型，是带缓冲channel。这两种类型的变量关于发送（send）与接收（receive）的特性是不同的，我们接下来就基于这两种类型的channel，看看channel类型变量如何进行发送和接收数据元素。发送与接收Go提供了&lt;-操作符用于对channel类型变量进行发送与接收操作：</p>
-<p>这里我要提醒你一句，在理解channel的发送与接收操作时，你一定要始终牢记：channel是用于Goroutine间通信的，所以绝大多数对channel的读写都被分别放在了不同的Goroutine中。现在，我们先来看看无缓冲channel类型变量（如ch1）的发送与接收。由于无缓冲channel的运行时层实现不带有缓冲区，所以Goroutine对无缓冲channel的接收和发送操作是同步的。也就是说，对同一个无缓冲channel，只有对它进行接收操作的Goroutine和对它进行发送操作的Goroutine都存在的情况下，通信才能得以进行，否则单方面的操作会让对应的Goroutine陷入挂起状态，比如下面示例代码：</p>
-<p>在这个示例中，我们创建了一个无缓冲的channel类型变量ch1，对ch1的读写都放在了一个Goroutine中。运行这个示例，我们就会得到fatalerror，提示我们所有Goroutine都处于休眠状态，程序处于死锁状态。要想解除这种错误状态，我们只需要将接收操作，或者发送操作放到另外一个Goroutine中就可以了，比如下面代码：</p>
-<p>由此，我们可以得出结论：对无缓冲channel类型的发送与接收操作，一定要放在两个不同的Goroutine中进行，否则会导致deadlock。接下来，我们再来看看带缓冲channel的发送与接收操作。和无缓冲channel相反，带缓冲channel的运行时层实现带有缓冲区，因此，对带缓冲channel的发送操作在缓冲区未满、接收操作在缓冲区非空的情况下是异步的（发送或接收不需要阻塞等待）。也就是说，对一个带缓冲channel来说，在缓冲区未满的情况下，对它进行发送操作的Goroutine并不会阻塞挂起；在缓冲区有数据的情况下，对它进行接收操作的Goroutine也不会阻塞挂起。但当缓冲区满了的情况下，对它进行发送操作的Goroutine就会阻塞挂起；当缓冲区为空的情况下，对它进行接收操作的Goroutine也会阻塞挂起。如果光看文字还不是很好理解，你可以再看看下面几个关于带缓冲channel的操作的例子：</p>
-<p>也正是因为带缓冲channel与无缓冲channel在发送与接收行为上的差异，在具体使用上，它们有各自的“用武之地”，这个我们等会再细说，现在我们先继续把channel的基本语法讲完。使用操作符&lt;-，我们还可以声明只发送channel类型（send-only）和只接收channel类型（recv-only），我们接着看下面这个例子：</p>
-<p>你可以从这个例子中看到，试图从一个只发送channel类型变量中接收数据，或者向一个只接收channel类型发送数据，都会导致编译错误。通常只发送channel类型和只接收channel类型，会被用作函数的参数类型或返回值，用于限制对channel内的操作，或者是明确可对channel进行的操作的类型，比如下面这个例子：</p>
-<p>在这个例子中，我们启动了两个Goroutine，分别代表生产者（produce）与消费者（consume）。生产者只能向channel中发送数据，我们使用chan&lt;-int作为produce函数的参数类型；消费者只能从channel中接收数据，我们使用&lt;-chanint作为consume函数的参数类型。在消费者函数consume中，我们使用了forrange循环语句来从channel中接收数据，forrange会阻塞在对channel的接收操作上，直到channel中有数据可接收或channel被关闭循环，才会继续向下执行。channel被关闭后，forrange循环也就结束了。关闭channel在上面的例子中，produce函数在发送完数据后，调用Go内置的close函数关闭了channel。channel关闭后，所有等待从这个channel接收数据的操作都将返回。这里我们继续看一下采用不同接收语法形式的语句，在channel被关闭后的返回值的情况：</p>
-<p>我们看到，通过“comma,ok”惯用法或forrange语句，我们可以准确地判定channel是否被关闭。而单纯采用n:=&lt;-ch形式的语句，我们就无法判定从ch返回的元素类型零值，究竟是不是因为channel被关闭后才返回的。另外，从前面produce的示例程序中，我们也可以看到，channel是在produce函数中被关闭的，这也是channel的一个使用惯例，那就是发送端负责关闭channel。这里为什么要在发送端关闭channel呢？这是因为发送端没有像接受端那样的、可以安全判断channel是否被关闭了的方法。同时，一旦向一个已经关闭的channel执行发送操作，这个操作就会引发panic，比如下面这个示例：</p>
-<p>select当涉及同时对多个channel进行操作时，我们会结合Go为CSP并发模型提供的另外一个原语select，一起使用。通过select，我们可以同时在多个channel上进行发送/接收操作：</p>
-<p>当select语句中没有default分支，而且所有case中的channel操作都阻塞了的时候，整个select语句都将被阻塞，直到某一个case上的channel变成可发送，或者某个case上的channel变成可接收，select语句才可以继续进行下去。关于select语句的妙用，我们在后面还会细讲，这里我们先简单了解它的基本语法。看到这里你应该能感受到，channel和select两种原语的操作都十分简单，它们都遵循了Go语言“追求简单”的设计哲学，但它们却为Go并发程序带来了强大的表达能力。学习了这些基础用法后，接下来我们再深一层，看看Go并发原语channel的一些惯用法。同样地，这里我们也分成无缓冲channel和带缓冲channel两种情况来分析。无缓冲channel的惯用法无缓冲channel兼具通信和同步特性，在并发程序中应用颇为广泛。现在我们来看看几个无缓冲channel的典型应用：第一种用法：用作信号传递无缓冲channel用作信号传递的时候，有两种情况，分别是1对1通知信号和1对n通知信号。我们先来分析下1对1通知信号这种情况。</p>
-<p>我们直接来看具体的例子：</p>
-<p>在这个例子中，spawn函数返回的channel，被用于承载新Goroutine退出的“通知信号”，这个信号专门用作通知maingoroutine。maingoroutine在调用spawn函数后一直阻塞在对这个“通知信号”的接收动作上。我们来运行一下这个例子：</p>
-<p>有些时候，无缓冲channel还被用来实现1对n的信号通知机制。这样的信号通知机制，常被用于协调多个Goroutine一起工作，比如下面的例子：</p>
-<p>这个例子中，maingoroutine创建了一组5个workergoroutine，这些Goroutine启动后会阻塞在名为groupSignal的无缓冲channel上。maingoroutine通过close(groupSignal)向所有workergoroutine广播“开始工作”的信号，收到groupSignal后，所有workergoroutine会“同时”开始工作，就像起跑线上的运动员听到了裁判员发出的起跑信号枪声。这个例子的运行结果如下：</p>
-<p>我们可以看到，关闭一个无缓冲channel会让所有阻塞在这个channel上的接收操作返回，从而实现了一种1对n的“广播”机制。第二种用法：用于替代锁机制无缓冲channel具有同步特性，这让它在某些场合可以替代锁，让我们的程序更加清晰，可读性也更好。我们可以对比下两个方案，直观地感受一下。首先我们看一个传统的、基于“共享内存”+“互斥锁”的Goroutine安全的计数器的实现：</p>
-<p>在这个示例中，我们使用了一个带有互斥锁保护的全局变量作为计数器，所有要操作计数器的Goroutine共享这个全局变量，并在互斥锁的同步下对计数器进行自增操作。接下来我们再看更符合Go设计惯例的实现，也就是使用无缓冲channel替代锁后的实现：</p>
-<p>在这个实现中，我们将计数器操作全部交给一个独立的Goroutine去处理，并通过无缓冲channel的同步阻塞特性，实现了计数器的控制。这样其他Goroutine通过Increase函数试图增加计数器值的动作，实质上就转化为了一次无缓冲channel的接收动作。这种并发设计逻辑更符合Go语言所倡导的“不要通过共享内存来通信，而是通过通信来共享内存”的原则。运行这个示例，我们可以得出与互斥锁方案相同的结果：</p>
-<p>带缓冲channel的惯用法带缓冲的channel与无缓冲的channel的最大不同之处，就在于它的异步性。也就是说，对一个带缓冲channel，在缓冲区未满的情况下，对它进行发送操作的Goroutine不会阻塞挂起；在缓冲区有数据的情况下，对它进行接收操作的Goroutine也不会阻塞挂起。这种特性让带缓冲的channel有着与无缓冲channel不同的应用场合。接下来我们一个个来分析。第一种用法：用作消息队列channel经常被Go初学者视为在多个Goroutine之间通信的消息队列，这是因为，channel的原生特性与我们认知中的消息队列十分相似，包括Goroutine安全、有FIFO（first-in,firstout）保证等。其实，和无缓冲channel更多用于信号/事件管道相比，可自行设置容量、异步收发的带缓冲channel更适合被用作为消息队列，并且，带缓冲channel在数据收发的性能上要明显好于无缓冲channel。</p>
-<p>我们可以通过对channel读写的基本测试来印证这一点。下面是一些关于无缓冲channel和带缓冲channel收发性能测试的结果（Go1.17,MacBookPro8核）。基准测试的代码比较多，我就不全部贴出来了，你可以到这里下载。单接收单发送性能的基准测试我们先来看看针对一个channel只有一个发送Goroutine和一个接收Goroutine的情况，两种channel的收发性能比对数据：</p>
-<p>然后我们将channel的缓存由10改为100，再看看带缓冲channel的1对1基准测试结果：</p>
-<p>多接收多发送性能基准测试我们再来看看，针对一个channel有多个发送Goroutine和多个接收Goroutine的情况，两种channel的收发性能比对数据（这里建立10个发送Goroutine和10个接收Goroutine）：</p>
-<p>这里我们也将channel的缓存由10改为100后，看看带缓冲channel的多对多基准测试结果：</p>
-<p>综合前面这些结果数据，我们可以得出几个初步结论：无论是1收1发还是多收多发，带缓冲channel的收发性能都要好于无缓冲channel；对于带缓冲channel而言，发送与接收的Goroutine数量越多，收发性能会有所下降；对于带缓冲channel而言，选择适当容量会在一定程度上提升收发性能。不过你要注意的是，Go支持channel的初衷是将它作为Goroutine间的通信手段，它并不是专门用于消息队列场景的。如果你的项目需要专业消息队列的功能特性，比如支持优先级、支持权重、支持离线持久化等，那么channel就不合适了，可以使用第三方的专业的消息队列实现。第二种用法：用作计数信号量（countingsemaphore）Go并发设计的一个惯用法，就是将带缓冲channel用作计数信号量（countingsemaphore）。带缓冲channel中的当前数据个数代表的是，当前同时处于活动状态（处理业务）的Goroutine的数量，而带缓冲channel的容量（capacity），就代表了允许同时处于活动状态的Goroutine的最大数量。向带缓冲channel的一个发送操作表示获取一个信号量，而从channel的一个接收操作则表示释放一个信号量。</p>
-<p>这里我们来看一个将带缓冲channel用作计数信号量的例子：</p>
-<p>我们看到，这个示例创建了一组Goroutine来处理job，同一时间允许最多3个Goroutine处于活动状态。为了达成这一目标，我们看到这个示例使用了一个容量（capacity）为3的带缓冲channel:active作为计数信号量，这意味着允许同时处于活动状态的最大Goroutine数量为3。我们运行一下这个示例：</p>
-<p>从示例运行结果中的时间戳中，我们可以看到，虽然我们创建了很多Goroutine，但由于计数信号量的存在，同一时间内处于活动状态（正在处理job）的Goroutine的数量最多为3个。len(channel)的应用len是Go语言的一个内置函数，它支持接收数组、切片、map、字符串和channel类型的参数，并返回对应类型的“长度”，也就是一个整型值。针对channelch的类型不同，len(ch)有如下两种语义：当ch为无缓冲channel时，len(ch)总是返回0；当ch为带缓冲channel时，len(ch)返回当前channelch中尚未被读取的元素个数。这样一来，针对带缓冲channel的len调用似乎才是有意义的。那我们是否可以使用len函数来实现带缓冲channel的“判满”、“判有”和“判空”逻辑呢？就像下面示例中伪代码这样：</p>
-<p>你可以看到，我在上面代码注释的“空了”、“有数据”和“满了”的后面都打上了问号。这是为什么呢？这是因为，channel原语用于多个Goroutine间的通信，一旦多个Goroutine共同对channel进行收发操作，len(channel)就会在多个Goroutine间形成“竞态”。单纯地依靠len(channel)来判断channel中元素状态，是不能保证在后续对channel的收发时channel状态是不变的。我们以判空为例看看：</p>
-<p>从上图可以看到，Goroutine1使用len(channel)判空后，就会尝试从channel中接收数据。但在它真正从channel读数据之前，另外一个Goroutine2已经将数据读了出去，所以，Goroutine1后面的读取就会阻塞在channel上，导致后面逻辑的失效。因此，为了不阻塞在channel上，常见的方法是将“判空与读取”放在一个“事务”中，将“判满与写入”放在一个“事务”中，而这类“事务”我们可以通过select实现。我们来看下面示例：</p>
-<p>我们看到，由于用到了select原语的default分支语义，当channel空的时候，tryRecv不会阻塞；当channel满的时候，trySend也不会阻塞。这个示例的运行结果也证明了这一点，无论是使用tryRecv的consumer还是使用trySend的producer都不会阻塞：</p>
-<p>这种方法适用于大多数场合，但是这种方法有一个“问题”，那就是它改变了channel的状态，会让channel接收了一个元素或发送一个元素到channel。有些时候我们不想这么做，我们想在不改变channel状态的前提下，单纯地侦测channel的状态，而又不会因channel满或空阻塞在channel上。但很遗憾，目前没有一种方法可以在实现这样的功能的同时，适用于所有场合。但是在特定的场景下，我们可以用len(channel)来实现。比如下面这两种场景：</p>
-<p>上图中的情景(a)是一个“多发送单接收”的场景，也就是有多个发送者，但有且只有一个接收者。在这样的场景下，我们可以在接收goroutine中使用len(channel)是否大于0来判断是否channel中有数据需要接收。而情景(b)呢，是一个“多接收单发送”的场景，也就是有多个接收者，但有且只有一个发送者。在这样的场景下，我们可以在发送Goroutine中使用len(channel)是否小于cap(channel)来判断是否可以执行向channel的发送操作。nilchannel的妙用如果一个channel类型变量的值为nil，我们称它为nilchannel。nilchannel有一个特性，那就是对nilchannel的读写都会发生阻塞。比如下面示例代码：</p>
-<p>你会看到，无论上面的哪段代码被执行，maingoroutine都会阻塞在对nilchannel的操作上。不过，nilchannel的这个特性可不是一无是处，有些时候应用nilchannel的这个特性可以得到事半功倍的效果。我们来看一个例子：</p>
-<p>在这个示例中，我们期望程序在接收完ch1和ch2两个channel上的数据后就退出。但实际的运行情况却是这样的：</p>
-<p>我们原本期望上面这个在依次输出5和7两个数字后退出，但实际运行的输出结果却是在输出5之后，程序输出了许多的0值，之后才输出7并退出。这是怎么回事呢？我们简单分析一下这段代码的运行过程：前5s，select一直处于阻塞状态；第5s，ch1返回一个5后被close，select语句的casex:=&lt;-ch1这个分支被选出执行，程序输出5，并回到for循环并重新select；由于ch1被关闭，从一个已关闭的channel接收数据将永远不会被阻塞，于是新一轮select又把casex:=&lt;-ch1这个分支选出并执行。由于ch1处于关闭状态，从这个channel获取数据，我们会得到这个channel对应类型的零值，这里就是0。于是程序再次输出0；程序按这个逻辑循环执行，一直输出0值；2s后，ch2被写入了一个数值7。这样在某一轮select的过程中，分支casex:=&lt;-ch2被选中得以执行，程序输出7之后满足退出条件，于是程序终止。那我们可以怎么改进一下这个程序，让它能按照我们的预期输出呢？是时候让nilchannel登场了！用nilchannel改进后的示例代码是这样的：</p>
-<p>这里，改进后的示例程序的最关键的一个变化，就是在判断ch1或ch2被关闭后，显式地将ch1或ch2置为nil。而我们前面已经知道了，对一个nilchannel执行获取操作，这个操作将阻塞。于是，这里已经被置为nil的c1或c2的分支，将再也不会被select选中执行。改进后的示例的运行结果如下，与我们预期相符：</p>
-<p>与select结合使用的一些惯用法channel和select的结合使用能形成强大的表达能力，我们在前面的例子中已经或多或少见识过了。这里我再强调几种channel与select结合的惯用法。第一种用法：利用default分支避免阻塞select语句的default分支的语义，就是在其他非default分支因通信未就绪，而无法被选择的时候执行的，这就给default分支赋予了一种“避免阻塞”的特性。其实在前面的“len(channel)的应用”小节的例子中，我们就已经用到了“利用default分支”实现的trySend和tryRecv两个函数：</p>
+<p>通过上两节课的学习，我们知道了Go语言实现了基于CSP（CommunicatingSequentialProcesses）理论的并发方案。</p>
+<p>Go语言的CSP模型的实现包含两个主要组成部分：一个是Goroutine，它是Go应用并发设计的基本构建与执行单元；另一个就是channel，它在并发模型中扮演着重要的角色。channel既可以用来实现Goroutine间的通信，还可以实现Goroutine间的同步。它就好比Go并发设计这门“武功”的秘籍口诀，可以说，学会在Go并发设计时灵活运用channel，才能说真正掌握了Go并发设计的真谛。</p>
+<p>所以，在这一讲中，我们就来系统学习channel这一并发原语的基础语法与常见使用方法。</p>
+<h1 id="作为一等公民的channel"><a href="#作为一等公民的channel" class="headerlink" title="作为一等公民的channel"></a>作为一等公民的channel</h1><p>Go对并发的原生支持可不是仅仅停留在口号上的，Go在语法层面将并发原语channel作为一等公民对待。在前面的第21讲中我们已经学过“一等公民”这个概念了，如果你记不太清了可以回去复习一下。</p>
+<p>那channel作为一等公民意味着什么呢？</p>
+<p>这意味着我们可以像使用普通变量那样使用channel，比如，定义channel类型变量、给channel变量赋值、将channel作为参数传递给函数/方法、将channel作为返回值从函数/方法中返回，甚至将channel发送到其他channel中。这就大大简化了channel原语的使用，提升了我们开发者在做并发设计和实现时的体验。</p>
+<h1 id="创建channel"><a href="#创建channel" class="headerlink" title="创建channel"></a>创建channel</h1><p>和切片、结构体、map等一样，channel也是一种复合数据类型。也就是说，我们在声明一个channel类型变量时，必须给出其具体的元素类型，比如下面的代码这样：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这句代码里，我们声明了一个元素为int类型的channel类型变量ch。</p>
+<p>如果channel类型变量在声明时没有被赋予初值，那么它的默认值为nil。并且，和其他复合数据类型支持使用复合类型字面值作为变量初始值不同，为channel类型变量赋初值的唯一方法就是使用make这个Go预定义的函数，比如下面代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这里，我们声明了两个元素类型为int的channel类型变量ch1和ch2，并给这两个变量赋了初值。但我们看到，两个变量的赋初值操作使用的make调用的形式有所不同。</p>
+<p>第一行我们通过make(chanT)创建的、元素类型为T的channel类型，是无缓冲channel，而第二行中通过带有capacity参数的make(chanT,capacity)创建的元素类型为T、缓冲区长度为capacity的channel类型，是带缓冲channel。</p>
+<p>这两种类型的变量关于发送（send）与接收（receive）的特性是不同的，我们接下来就基于这两种类型的channel，看看channel类型变量如何进行发送和接收数据元素。</p>
+<h1 id="发送与接收"><a href="#发送与接收" class="headerlink" title="发送与接收"></a>发送与接收</h1><p>Go提供了&lt;-操作符用于对channel类型变量进行发送与接收操作：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这里我要提醒你一句，在理解channel的发送与接收操作时，你一定要始终牢记：channel是用于Goroutine间通信的，所以绝大多数对channel的读写都被分别放在了不同的Goroutine中。</p>
+<p>现在，我们先来看看无缓冲channel类型变量（如ch1）的发送与接收。</p>
+<p>由于无缓冲channel的运行时层实现不带有缓冲区，所以Goroutine对无缓冲channel的接收和发送操作是同步的。也就是说，对同一个无缓冲channel，只有对它进行接收操作的Goroutine和对它进行发送操作的Goroutine都存在的情况下，通信才能得以进行，否则单方面的操作会让对应的Goroutine陷入挂起状态，比如下面示例代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>在这个示例中，我们创建了一个无缓冲的channel类型变量ch1，对ch1的读写都放在了一个Goroutine中。</p>
+<p>运行这个示例，我们就会得到fatalerror，提示我们所有Goroutine都处于休眠状态，程序处于死锁状态。要想解除这种错误状态，我们只需要将接收操作，或者发送操作放到另外一个Goroutine中就可以了，比如下面代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>由此，我们可以得出结论：对无缓冲channel类型的发送与接收操作，一定要放在两个不同的Goroutine中进行，否则会导致deadlock。</p>
+<p>接下来，我们再来看看带缓冲channel的发送与接收操作。</p>
+<p>和无缓冲channel相反，带缓冲channel的运行时层实现带有缓冲区，因此，对带缓冲channel的发送操作在缓冲区未满、接收操作在缓冲区非空的情况下是异步的（发送或接收不需要阻塞等待）。</p>
+<p>也就是说，对一个带缓冲channel来说，在缓冲区未满的情况下，对它进行发送操作的Goroutine并不会阻塞挂起；在缓冲区有数据的情况下，对它进行接收操作的Goroutine也不会阻塞挂起。</p>
+<p>但当缓冲区满了的情况下，对它进行发送操作的Goroutine就会阻塞挂起；当缓冲区为空的情况下，对它进行接收操作的Goroutine也会阻塞挂起。</p>
+<p>如果光看文字还不是很好理解，你可以再看看下面几个关于带缓冲channel的操作的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>也正是因为带缓冲channel与无缓冲channel在发送与接收行为上的差异，在具体使用上，它们有各自的“用武之地”，这个我们等会再细说，现在我们先继续把channel的基本语法讲完。</p>
+<p>使用操作符&lt;-，我们还可以声明只发送channel类型（send-only）和只接收channel类型（recv-only），我们接着看下面这个例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>你可以从这个例子中看到，试图从一个只发送channel类型变量中接收数据，或者向一个只接收channel类型发送数据，都会导致编译错误。通常只发送channel类型和只接收channel类型，会被用作函数的参数类型或返回值，用于限制对channel内的操作，或者是明确可对channel进行的操作的类型，比如下面这个例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>在这个例子中，我们启动了两个Goroutine，分别代表生产者（produce）与消费者（consume）。生产者只能向channel中发送数据，我们使用chan&lt;-int作为produce函数的参数类型；消费者只能从channel中接收数据，我们使用&lt;-chanint作为consume函数的参数类型。</p>
+<p>在消费者函数consume中，我们使用了forrange循环语句来从channel中接收数据，forrange会阻塞在对channel的接收操作上，直到channel中有数据可接收或channel被关闭循环，才会继续向下执行。channel被关闭后，forrange循环也就结束了。</p>
+<h1 id="关闭channel"><a href="#关闭channel" class="headerlink" title="关闭channel"></a>关闭channel</h1><p>在上面的例子中，produce函数在发送完数据后，调用Go内置的close函数关闭了channel。channel关闭后，所有等待从这个channel接收数据的操作都将返回。</p>
+<p>这里我们继续看一下采用不同接收语法形式的语句，在channel被关闭后的返回值的情况：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>我们看到，通过“comma,ok”惯用法或forrange语句，我们可以准确地判定channel是否被关闭。而单纯采用n:=&lt;-ch形式的语句，我们就无法判定从ch返回的元素类型零值，究竟是不是因为channel被关闭后才返回的。</p>
+<p>另外，从前面produce的示例程序中，我们也可以看到，channel是在produce函数中被关闭的，这也是channel的一个使用惯例，那就是发送端负责关闭channel。</p>
+<p>这里为什么要在发送端关闭channel呢？</p>
+<p>这是因为发送端没有像接受端那样的、可以安全判断channel是否被关闭了的方法。同时，一旦向一个已经关闭的channel执行发送操作，这个操作就会引发panic，比如下面这个示例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<h1 id="select"><a href="#select" class="headerlink" title="select"></a>select</h1><p>当涉及同时对多个channel进行操作时，我们会结合Go为CSP并发模型提供的另外一个原语select，一起使用。</p>
+<p>通过select，我们可以同时在多个channel上进行发送/接收操作：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>当select语句中没有default分支，而且所有case中的channel操作都阻塞了的时候，整个select语句都将被阻塞，直到某一个case上的channel变成可发送，或者某个case上的channel变成可接收，select语句才可以继续进行下去。关于select语句的妙用，我们在后面还会细讲，这里我们先简单了解它的基本语法。</p>
+<p>看到这里你应该能感受到，channel和select两种原语的操作都十分简单，它们都遵循了Go语言“追求简单”的设计哲学，但它们却为Go并发程序带来了强大的表达能力。学习了这些基础用法后，接下来我们再深一层，看看Go并发原语channel的一些惯用法。同样地，这里我们也分成无缓冲channel和带缓冲channel两种情况来分析。</p>
+<h1 id="无缓冲channel的惯用法"><a href="#无缓冲channel的惯用法" class="headerlink" title="无缓冲channel的惯用法"></a>无缓冲channel的惯用法</h1><p>无缓冲channel兼具通信和同步特性，在并发程序中应用颇为广泛。现在我们来看看几个无缓冲channel的典型应用：</p>
+<p>第一种用法：用作信号传递</p>
+<p>无缓冲channel用作信号传递的时候，有两种情况，分别是1对1通知信号和1对n通知信号。我们先来分析下1对1通知信号这种情况。</p>
+<p>我们直接来看具体的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>在这个例子中，spawn函数返回的channel，被用于承载新Goroutine退出的“通知信号”，这个信号专门用作通知maingoroutine。maingoroutine在调用spawn函数后一直阻塞在对这个“通知信号”的接收动作上。</p>
+<p>我们来运行一下这个例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>有些时候，无缓冲channel还被用来实现1对n的信号通知机制。这样的信号通知机制，常被用于协调多个Goroutine一起工作，比如下面的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这个例子中，maingoroutine创建了一组5个workergoroutine，这些Goroutine启动后会阻塞在名为groupSignal的无缓冲channel上。maingoroutine通过close(groupSignal)向所有workergoroutine广播“开始工作”的信号，收到groupSignal后，所有workergoroutine会“同时”开始工作，就像起跑线上的运动员听到了裁判员发出的起跑信号枪声。</p>
+<p>这个例子的运行结果如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>我们可以看到，关闭一个无缓冲channel会让所有阻塞在这个channel上的接收操作返回，从而实现了一种1对n的“广播”机制。</p>
+<p>第二种用法：用于替代锁机制</p>
+<p>无缓冲channel具有同步特性，这让它在某些场合可以替代锁，让我们的程序更加清晰，可读性也更好。我们可以对比下两个方案，直观地感受一下。</p>
+<p>首先我们看一个传统的、基于“共享内存”+“互斥锁”的Goroutine安全的计数器的实现：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>在这个示例中，我们使用了一个带有互斥锁保护的全局变量作为计数器，所有要操作计数器的Goroutine共享这个全局变量，并在互斥锁的同步下对计数器进行自增操作。</p>
+<p>接下来我们再看更符合Go设计惯例的实现，也就是使用无缓冲channel替代锁后的实现：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>在这个实现中，我们将计数器操作全部交给一个独立的Goroutine去处理，并通过无缓冲channel的同步阻塞特性，实现了计数器的控制。这样其他Goroutine通过Increase函数试图增加计数器值的动作，实质上就转化为了一次无缓冲channel的接收动作。</p>
+<p>这种并发设计逻辑更符合Go语言所倡导的“不要通过共享内存来通信，而是通过通信来共享内存”的原则。</p>
+<p>运行这个示例，我们可以得出与互斥锁方案相同的结果：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<h1 id="带缓冲channel的惯用法"><a href="#带缓冲channel的惯用法" class="headerlink" title="带缓冲channel的惯用法"></a>带缓冲channel的惯用法</h1><p>带缓冲的channel与无缓冲的channel的最大不同之处，就在于它的异步性。也就是说，对一个带缓冲channel，在缓冲区未满的情况下，对它进行发送操作的Goroutine不会阻塞挂起；在缓冲区有数据的情况下，对它进行接收操作的Goroutine也不会阻塞挂起。</p>
+<p>这种特性让带缓冲的channel有着与无缓冲channel不同的应用场合。接下来我们一个个来分析。</p>
+<p>第一种用法：用作消息队列</p>
+<p>channel经常被Go初学者视为在多个Goroutine之间通信的消息队列，这是因为，channel的原生特性与我们认知中的消息队列十分相似，包括Goroutine安全、有FIFO（first-in,firstout）保证等。</p>
+<p>其实，和无缓冲channel更多用于信号/事件管道相比，可自行设置容量、异步收发的带缓冲channel更适合被用作为消息队列，并且，带缓冲channel在数据收发的性能上要明显好于无缓冲channel。</p>
+<p>我们可以通过对channel读写的基本测试来印证这一点。下面是一些关于无缓冲channel和带缓冲channel收发性能测试的结果（Go1.17,MacBookPro8核）。基准测试的代码比较多，我就不全部贴出来了，你可以到这里下载。</p>
+<ul>
+<li>单接收单发送性能的基准测试</li>
+</ul>
+<p>我们先来看看针对一个channel只有一个发送Goroutine和一个接收Goroutine的情况，两种channel的收发性能比对数据：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>然后我们将channel的缓存由10改为100，再看看带缓冲channel的1对1基准测试结果：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>多接收多发送性能基准测试</li>
+</ul>
+<p>我们再来看看，针对一个channel有多个发送Goroutine和多个接收Goroutine的情况，两种channel的收发性能比对数据（这里建立10个发送Goroutine和10个接收Goroutine）：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这里我们也将channel的缓存由10改为100后，看看带缓冲channel的多对多基准测试结果：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>综合前面这些结果数据，我们可以得出几个初步结论：</p>
+<ul>
+<li>无论是1收1发还是多收多发，带缓冲channel的收发性能都要好于无缓冲channel；</li>
+<li>对于带缓冲channel而言，发送与接收的Goroutine数量越多，收发性能会有所下降；</li>
+<li>对于带缓冲channel而言，选择适当容量会在一定程度上提升收发性能。</li>
+</ul>
+<p>不过你要注意的是，Go支持channel的初衷是将它作为Goroutine间的通信手段，它并不是专门用于消息队列场景的。如果你的项目需要专业消息队列的功能特性，比如支持优先级、支持权重、支持离线持久化等，那么channel就不合适了，可以使用第三方的专业的消息队列实现。</p>
+<p>第二种用法：用作计数信号量（countingsemaphore）</p>
+<p>Go并发设计的一个惯用法，就是将带缓冲channel用作计数信号量（countingsemaphore）。带缓冲channel中的当前数据个数代表的是，当前同时处于活动状态（处理业务）的Goroutine的数量，而带缓冲channel的容量（capacity），就代表了允许同时处于活动状态的Goroutine的最大数量。向带缓冲channel的一个发送操作表示获取一个信号量，而从channel的一个接收操作则表示释放一个信号量。</p>
+<p>这里我们来看一个将带缓冲channel用作计数信号量的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>我们看到，这个示例创建了一组Goroutine来处理job，同一时间允许最多3个Goroutine处于活动状态。</p>
+<p>为了达成这一目标，我们看到这个示例使用了一个容量（capacity）为3的带缓冲channel:active作为计数信号量，这意味着允许同时处于活动状态的最大Goroutine数量为3。</p>
+<p>我们运行一下这个示例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>从示例运行结果中的时间戳中，我们可以看到，虽然我们创建了很多Goroutine，但由于计数信号量的存在，同一时间内处于活动状态（正在处理job）的Goroutine的数量最多为3个。</p>
+<h1 id="len-channel-的应用"><a href="#len-channel-的应用" class="headerlink" title="len(channel)的应用"></a>len(channel)的应用</h1><p>len是Go语言的一个内置函数，它支持接收数组、切片、map、字符串和channel类型的参数，并返回对应类型的“长度”，也就是一个整型值。</p>
+<p>针对channelch的类型不同，len(ch)有如下两种语义：</p>
+<ul>
+<li>当ch为无缓冲channel时，len(ch)总是返回0；</li>
+<li>当ch为带缓冲channel时，len(ch)返回当前channelch中尚未被读取的元素个数。</li>
+</ul>
+<p>这样一来，针对带缓冲channel的len调用似乎才是有意义的。那我们是否可以使用len函数来实现带缓冲channel的“判满”、“判有”和“判空”逻辑呢？就像下面示例中伪代码这样：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>你可以看到，我在上面代码注释的“空了”、“有数据”和“满了”的后面都打上了问号。这是为什么呢？</p>
+<p>这是因为，channel原语用于多个Goroutine间的通信，一旦多个Goroutine共同对channel进行收发操作，len(channel)就会在多个Goroutine间形成“竞态”。单纯地依靠len(channel)来判断channel中元素状态，是不能保证在后续对channel的收发时channel状态是不变的。</p>
+<p>我们以判空为例看看：</p>
+<img src="/2023/01/02/33｜并发：小channel中蕴含大智慧/1.webp">
+<p>从上图可以看到，Goroutine1使用len(channel)判空后，就会尝试从channel中接收数据。但在它真正从channel读数据之前，另外一个Goroutine2已经将数据读了出去，所以，Goroutine1后面的读取就会阻塞在channel上，导致后面逻辑的失效。</p>
+<p>因此，为了不阻塞在channel上，常见的方法是将“判空与读取”放在一个“事务”中，将“判满与写入”放在一个“事务”中，而这类“事务”我们可以通过select实现。我们来看下面示例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>我们看到，由于用到了select原语的default分支语义，当channel空的时候，tryRecv不会阻塞；当channel满的时候，trySend也不会阻塞。</p>
+<p>这个示例的运行结果也证明了这一点，无论是使用tryRecv的consumer还是使用trySend的producer都不会阻塞：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这种方法适用于大多数场合，但是这种方法有一个“问题”，那就是它改变了channel的状态，会让channel接收了一个元素或发送一个元素到channel。</p>
+<p>有些时候我们不想这么做，我们想在不改变channel状态的前提下，单纯地侦测channel的状态，而又不会因channel满或空阻塞在channel上。但很遗憾，目前没有一种方法可以在实现这样的功能的同时，适用于所有场合。</p>
+<p>但是在特定的场景下，我们可以用len(channel)来实现。比如下面这两种场景：</p>
+<img src="/2023/01/02/33｜并发：小channel中蕴含大智慧/2.webp">
+<p>上图中的情景(a)是一个“多发送单接收”的场景，也就是有多个发送者，但有且只有一个接收者。在这样的场景下，我们可以在接收goroutine中使用len(channel)是否大于0来判断是否channel中有数据需要接收。</p>
+<p>而情景(b)呢，是一个“多接收单发送”的场景，也就是有多个接收者，但有且只有一个发送者。在这样的场景下，我们可以在发送Goroutine中使用len(channel)是否小于cap(channel)来判断是否可以执行向channel的发送操作。</p>
+<h1 id="nil-channel的妙用"><a href="#nil-channel的妙用" class="headerlink" title="nil channel的妙用"></a>nil channel的妙用</h1><p>如果一个channel类型变量的值为nil，我们称它为nilchannel。nilchannel有一个特性，那就是对nilchannel的读写都会发生阻塞。比如下面示例代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>你会看到，无论上面的哪段代码被执行，maingoroutine都会阻塞在对nilchannel的操作上。</p>
+<p>不过，nilchannel的这个特性可不是一无是处，有些时候应用nilchannel的这个特性可以得到事半功倍的效果。我们来看一个例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>在这个示例中，我们期望程序在接收完ch1和ch2两个channel上的数据后就退出。但实际的运行情况却是这样的：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>我们原本期望上面这个在依次输出5和7两个数字后退出，但实际运行的输出结果却是在输出5之后，程序输出了许多的0值，之后才输出7并退出。</p>
+<p>这是怎么回事呢？我们简单分析一下这段代码的运行过程：</p>
+<ul>
+<li>前5s，select一直处于阻塞状态；</li>
+<li>第5s，ch1返回一个5后被close，select语句的casex:=&lt;-ch1这个分支被选出执行，程序输出5，并回到for循环并重新select；</li>
+<li>由于ch1被关闭，从一个已关闭的channel接收数据将永远不会被阻塞，于是新一轮select又把casex:=&lt;-ch1这个分支选出并执行。由于ch1处于关闭状态，从这个channel获取数据，我们会得到这个channel对应类型的零值，这里就是0。于是程序再次输出0；程序按这个逻辑循环执行，一直输出0值；</li>
+<li>2s后，ch2被写入了一个数值7。这样在某一轮select的过程中，分支casex:=&lt;-ch2被选中得以执行，程序输出7之后满足退出条件，于是程序终止。</li>
+</ul>
+<p>那我们可以怎么改进一下这个程序，让它能按照我们的预期输出呢？</p>
+<p>是时候让nilchannel登场了！用nilchannel改进后的示例代码是这样的：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这里，改进后的示例程序的最关键的一个变化，就是在判断ch1或ch2被关闭后，显式地将ch1或ch2置为nil。</p>
+<p>而我们前面已经知道了，对一个nilchannel执行获取操作，这个操作将阻塞。于是，这里已经被置为nil的c1或c2的分支，将再也不会被select选中执行。</p>
+<p>改进后的示例的运行结果如下，与我们预期相符：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<h1 id="与select结合使用的一些惯用法"><a href="#与select结合使用的一些惯用法" class="headerlink" title="与select结合使用的一些惯用法"></a>与select结合使用的一些惯用法</h1><p>channel和select的结合使用能形成强大的表达能力，我们在前面的例子中已经或多或少见识过了。这里我再强调几种channel与select结合的惯用法。</p>
+<p>第一种用法：利用default分支避免阻塞</p>
+<p>select语句的default分支的语义，就是在其他非default分支因通信未就绪，而无法被选择的时候执行的，这就给default分支赋予了一种“避免阻塞”的特性。</p>
+<p>其实在前面的“len(channel)的应用”小节的例子中，我们就已经用到了“利用default分支”实现的trySend和tryRecv两个函数：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>而且，无论是无缓冲channel还是带缓冲channel，这两个函数都能适用，并且不会阻塞在空channel或元素个数已经达到容量的channel上。</p>
+<p>在Go标准库中，这个惯用法也有应用，比如：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>第二种用法：实现超时机制</p>
+<p>带超时机制的select，是Go中常见的一种select和channel的组合用法。通过超时事件，我们既可以避免长期陷入某种操作的等待中，也可以做一些异常处理工作。</p>
+<p>比如，下面示例代码实现了一次具有30s超时的select：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>不过，在应用带有超时机制的select时，我们要特别注意timer使用后的释放，尤其在大量创建timer的时候。</p>
+<p>Go语言标准库提供的timer实际上是由Go运行时自行维护的，而不是操作系统级的定时器资源，它的使用代价要比操作系统级的低许多。但即便如此，作为time.Timer的使用者，我们也要尽量减少在使用Timer时给Go运行时和Go垃圾回收带来的压力，要及时调用timer的Stop方法回收Timer资源。</p>
+<p>第三种用法：实现心跳机制</p>
+<p>结合time包的Ticker，我们可以实现带有心跳机制的select。这种机制让我们可以在监听channel的同时，执行一些周期性的任务，比如下面这段代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
+<p>这里我们使用time.NewTicker，创建了一个Ticker类型实例heartbeat。这个实例包含一个channel类型的字段C，这个字段会按一定时间间隔持续产生事件，就像“心跳”一样。这样for循环在channelc无数据接收时，会每隔特定时间完成一次迭代，然后回到for循环进行下一次迭代。</p>
+<p>和timer一样，我们在使用完ticker之后，也不要忘记调用它的Stop方法，避免心跳事件在ticker的channel（上面示例中的heartbeat.C）中持续产生。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>在这一讲中，我们系统学习了GoCSP并发方案中除Goroutine之外的另一个重要组成部分：channel。Go为了原生支持并发，把channel视作一等公民身份，这就大幅提升了开发人员使用channel进行并发设计和实现的体验。</p>
+<p>通过预定义函数make，我们可以创建两类channel：无缓冲channel与带缓冲的channel。这两类channel具有不同的收发特性，可以适用于不同的应用场合：无缓冲channel兼具通信与同步特性，常用于作为信号通知或替代同步锁；而带缓冲channel的异步性，让它更适合用来实现基于内存的消息队列、计数信号量等。</p>
+<p>此外，你也要牢记值为nil的channel的阻塞特性，有些时候它也能帮上大忙。而面对已关闭的channel你也一定要小心，尤其要避免向已关闭的channel发送数据，那会导致panic。</p>
+<p>最后，select是Go为了支持同时操作多个channel，而引入的另外一个并发原语，select与channel有几种常用的固定搭配，你也要好好掌握和理解。</p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h1><p>channel作为Go并发设计的重要组成部分，需要你掌握的细节非常多。而且，channel的应用模式也非常多，我们这一讲仅挑了几个常见的模式做了讲解。在日常开发中你还见过哪些实用的channel使用模式呢？</p>
 
       
     </div>
@@ -656,8 +765,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -674,7 +792,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">896</span>
+                    <span class="site-state-item-count">903</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1013,23 +1131,23 @@
                 
                 
                   <li>
-                    <a href="/2023/01/27/47｜故障容错：如何在Worker崩溃时进行重新调度？/" title="47｜故障容错：如何在Worker崩溃时进行重新调度？" target="_blank">47｜故障容错：如何在Worker崩溃时进行重新调度？</a>
+                    <a href="/2023/02/18/小麦已接近底部，玉米也终于迎来2个利好消息！/" title="小麦已接近底部，玉米也终于迎来2个利好消息！" target="_blank">小麦已接近底部，玉米也终于迎来2个利好消息！</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/46｜Master任务调度：服务发现与资源管理/" title="46｜Master任务调度：服务发现与资源管理" target="_blank">46｜Master任务调度：服务发现与资源管理</a>
+                    <a href="/2023/02/16/53｜容器化实战：怎样搭建K8s爬虫集群？/" title="53｜容器化实战：怎样搭建K8s爬虫集群？" target="_blank">53｜容器化实战：怎样搭建K8s爬虫集群？</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/45｜Master高可用：怎样借助etcd实现服务选主？/" title="45｜Master高可用：怎样借助etcd实现服务选主？" target="_blank">45｜Master高可用：怎样借助etcd实现服务选主？</a>
+                    <a href="/2023/02/16/52-容器海洋中的舵手：Kubernetes工作机制/" title="52 | 容器海洋中的舵手：Kubernetes工作机制" target="_blank">52 | 容器海洋中的舵手：Kubernetes工作机制</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/44｜一个程序多种功能：构建子命令与flags/" title="44｜一个程序多种功能：构建子命令与flags" target="_blank">44｜一个程序多种功能：构建子命令与flags</a>
+                    <a href="/2023/02/16/51-多容器部署：如何利用-Docker-Compose快速搭建本地爬虫环境？/" title="51 | 多容器部署：如何利用 Docker Compose快速搭建本地爬虫环境？" target="_blank">51 | 多容器部署：如何利用 Docker Compose快速搭建本地爬虫环境？</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/43｜分布式协调：etcd读写、MVCC原理与监听机制/" title="43｜分布式协调：etcd读写、MVCC原理与监听机制" target="_blank">43｜分布式协调：etcd读写、MVCC原理与监听机制</a>
+                    <a href="/2023/02/16/50｜不可阻挡的容器化：Docker核心技术与原理/" title="50｜不可阻挡的容器化：Docker核心技术与原理" target="_blank">50｜不可阻挡的容器化：Docker核心技术与原理</a>
                   </li>
                 
               </ul>
@@ -1044,6 +1162,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#作为一等公民的channel"><span class="nav-number">1.</span> <span class="nav-text">作为一等公民的channel</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#创建channel"><span class="nav-number">2.</span> <span class="nav-text">创建channel</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#发送与接收"><span class="nav-number">3.</span> <span class="nav-text">发送与接收</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#关闭channel"><span class="nav-number">4.</span> <span class="nav-text">关闭channel</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#select"><span class="nav-number">5.</span> <span class="nav-text">select</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#无缓冲channel的惯用法"><span class="nav-number">6.</span> <span class="nav-text">无缓冲channel的惯用法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#带缓冲channel的惯用法"><span class="nav-number">7.</span> <span class="nav-text">带缓冲channel的惯用法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#len-channel-的应用"><span class="nav-number">8.</span> <span class="nav-text">len(channel)的应用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#nil-channel的妙用"><span class="nav-number">9.</span> <span class="nav-text">nil channel的妙用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#与select结合使用的一些惯用法"><span class="nav-number">10.</span> <span class="nav-text">与select结合使用的一些惯用法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">11.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#思考题"><span class="nav-number">12.</span> <span class="nav-text">思考题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1073,7 +1208,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">7.6m</span>
+    <span title="站点总字数">7.7m</span>
   
 
   
@@ -1084,7 +1219,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">115:03</span>
+    <span title="站点阅读时长">116:18</span>
   
 </div>
 
