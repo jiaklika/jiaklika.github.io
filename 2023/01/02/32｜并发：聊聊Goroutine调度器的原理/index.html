@@ -112,7 +112,7 @@
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2023/01/02/32｜并发：聊聊Goroutine调度器的原理/1.webp">
-<meta property="og:updated_time" content="2023-02-20T03:02:22.281Z">
+<meta property="og:updated_time" content="2023-02-26T06:28:27.978Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="32｜并发：聊聊Goroutine调度器的原理">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -445,7 +445,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-02-20 11:02:22" itemprop="dateModified" datetime="2023-02-20T11:02:22+08:00">2023-02-20</time>
+                <time title="修改时间：2023-02-26 14:28:27" itemprop="dateModified" datetime="2023-02-26T14:28:27+08:00">2023-02-26</time>
               
             
           </span>
@@ -530,7 +530,7 @@
 <p>上一讲我们学习了并发的基本概念和Go的并发方案，也就是Goroutine的一些基本使用和注意事项。对于大多数Gopher来说，这些内容作为Go并发入门已经是足够了。</p>
 <p>但毕竟Go没有采用基于线程的并发模型，可能很多Gopher都好奇Go运行时究竟是如何将一个个Goroutine调度到CPU上执行的。当然，Goroutine的调度本来是Go语言核心开发团队才应该关注的事情，大多数Gopher们无需关心。但就我个人的学习和实践经验而言，我觉得了解Goroutine的调度模型和原理，能够帮助我们编写出更高质量的Go代码。</p>
 <p>因此，在这一讲中，我想和你一起简单探究一下Goroutine调度器的原理和演化历史。</p>
-<h1 id="Goroutine调度器"><a href="#Goroutine调度器" class="headerlink" title="Goroutine调度器"></a>Goroutine调度器</h1><p>提到“调度”，我们首先想到的就是操作系统对进程、线程的调度。操作系统调度器会将系统中的多个线程按照一定算法调度到物理CPU上去运行。</p>
+<h1 id="Goroutine调度器"><a href="#Goroutine调度器" class="headerlink" title="Goroutine调度器"></a><span style="color:#339AFF;">Goroutine调度器</span></h1><p>提到“调度”，我们首先想到的就是操作系统对进程、线程的调度。操作系统调度器会将系统中的多个线程按照一定算法调度到物理CPU上去运行。</p>
 <p>前面我们也提到，传统的编程语言，比如C、C++等的并发实现，多是基于线程模型的，也就是应用程序负责创建线程（一般通过libpthread等库函数调用实现），操作系统负责调度线程。当然，我们也说过，这种传统支持并发的方式有很多不足。为了解决这些问题，Go语言中的并发实现，使用了Goroutine，代替了操作系统的线程，也不再依靠操作系统调度。</p>
 <p>Goroutine占用的资源非常小，上节课我们也说过，每个Goroutine栈的大小默认是2KB。而且，Goroutine调度的切换也不用陷入（trap）操作系统内核层完成，代价很低。因此，一个Go程序中可以创建成千上万个并发的Goroutine。而将这些Goroutine按照一定算法放到“CPU”上执行的程序，就被称为<strong>Goroutine调度器（Goroutine Scheduler）</strong>，注意，这里说的“CPU”打了引号。</p>
 <p>不过，一个Go程序对于操作系统来说只是一个<strong>用户层程序</strong>，操作系统眼中只有线程，它甚至不知道有一种叫<strong>Goroutine</strong>的事物存在。所以，Goroutine的调度全要靠Go自己完成。那么，实现Go程序内Goroutine之间“公平”竞争“CPU”资源的任务，就落到了Go运行时（runtime）头上了。要知道在一个Go程序中，除了用户层代码，剩下的就是Go运行时了。</p>
@@ -538,7 +538,7 @@
 <p><strong>可是，在操作系统层面，线程竞争的“CPU”资源是真实的物理CPU，但在Go程序层面，各个Goroutine要竞争的“CPU”资源又是什么呢？</strong></p>
 <p>Go程序是用户层程序，它本身就是整体运行在一个或多个操作系统线程上的。所以这个答案就出来了：Goroutine们要竞争的“CPU”资源就是操作系统线程。这样，Goroutine调度器的任务也就明确了：<strong>将Goroutine按照一定算法放到不同的操作系统线程中去执行</strong>。</p>
 <p>那么，Goroutine调度器究竟是以怎样的算法模型，将Goroutine调度到不同的操作系统线程上去的呢？我们继续向下看。</p>
-<h1 id="Goroutine调度器模型与演化过程"><a href="#Goroutine调度器模型与演化过程" class="headerlink" title="Goroutine调度器模型与演化过程"></a>Goroutine调度器模型与演化过程</h1><p>Goroutine调度器的实现不是一蹴而就的，它的调度模型与算法也是几经演化，从最初的G-M模型、到G-P-M模型，从不支持抢占，到支持协作式抢占，再到支持基于信号的异步抢占，Goroutine调度器经历了不断地优化与打磨。</p>
+<h1 id="Goroutine调度器模型与演化过程"><a href="#Goroutine调度器模型与演化过程" class="headerlink" title="Goroutine调度器模型与演化过程"></a><span style="color:#339AFF;">Goroutine调度器模型与演化过程</span></h1><p>Goroutine调度器的实现不是一蹴而就的，它的调度模型与算法也是几经演化，从最初的G-M模型、到G-P-M模型，从不支持抢占，到支持协作式抢占，再到支持基于信号的异步抢占，Goroutine调度器经历了不断地优化与打磨。</p>
 <p>首先我们来看最初的<strong>G-M模型</strong>。</p>
 <p>2012年3月28日，Go1.0正式发布。在这个版本中，Go开发团队实现了一个简单的Goroutine调度器。在这个调度器中，每个Goroutine对应于运行时中的一个抽象结构：G(Goroutine)，而被视作“物理CPU”的操作系统线程，则被抽象为另外一个结构：M(machine)。</p>
 <p>调度器的工作就是将G调度到M上去运行。为了更好地控制程序中活跃的M的数量，调度器引入了GOMAXPROCS变量来表示Go调度器可见的“处理器”的最大数量。</p>
@@ -566,8 +566,8 @@
 <p>为了解决这个问题，Go开发团队的伊恩·兰斯·泰勒（IanLanceTaylor）在Go1.9中增加了一个针对文件I/O的Poller的功能，这个功能可以像netpoller那样，在G操作那些支持监听（pollable）的文件描述符时，仅会阻塞G，而不会阻塞M。不过这个功能依然不能对常规文件有效，常规文件是不支持监听的（pollable）。但对于Go调度器而言，这也算是一个不小的进步了。</p>
 <p>从Go1.2以后，Go调度器就一直稳定在G-P-M调度模型上，尽管有各种优化和改进，但也都是基于这个模型之上的。那未来的Go调度器会往哪方面发展呢？德米特里·维尤科夫在2014年9月提出了一个新的设计草案文档：《NUMA‐awareschedulerforGo》，作为对未来Goroutine调度器演进方向的一个提议，不过至今似乎这个提议也没有列入开发计划。</p>
 <p>通过前面对Goroutine调度器演化的分析，你可以看到，目前G-M模型已经废弃，NUMA调度模型尚未实现，那么现在我们要理解如今的Goroutine调度，只需要学习G-P-M模型就可以了，接下来我们就来看看G-P-M模型下Goroutine的调度原理。</p>
-<h1 id="深入G-P-M模型"><a href="#深入G-P-M模型" class="headerlink" title="深入G-P-M模型"></a>深入G-P-M模型</h1><p>Go语言中Goroutine的调度、GC、内存管理等是Go语言原理最复杂、最难懂的地方，随便拿出一个都可以讲上几节课，并且这三方面的内容随着Go版本的演进也在不断更新。因为我们是入门课，所以这里我就只基于Go1.12.7版本（支持基于协作的抢占式调度）给你粗略介绍一下基于G-P-M模型的调度原理，如果你还对这方面感兴趣，可以基于这些介绍深入到相关的Go源码中去，深入挖掘细节。</p>
-<h2 id="G、P和M"><a href="#G、P和M" class="headerlink" title="G、P和M"></a>G、P和M</h2><p>关于G、P、M的定义，我们可以参见$GOROOT/src/runtime/runtime2.go这个源文件。你可以看到，G、P、M这三个结构体定义都是大块头，每个结构体定义都包含十几个甚至二三十个字段。更不用说，像调度器这样的核心代码向来很复杂，考虑的因素也非常多，代码“耦合”成一坨。不过从复杂的代码中，我们依然可以看出来G、P、M的各自的大致用途，我们这里简要说明一下：</p>
+<h1 id="深入G-P-M模型"><a href="#深入G-P-M模型" class="headerlink" title="深入G-P-M模型"></a><span style="color:#339AFF;">深入G-P-M模型</span></h1><p>Go语言中Goroutine的调度、GC、内存管理等是Go语言原理最复杂、最难懂的地方，随便拿出一个都可以讲上几节课，并且这三方面的内容随着Go版本的演进也在不断更新。因为我们是入门课，所以这里我就只基于Go1.12.7版本（支持基于协作的抢占式调度）给你粗略介绍一下基于G-P-M模型的调度原理，如果你还对这方面感兴趣，可以基于这些介绍深入到相关的Go源码中去，深入挖掘细节。</p>
+<h2 id="G、P和M"><a href="#G、P和M" class="headerlink" title="G、P和M"></a><span style="color:#00ACC1;">G、P和M</span></h2><p>关于G、P、M的定义，我们可以参见$GOROOT/src/runtime/runtime2.go这个源文件。你可以看到，G、P、M这三个结构体定义都是大块头，每个结构体定义都包含十几个甚至二三十个字段。更不用说，像调度器这样的核心代码向来很复杂，考虑的因素也非常多，代码“耦合”成一坨。不过从复杂的代码中，我们依然可以看出来G、P、M的各自的大致用途，我们这里简要说明一下：</p>
 <ul>
 <li>G:代表Goroutine，存储了Goroutine的执行栈信息、Goroutine状态以及Goroutine的任务函数等，而且G对象是可以重用的；</li>
 <li>P:代表逻辑processor，P的数量决定了系统内最大可并行的G的数量，P的最大作用还是其拥有的各种G对象队列、链表、一些缓存和状态；</li>
@@ -575,7 +575,7 @@
 </ul>
 <p>我这里也给出了G、P、M定义的代码片段（注意：我们这里使用的是Go1.12.7版本，随着Go演化，结构体中的字段定义可能会有不同），你也可以看一看：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//src/runtime/runtime2.go</span></span><br><span class="line"><span class="keyword">type</span> g <span class="keyword">struct</span> &#123;</span><br><span class="line">    stack      stack   <span class="comment">// offset known to runtime/cgo</span></span><br><span class="line">    sched      gobuf</span><br><span class="line">    goid       <span class="keyword">int64</span></span><br><span class="line">    gopc       <span class="keyword">uintptr</span> <span class="comment">// pc of go statement that created this goroutine</span></span><br><span class="line">    startpc    <span class="keyword">uintptr</span> <span class="comment">// pc of goroutine function</span></span><br><span class="line">    ... ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> p <span class="keyword">struct</span> &#123;</span><br><span class="line">    lock mutex</span><br><span class="line"></span><br><span class="line">    id          <span class="keyword">int32</span></span><br><span class="line">    status      <span class="keyword">uint32</span> <span class="comment">// one of pidle/prunning/...</span></span><br><span class="line">  </span><br><span class="line">    mcache      *mcache</span><br><span class="line">    racectx     <span class="keyword">uintptr</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Queue of runnable goroutines. Accessed without lock.</span></span><br><span class="line">    runqhead <span class="keyword">uint32</span></span><br><span class="line">    runqtail <span class="keyword">uint32</span></span><br><span class="line">    runq     [<span class="number">256</span>]guintptr</span><br><span class="line"></span><br><span class="line">    runnext guintptr</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Available G's (status == Gdead)</span></span><br><span class="line">    gfree    *g</span><br><span class="line">    gfreecnt <span class="keyword">int32</span></span><br><span class="line"></span><br><span class="line">    ... ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> m <span class="keyword">struct</span> &#123;</span><br><span class="line">    g0            *g     <span class="comment">// goroutine with scheduling stack</span></span><br><span class="line">    mstartfn      <span class="function"><span class="keyword">func</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    <span class="title">curg</span>          *<span class="title">g</span>     // <span class="title">current</span> <span class="title">running</span> <span class="title">goroutine</span></span></span><br><span class="line"><span class="function">    ... ...</span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure></p>
 <p>而Goroutine调度器的目标，就是公平合理地将各个G调度到P上“运行”，下面我们重点看看G是如何被调度的。</p>
-<h2 id="G被抢占调度"><a href="#G被抢占调度" class="headerlink" title="G被抢占调度"></a>G被抢占调度</h2><p>我们先来说常规情况，也就是如果某个G没有进行系统调用（syscall）、没有进行I/O操作、没有阻塞在一个channel操作上，调度器是如何让G停下来并调度下一个可运行的G的呢？</p>
+<h2 id="G被抢占调度"><a href="#G被抢占调度" class="headerlink" title="G被抢占调度"></a><span style="color:#00ACC1;">G被抢占调度</span></h2><p>我们先来说常规情况，也就是如果某个G没有进行系统调用（syscall）、没有进行I/O操作、没有阻塞在一个channel操作上，调度器是如何让G停下来并调度下一个可运行的G的呢？</p>
 <p>答案就是：G是被抢占调度的。</p>
 <p>前面说过，除非极端的无限循环，否则只要G调用函数，Go运行时就有了抢占G的机会。Go程序启动时，运行时会去启动一个名为sysmon的M（一般称为监控线程），这个M的特殊之处在于它不需要绑定P就可以运行（以g0这个G的形式），这个M在整个Go程序的运行过程中至关重要，你可以看下我对sysmon被创建的部分代码以及sysmon的执行逻辑摘录：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//$GOROOT/src/runtime/proc.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// The main goroutine.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">     ... ...</span><br><span class="line">    systemstack(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        newm(sysmon, <span class="literal">nil</span>)</span><br><span class="line">    &#125;)</span><br><span class="line">    .... ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Always runs without a P, so write barriers are not allowed.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//go:nowritebarrierrec</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sysmon</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// If a heap span goes unused for 5 minutes after a garbage collection,</span></span><br><span class="line">    <span class="comment">// we hand it back to the operating system.</span></span><br><span class="line">    scavengelimit := <span class="keyword">int64</span>(<span class="number">5</span> * <span class="number">60</span> * <span class="number">1e9</span>)</span><br><span class="line">    ... ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>  .... &#123;</span><br><span class="line">        ... ...</span><br><span class="line">        <span class="comment">// retake P's blocked in syscalls</span></span><br><span class="line">        <span class="comment">// and preempt long running G's</span></span><br><span class="line">        <span class="keyword">if</span> retake(now) != <span class="number">0</span> &#123;</span><br><span class="line">            idle = <span class="number">0</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            idle++</span><br><span class="line">        &#125;</span><br><span class="line">       ... ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>我们看到，sysmon每20us~10ms启动一次，sysmon主要完成了这些工作：</p>
@@ -589,20 +589,20 @@
 <p>我们看到sysmon将“向长时间运行的G任务发出抢占调度”，这个事情由函数retake实施：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// $GOROOT/src/runtime/proc.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// forcePreemptNS is the time slice given to a G before it is</span></span><br><span class="line"><span class="comment">// preempted.</span></span><br><span class="line"><span class="keyword">const</span> forcePreemptNS = <span class="number">10</span> * <span class="number">1000</span> * <span class="number">1000</span> <span class="comment">// 10ms</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">retake</span><span class="params">(now <span class="keyword">int64</span>)</span> <span class="title">uint32</span></span> &#123;</span><br><span class="line">    ... ...</span><br><span class="line">    <span class="comment">// Preempt G if it's running for too long.</span></span><br><span class="line">    t := <span class="keyword">int64</span>(_p_.schedtick)</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">int64</span>(pd.schedtick) != t &#123;</span><br><span class="line">        pd.schedtick = <span class="keyword">uint32</span>(t)</span><br><span class="line">        pd.schedwhen = now</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> pd.schedwhen+forcePreemptNS &gt; now &#123;</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    &#125;</span><br><span class="line">    preemptone(_p_)</span><br><span class="line">    ... ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">preemptone</span><span class="params">(_p_ *p)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    mp := _p_.m.ptr()</span><br><span class="line">    <span class="keyword">if</span> mp == <span class="literal">nil</span> || mp == getg().m &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">    gp := mp.curg</span><br><span class="line">    <span class="keyword">if</span> gp == <span class="literal">nil</span> || gp == mp.g0 &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    gp.preempt = <span class="literal">true</span> <span class="comment">//设置被抢占标志</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Every call in a go routine checks for stack overflow by</span></span><br><span class="line">    <span class="comment">// comparing the current stack pointer to gp-&gt;stackguard0.</span></span><br><span class="line">    <span class="comment">// Setting gp-&gt;stackguard0 to StackPreempt folds</span></span><br><span class="line">    <span class="comment">// preemption into the normal stack overflow check.</span></span><br><span class="line">    gp.stackguard0 = stackPreempt</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>从上面的代码中，我们可以看出，如果一个G任务运行10ms，sysmon就会认为它的运行时间太久而发出抢占式调度的请求。一旦G的抢占标志位被设为true，那么等到这个G下一次调用函数或方法时，运行时就可以将G抢占并移出运行状态，放入队列中，等待下一次被调度。</p>
 <p>不过，除了这个常规调度之外，还有两个特殊情况下G的调度方法。</p>
-<p>第一种：channel阻塞或网络I/O情况下的调度。</p>
+<p><strong><font size="4">第一种：channel阻塞或网络I/O情况下的调度。</font></strong></p>
 <p>如果G被阻塞在某个channel操作或网络I/O操作上时，G会被放置到某个等待（wait）队列中，而M会尝试运行P的下一个可运行的G。如果这个时候P没有可运行的G供M运行，那么M将解绑P，并进入挂起状态。当I/O操作完成或channel操作完成，在等待队列中的G会被唤醒，标记为可运行（runnable），并被放入到某P的队列中，绑定一个M后继续执行。</p>
-<p>第二种：系统调用阻塞情况下的调度。</p>
+<p><strong><font size="4">第二种：系统调用阻塞情况下的调度。</font></strong></p>
 <p>如果G被阻塞在某个系统调用（systemcall）上，那么不光G会阻塞，执行这个G的M也会解绑P，与G一起进入挂起状态。如果此时有空闲的M，那么P就会和它绑定，并继续执行其他G；如果没有空闲的M，但仍然有其他G要去执行，那么Go运行时就会创建一个新M（线程）。</p>
 <p>当系统调用返回后，阻塞在这个系统调用上的G会尝试获取一个可用的P，如果没有可用的P，那么G会被标记为runnable，之前的那个挂起的M将再次进入挂起状态。</p>
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>基于Goroutine的并发设计离不开一个高效的生产级调度器。Goroutine调度器演进了十余年，先后经历了G-M模型、G-P-M模型和workstealing算法、协作式的抢占调度以及基于信号的异步抢占等改进与优化，目前Goroutine调度器相对稳定和成熟，可以适合绝大部分生产场合。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>基于Goroutine的并发设计离不开一个高效的生产级调度器。Goroutine调度器演进了十余年，先后经历了G-M模型、G-P-M模型和workstealing算法、协作式的抢占调度以及基于信号的异步抢占等改进与优化，目前Goroutine调度器相对稳定和成熟，可以适合绝大部分生产场合。</p>
 <p>现在的G-P-M模型和最初的G-M模型相比，通过向G-M模型中增加了一个代表逻辑处理器的P，使得Goroutine调度器具有了更好的伸缩性。</p>
 <p>M是Go代码运行的真实载体，包括Goroutine调度器自身的逻辑也是在M中运行的。</p>
 <p>P在G-P-M模型中占据核心地位，它拥有待调度的G的队列，同时M要想运行G必须绑定一个P。一个G被调度执行的时间不能过长，超过特定长的时间后，G会被设置为可抢占，并在下一次执行函数或方法时被Go运行时移出运行状态。</p>
 <p>如果G被阻塞在某个channel操作或网络I/O操作上时，M可以不被阻塞，这避免了大量创建M导致的开销。但如果G因慢系统调用而阻塞，那么M也会一起阻塞，但在阻塞前会与P解绑，P会尝试与其他M绑定继续运行其他G。但若没有现成的M，Go运行时会建立新的M，这也是系统调用可能导致系统线程数量增加的原因，你一定要注意这一点。</p>
-<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h1><p>为了让你更好理解Goroutine调度原理，我这里留个思考题。请看下面代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">deadloop</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">go</span> deadloop()</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        time.Sleep(time.Second * <span class="number">1</span>)</span><br><span class="line">        fmt.Println(<span class="string">"I got scheduled!"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>为了让你更好理解Goroutine调度原理，我这里留个思考题。请看下面代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">deadloop</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">go</span> deadloop()</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        time.Sleep(time.Second * <span class="number">1</span>)</span><br><span class="line">        fmt.Println(<span class="string">"I got scheduled!"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>我的问题是：</p>
 <p>1，在一个拥有多核处理器的主机上，使用Go 1.13.x版本运行这个示例代码，你在命令行终端上是否能看到“I got scheduled!”输出呢？也就是main goroutine在创建deadloop goroutine之后是否能继续得到调度呢？</p>
-<p>2，我们通过什么方法可以让上面示例中的maingoroutine，在创建deadloopgoroutine之后无法继续得到调度？</p>
+<p>2，我们通过什么方法可以让上面示例中的main goroutine，在创建dead loop goroutine之后无法继续得到调度？</p>
 
       
     </div>
@@ -722,7 +722,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">926</span>
+                    <span class="site-state-item-count">940</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -787,7 +787,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">19</span>
+                      
+                    
+                    <span class="site-state-item-count">20</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1032,7 +1034,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">64</span>
+                      
+                    
+                    <span class="site-state-item-count">65</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1063,23 +1067,23 @@
                 
                 
                   <li>
-                    <a href="/2023/02/22/24｜性能压测：压测不完善，效果减一半/" title="24｜性能压测：压测不完善，效果减一半" target="_blank">24｜性能压测：压测不完善，效果减一半</a>
+                    <a href="/2023/02/26/13｜JSX：如何利用JSX应对更灵活的开发场景？/" title="13｜JSX：如何利用JSX应对更灵活的开发场景？" target="_blank">13｜JSX：如何利用JSX应对更灵活的开发场景？</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/23｜网关编程：如何通过用户网关和缓存降低研发成本？/" title="23｜网关编程：如何通过用户网关和缓存降低研发成本？" target="_blank">23｜网关编程：如何通过用户网关和缓存降低研发成本？</a>
+                    <a href="/2023/02/26/12｜调试：提高开发效率必备的Vue-Devtools/" title="12｜调试：提高开发效率必备的Vue Devtools" target="_blank">12｜调试：提高开发效率必备的Vue Devtools</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/22｜存储成本：如何推算日志中心的实现成本？/" title="22｜存储成本：如何推算日志中心的实现成本？" target="_blank">22｜存储成本：如何推算日志中心的实现成本？</a>
+                    <a href="/2023/02/26/11｜路由：新一代vue-router带来什么变化/" title="11｜路由：新一代vue-router带来什么变化" target="_blank">11｜路由：新一代vue-router带来什么变化</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/21｜业务缓存：元数据服务如何实现？/" title="21｜业务缓存：元数据服务如何实现？" target="_blank">21｜业务缓存：元数据服务如何实现？</a>
+                    <a href="/2023/02/26/10｜数据流：如何使用Vuex设计你的数据流/" title="10｜数据流：如何使用Vuex设计你的数据流" target="_blank">10｜数据流：如何使用Vuex设计你的数据流</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/20｜数据引擎：统一缓存数据平台/" title="20｜数据引擎：统一缓存数据平台" target="_blank">20｜数据引擎：统一缓存数据平台</a>
+                    <a href="/2023/02/26/09｜动画：Vue中如何实现动画效果？/" title="09｜动画：Vue中如何实现动画效果？" target="_blank">09｜动画：Vue中如何实现动画效果？</a>
                   </li>
                 
               </ul>
@@ -1151,7 +1155,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">118:24</span>
+    <span title="站点阅读时长">118:45</span>
   
 </div>
 

@@ -115,7 +115,7 @@
 <meta property="og:image" content="http://yoursite.com/2023/01/02/31｜并发：Go的并发方案实现方案是怎样的？/2.webp">
 <meta property="og:image" content="http://yoursite.com/2023/01/02/31｜并发：Go的并发方案实现方案是怎样的？/3.webp">
 <meta property="og:image" content="http://yoursite.com/2023/01/02/31｜并发：Go的并发方案实现方案是怎样的？/4.webp">
-<meta property="og:updated_time" content="2023-02-20T02:57:17.807Z">
+<meta property="og:updated_time" content="2023-02-26T06:25:20.084Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="31｜并发：Go的并发方案实现方案是怎样的？">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -448,7 +448,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-02-20 10:57:17" itemprop="dateModified" datetime="2023-02-20T10:57:17+08:00">2023-02-20</time>
+                <time title="修改时间：2023-02-26 14:25:20" itemprop="dateModified" datetime="2023-02-26T14:25:20+08:00">2023-02-26</time>
               
             
           </span>
@@ -582,7 +582,7 @@
 <p>在前面的讲解中，我们曾说过，创建goroutine后，go关键字不会返回goroutineid之类的唯一标识goroutine的id，你也不要尝试去得到这样的id并依赖它。另外，和线程一样，一个应用内部启动的所有goroutine共享进程空间的资源，如果多个goroutine访问同一块内存数据，将会存在竞争，我们需要进行goroutine间的同步。</p>
 <p>了解了怎么创建，那我们怎么退出goroutine呢？</p>
 <p>goroutine的使用代价很低，Go官方也推荐你多多使用goroutine。而且，多数情况下，我们不需要考虑对goroutine的退出进行控制：<strong>goroutine的执行函数的返回，就意味着goroutine退出</strong>。</p>
-<p>如果maingoroutine退出了，那么也意味着整个应用程序的退出。此外，你还要注意的是，goroutine执行的函数或方法即便有返回值，Go也会忽略这些返回值。所以，如果你要获取goroutine执行后的返回值，你需要另行考虑其他方法，比如通过goroutine间的通信来实现。</p>
+<p>如果main goroutine退出了，那么也意味着整个应用程序的退出。此外，你还要注意的是，goroutine执行的函数或方法即便有返回值，Go也会忽略这些返回值。所以，如果你要获取goroutine执行后的返回值，你需要另行考虑其他方法，比如通过goroutine间的通信来实现。</p>
 <p>接下来我们就来说说goroutine间的通信方式。</p>
 <h2 id="goroutine间的通信"><a href="#goroutine间的通信" class="headerlink" title="goroutine间的通信"></a><span style="color:#00ACC1;">goroutine间的通信</span></h2><p>传统的编程语言（比如：C++、Java、Python等）并非面向并发而生的，所以他们面对并发的逻辑多是基于操作系统的线程。并发的执行单元（线程）之间的通信，利用的也是操作系统提供的线程或进程间通信的原语，比如：共享内存、信号（signal）、管道（pipe）、消息队列、套接字（socket）等。</p>
 <p>在这些通信原语中，使用最多、最广泛的（也是最高效的）是结合了线程同步原语（比如：锁以及更为低级的原子操作）的共享内存方式，因此，我们可以说传统语言的并发模型是<strong>基于对内存的共享的</strong>。</p>
@@ -595,7 +595,7 @@
 <img src="/2023/01/02/31｜并发：Go的并发方案实现方案是怎样的？/4.webp">
 <p>注意了，这里的P并不一定与操作系统的进程或线程划等号。在Go中，与“Process”对应的是goroutine。为了实现CSP并发模型中的输入和输出原语，Go还引入了goroutine（P）之间的通信原语channel。goroutine可以从channel获取输入数据，再将处理后得到的结果数据通过channel输出。通过channel将goroutine（P）组合连接在一起，让设计和编写大型并发系统变得更加简单和清晰，我们再也不用为那些传统共享内存并发模型中的问题而伤脑筋了。</p>
 <p>比如我们上面提到的获取goroutine的退出状态，就可以使用channel原语实现：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">spawn</span><span class="params">(f <span class="keyword">func</span>()</span> <span class="title">error</span>) &lt;-<span class="title">chan</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    c := <span class="built_in">make</span>(<span class="keyword">chan</span> error)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        c &lt;- f()</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> c</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := spawn(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        time.Sleep(<span class="number">2</span> * time.Second)</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">"timeout"</span>)</span><br><span class="line">    &#125;)</span><br><span class="line">    fmt.Println(&lt;-c)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这个示例在maingoroutine与子goroutine之间建立了一个元素类型为error的channel，子goroutine退出时，会将它执行的函数的错误返回值写入这个channel，maingoroutine可以通过读取channel的值来获取子goroutine的退出状态。</p>
+<p>这个示例在main goroutine与子goroutine之间建立了一个元素类型为error的channel，子goroutine退出时，会将它执行的函数的错误返回值写入这个channel，main goroutine可以通过读取channel的值来获取子goroutine的退出状态。</p>
 <p>虽然CSP模型已经成为Go语言支持的主流并发模型，但Go也支持传统的、基于共享内存的并发模型，并提供了基本的低级别同步原语（主要是sync包中的互斥锁、条件变量、读写锁、原子操作等）。</p>
 <p>那么我们在实践中应该选择哪个模型的并发原语呢？是使用channel，还是在低级同步原语保护下的共享内存呢？</p>
 <p>毫无疑问，从程序的整体结构来看，<strong>Go始终推荐以CSP并发模型风格构建并发程序</strong>，尤其是在复杂的业务层面，这能提升程序的逻辑清晰度，大大降低并发设计的复杂性，并让程序更具可读性和可维护性。</p>
@@ -724,7 +724,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">926</span>
+                    <span class="site-state-item-count">940</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -789,7 +789,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">19</span>
+                      
+                    
+                    <span class="site-state-item-count">20</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1034,7 +1036,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">64</span>
+                      
+                    
+                    <span class="site-state-item-count">65</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1065,23 +1069,23 @@
                 
                 
                   <li>
-                    <a href="/2023/02/22/24｜性能压测：压测不完善，效果减一半/" title="24｜性能压测：压测不完善，效果减一半" target="_blank">24｜性能压测：压测不完善，效果减一半</a>
+                    <a href="/2023/02/26/13｜JSX：如何利用JSX应对更灵活的开发场景？/" title="13｜JSX：如何利用JSX应对更灵活的开发场景？" target="_blank">13｜JSX：如何利用JSX应对更灵活的开发场景？</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/23｜网关编程：如何通过用户网关和缓存降低研发成本？/" title="23｜网关编程：如何通过用户网关和缓存降低研发成本？" target="_blank">23｜网关编程：如何通过用户网关和缓存降低研发成本？</a>
+                    <a href="/2023/02/26/12｜调试：提高开发效率必备的Vue-Devtools/" title="12｜调试：提高开发效率必备的Vue Devtools" target="_blank">12｜调试：提高开发效率必备的Vue Devtools</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/22｜存储成本：如何推算日志中心的实现成本？/" title="22｜存储成本：如何推算日志中心的实现成本？" target="_blank">22｜存储成本：如何推算日志中心的实现成本？</a>
+                    <a href="/2023/02/26/11｜路由：新一代vue-router带来什么变化/" title="11｜路由：新一代vue-router带来什么变化" target="_blank">11｜路由：新一代vue-router带来什么变化</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/21｜业务缓存：元数据服务如何实现？/" title="21｜业务缓存：元数据服务如何实现？" target="_blank">21｜业务缓存：元数据服务如何实现？</a>
+                    <a href="/2023/02/26/10｜数据流：如何使用Vuex设计你的数据流/" title="10｜数据流：如何使用Vuex设计你的数据流" target="_blank">10｜数据流：如何使用Vuex设计你的数据流</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/20｜数据引擎：统一缓存数据平台/" title="20｜数据引擎：统一缓存数据平台" target="_blank">20｜数据引擎：统一缓存数据平台</a>
+                    <a href="/2023/02/26/09｜动画：Vue中如何实现动画效果？/" title="09｜动画：Vue中如何实现动画效果？" target="_blank">09｜动画：Vue中如何实现动画效果？</a>
                   </li>
                 
               </ul>
@@ -1153,7 +1157,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">118:24</span>
+    <span title="站点阅读时长">118:45</span>
   
 </div>
 

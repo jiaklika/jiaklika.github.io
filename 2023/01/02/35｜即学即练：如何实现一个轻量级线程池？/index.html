@@ -112,7 +112,7 @@
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2023/01/02/35｜即学即练：如何实现一个轻量级线程池？/1.webp">
-<meta property="og:updated_time" content="2023-02-20T02:19:39.894Z">
+<meta property="og:updated_time" content="2023-02-26T06:35:41.925Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="35｜即学即练：如何实现一个轻量级线程池？">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -445,7 +445,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-02-20 10:19:39" itemprop="dateModified" datetime="2023-02-20T10:19:39+08:00">2023-02-20</time>
+                <time title="修改时间：2023-02-26 14:35:41" itemprop="dateModified" datetime="2023-02-26T14:35:41+08:00">2023-02-26</time>
               
             
           </span>
@@ -532,7 +532,7 @@
 <p>不过，关于接口类型做为“关节”作用的演示，我们前面的两个小实战项目中都有一定的体现了，只是那时还没有讲到接口类型，你现在可以停下来，回顾一下09讲和27讲的代码，看看是否有更深刻的体会。</p>
 <p>而且，接口类型对Go应用静态骨架的编织作用，在接口类型数量较多的项目中体现得更明显，由于篇幅有限，我很难找到一个合适的演示项目。</p>
 <p>因此，这一讲的实战项目，我们主要围绕Go并发来做，实现一个轻量级线程池，也就是Goroutine池。</p>
-<h1 id="为什么要用到Goroutine池？"><a href="#为什么要用到Goroutine池？" class="headerlink" title="为什么要用到Goroutine池？"></a>为什么要用到Goroutine池？</h1><p>在第31讲学习Goroutine的时候，我们就说过：相对于操作系统线程，Goroutine的开销十分小，一个Goroutine的起始栈大小为2KB，而且创建、切换与销毁的代价很低，我们可以创建成千上万甚至更多Goroutine。</p>
+<h1 id="为什么要用到Goroutine池？"><a href="#为什么要用到Goroutine池？" class="headerlink" title="为什么要用到Goroutine池？"></a><span style="color:#339AFF;">为什么要用到Goroutine池？</span></h1><p>在第31讲学习Goroutine的时候，我们就说过：相对于操作系统线程，Goroutine的开销十分小，一个Goroutine的起始栈大小为2KB，而且创建、切换与销毁的代价很低，我们可以创建成千上万甚至更多Goroutine。</p>
 <p>所以和其他语言不同的是，Go应用通常可以为每个新建立的连接创建一个对应的新Goroutine，甚至是为每个传入的请求生成一个Goroutine去处理。这种设计还有一个好处，实现起来十分简单，Gopher们在编写代码时也没有很高的心智负担。</p>
 <p>不过，Goroutine的开销虽然“廉价”，但也不是免费的。</p>
 <p>最明显的，一旦规模化后，这种非零成本也会成为瓶颈。我们以一个Goroutine分配2KB执行栈为例，100wGoroutine就是2GB的内存消耗。</p>
@@ -542,7 +542,7 @@
 <p>那么面对这样的问题，常见的应对方式是什么呢？</p>
 <p>Goroutine池就是一种常见的解决方案。这个方案的核心思想是对Goroutine的重用，也就是把M个计算任务调度到N个Goroutine上，而不是为每个计算任务分配一个独享的Goroutine，从而提高计算资源的利用率。</p>
 <p>接下来，我们就来真正实现一个简单的Goroutine池，我们叫它workerpool。</p>
-<h1 id="workerpool的实现原理"><a href="#workerpool的实现原理" class="headerlink" title="workerpool的实现原理"></a>workerpool的实现原理</h1><p>workerpool的工作逻辑通常都很简单，所以即便是用于生产环境的workerpool实现，代码规模也都在千行左右。</p>
+<h1 id="workerpool的实现原理"><a href="#workerpool的实现原理" class="headerlink" title="workerpool的实现原理"></a><span style="color:#339AFF;">workerpool的实现原理</span></h1><p>workerpool的工作逻辑通常都很简单，所以即便是用于生产环境的workerpool实现，代码规模也都在千行左右。</p>
 <p>当然，workerpool有很多种实现方式，这里为了更好地演示Go并发模型的应用模式，以及并发原语间的协作，我们采用完全基于channel+select的实现方案，不使用其他数据结构，也不使用sync包提供的各种同步结构，比如Mutex、RWMutex，以及Cond等。</p>
 <p>workerpool的实现主要分为三个部分：</p>
 <ul>
@@ -557,7 +557,7 @@
 <p>当activechannel可写时，我们就创建一个worker，用于处理用户通过Schedule函数提交的待处理的请求。当activechannel满了的时候，pool就会停止worker的创建，直到某个worker因故退出，activechannel又空出一个位置时，pool才会创建新的worker填补那个空位。</p>
 <p>这张图里，我们把用户要提交给workerpool执行的请求抽象为一个Task。Task的提交与调度也很简单：Task通过Schedule函数提交到一个taskchannel中，已经创建的worker将从这个taskchannel中读取task并执行。</p>
 <p>好了！“Talkischeap，showmethecode”！接下来，我们就来写一版workerpool的代码，来验证一下这里分析的原理是否可行。</p>
-<h1 id="workerpool的一个最小可行实现"><a href="#workerpool的一个最小可行实现" class="headerlink" title="workerpool的一个最小可行实现"></a>workerpool的一个最小可行实现</h1><p>我们先建立workerpool目录作为实战项目的源码根目录，然后为这个项目创建gomodule：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$mkdir workerpool1</span><br><span class="line">$cd workerpool1</span><br><span class="line">$<span class="keyword">go</span> mod init github.com/bigwhite/workerpool</span><br></pre></td></tr></table></figure></p>
+<h1 id="workerpool的一个最小可行实现"><a href="#workerpool的一个最小可行实现" class="headerlink" title="workerpool的一个最小可行实现"></a><span style="color:#339AFF;">workerpool的一个最小可行实现</span></h1><p>我们先建立workerpool目录作为实战项目的源码根目录，然后为这个项目创建gomodule：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$mkdir workerpool1</span><br><span class="line">$cd workerpool1</span><br><span class="line">$<span class="keyword">go</span> mod init github.com/bigwhite/workerpool</span><br></pre></td></tr></table></figure></p>
 <p>接下来，我们创建pool.go作为workpool包的主要源码文件。在这个源码文件中，我们定义了Pool结构体类型，这个类型的实例代表一个workerpool：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Pool <span class="keyword">struct</span> &#123;</span><br><span class="line">    capacity <span class="keyword">int</span>         <span class="comment">// workerpool大小</span></span><br><span class="line"></span><br><span class="line">    active <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125; <span class="comment">// 对应上图中的active channel</span></span><br><span class="line">    tasks  <span class="keyword">chan</span> Task     <span class="comment">// 对应上图中的task channel</span></span><br><span class="line"></span><br><span class="line">    wg   sync.WaitGroup  <span class="comment">// 用于在pool销毁时等待所有worker退出</span></span><br><span class="line">    quit <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;   <span class="comment">// 用于通知各个worker退出的信号channel</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>workerpool包对外主要提供三个API，它们分别是：</p>
 <ul>
@@ -589,7 +589,7 @@
 <p>不过，目前的workerpool实现好比“铁板一块”，虽然我们可以通过capacity参数可以指定workerpool容量，但我们无法对workerpool的行为进行定制。</p>
 <p>比如当workerpool中的worker数量已达上限，而且worker都在处理task时，用户调用Schedule方法将阻塞，如果用户不想阻塞在这里，以我们目前的实现是做不到的。</p>
 <p>那我们可以怎么改进呢？我们可以尝试在上面实现的基础上，为workerpool添加功能选项（functionaloption）机制。</p>
-<h1 id="添加功能选项机制"><a href="#添加功能选项机制" class="headerlink" title="添加功能选项机制"></a>添加功能选项机制</h1><p>功能选项机制，可以让某个包的用户可以根据自己的需求，通过设置不同功能选项来定制包的行为。Go语言中实现功能选项机制有多种方法，但Go社区目前使用最为广泛的一个方案，是Go语言之父RobPike在2014年在博文《自引用函数与选项设计》中论述的一种，这种方案也被后人称为“功能选项（functionaloption）”方案。</p>
+<h1 id="添加功能选项机制"><a href="#添加功能选项机制" class="headerlink" title="添加功能选项机制"></a><span style="color:#339AFF;">添加功能选项机制</span></h1><p>功能选项机制，可以让某个包的用户可以根据自己的需求，通过设置不同功能选项来定制包的行为。Go语言中实现功能选项机制有多种方法，但Go社区目前使用最为广泛的一个方案，是Go语言之父RobPike在2014年在博文《自引用函数与选项设计》中论述的一种，这种方案也被后人称为“功能选项（functionaloption）”方案。</p>
 <p>接下来，我们就来看看如何使用RobPike的这种“功能选项”方案，让workerpool支持行为定制机制。</p>
 <p>首先，我们将workerpool1目录拷贝一份形成workerpool2目录，我们将在这个目录下为workerpool包添加功能选项机制。</p>
 <p>然后，我们在workerpool2目录下创建option.go文件，在这个文件中，我们定义用于代表功能选项的类型Option：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Option <span class="function"><span class="keyword">func</span><span class="params">(*Pool)</span></span></span><br></pre></td></tr></table></figure></p>
@@ -610,9 +610,9 @@
 <p>考虑到Goroutine调度的次序的不确定性，这里我在创建workerpool与真正开始调用Schedule方法之间，做了一个Sleep，尽量减少Schedule都返回失败的频率（但这仍然无法保证这种情况不会发生）。</p>
 <p>运行demo2，我们会得到这个结果：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">workerpool start(preAlloc=false)</span><br><span class="line">task[1]: error: no idle worker in pool</span><br><span class="line">worker[001]: start</span><br><span class="line">task[2]: error: no idle worker in pool</span><br><span class="line">task[4]: error: no idle worker in pool</span><br><span class="line">task[5]: error: no idle worker in pool</span><br><span class="line">task[6]: error: no idle worker in pool</span><br><span class="line">task[7]: error: no idle worker in pool</span><br><span class="line">task[8]: error: no idle worker in pool</span><br><span class="line">task[9]: error: no idle worker in pool</span><br><span class="line">worker[001]: receive a task</span><br><span class="line">worker[002]: start</span><br><span class="line">worker[002]: exit</span><br><span class="line">worker[001]: receive a task</span><br><span class="line">worker[001]: exit</span><br><span class="line">workerpool freed(preAlloc=false)</span><br></pre></td></tr></table></figure></p>
 <p>不过，由于Goroutine调度的不确定性，这个结果仅仅是很多种结果的一种。我们看到，仅仅001这个worker收到了task，其余的worker都因为worker尚未创建完毕，而返回了错误，而不是像demo1那样阻塞在Schedule调用上。</p>
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>在这一讲中，我们基于我们前面所讲的Go并发方面的内容，设计并实现了一个workerpool的最小可行实现，只用了不到200行代码。为了帮助你理解Go并发原语是如何运用的，这个workerpool实现完全基于channel+select，并没有使用到sync包提供的各种锁。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>在这一讲中，我们基于我们前面所讲的Go并发方面的内容，设计并实现了一个workerpool的最小可行实现，只用了不到200行代码。为了帮助你理解Go并发原语是如何运用的，这个workerpool实现完全基于channel+select，并没有使用到sync包提供的各种锁。</p>
 <p>我们还基于workerpool的最小可行实现，为这个pool增加了功能选项的支持，我们采用的功能选项方案也是Go社区最为流行的方案，日常编码中如果你遇到了类似的需求可以重点参考。最后我要提醒你：上面设计与实现的workerpool只是一个演示项目，不能作为生产项目使用。</p>
-<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h1><p>关于workerpool这样的项目，如果让你来设计，你的设计思路是什么？</p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>关于workerpool这样的项目，如果让你来设计，你的设计思路是什么？</p>
 
       
     </div>
@@ -732,7 +732,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">926</span>
+                    <span class="site-state-item-count">940</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -797,7 +797,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">19</span>
+                      
+                    
+                    <span class="site-state-item-count">20</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1042,7 +1044,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">64</span>
+                      
+                    
+                    <span class="site-state-item-count">65</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1073,23 +1077,23 @@
                 
                 
                   <li>
-                    <a href="/2023/02/22/24｜性能压测：压测不完善，效果减一半/" title="24｜性能压测：压测不完善，效果减一半" target="_blank">24｜性能压测：压测不完善，效果减一半</a>
+                    <a href="/2023/02/26/13｜JSX：如何利用JSX应对更灵活的开发场景？/" title="13｜JSX：如何利用JSX应对更灵活的开发场景？" target="_blank">13｜JSX：如何利用JSX应对更灵活的开发场景？</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/23｜网关编程：如何通过用户网关和缓存降低研发成本？/" title="23｜网关编程：如何通过用户网关和缓存降低研发成本？" target="_blank">23｜网关编程：如何通过用户网关和缓存降低研发成本？</a>
+                    <a href="/2023/02/26/12｜调试：提高开发效率必备的Vue-Devtools/" title="12｜调试：提高开发效率必备的Vue Devtools" target="_blank">12｜调试：提高开发效率必备的Vue Devtools</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/22｜存储成本：如何推算日志中心的实现成本？/" title="22｜存储成本：如何推算日志中心的实现成本？" target="_blank">22｜存储成本：如何推算日志中心的实现成本？</a>
+                    <a href="/2023/02/26/11｜路由：新一代vue-router带来什么变化/" title="11｜路由：新一代vue-router带来什么变化" target="_blank">11｜路由：新一代vue-router带来什么变化</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/21｜业务缓存：元数据服务如何实现？/" title="21｜业务缓存：元数据服务如何实现？" target="_blank">21｜业务缓存：元数据服务如何实现？</a>
+                    <a href="/2023/02/26/10｜数据流：如何使用Vuex设计你的数据流/" title="10｜数据流：如何使用Vuex设计你的数据流" target="_blank">10｜数据流：如何使用Vuex设计你的数据流</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/02/22/20｜数据引擎：统一缓存数据平台/" title="20｜数据引擎：统一缓存数据平台" target="_blank">20｜数据引擎：统一缓存数据平台</a>
+                    <a href="/2023/02/26/09｜动画：Vue中如何实现动画效果？/" title="09｜动画：Vue中如何实现动画效果？" target="_blank">09｜动画：Vue中如何实现动画效果？</a>
                   </li>
                 
               </ul>
@@ -1161,7 +1165,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">118:24</span>
+    <span title="站点阅读时长">118:45</span>
   
 </div>
 
