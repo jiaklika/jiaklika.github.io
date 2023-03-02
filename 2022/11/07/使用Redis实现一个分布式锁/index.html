@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="分布式锁">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用Redis实现一个分布式锁">
+<meta property="og:url" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/1.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/2.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/3.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/4.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/5.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/6.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/7.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/8.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/9.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/10.png">
+<meta property="og:updated_time" content="2022-11-07T01:59:14.275Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="使用Redis实现一个分布式锁">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/1.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>使用Redis实现一个分布式锁 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/11/07/使用Redis实现一个分布式锁/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">使用Redis实现一个分布式锁
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-11-07 09:19:18 / 修改时间：09:59:14" itemprop="dateCreated datePublished" datetime="2022-11-07T09:19:18+08:00">2022-11-07</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/分布式/" itemprop="url" rel="index"><span itemprop="name">分布式</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">7.3k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">7 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<h1 id="什么是分布式锁"><a href="#什么是分布式锁" class="headerlink" title="什么是分布式锁"></a><span style="color:#339AFF;">什么是分布式锁</span></h1><p>分布式锁，<span style="color:red">简单来说就是在分布式环境下不同实例之间抢一把锁。</span></p>
+<p>和普通的锁比起来，也就是抢锁的从线程（协程）变成了实例。</p>
+<img src="/2022/11/07/使用Redis实现一个分布式锁/1.png">
+<p>分布式锁之所以难，基本上都和网络有关。</p>
+<h1 id="用Redis来实现一个分布式锁"><a href="#用Redis来实现一个分布式锁" class="headerlink" title="用Redis来实现一个分布式锁"></a><span style="color:#339AFF;">用Redis来实现一个分布式锁</span></h1><p>我们这里使用Redis来实现一个简单的分布式锁。</p>
+<p>那么在Redis里面，抢锁，或者获得一把锁，是指什么呢？</p>
+<p>实现一个分布式锁的起点，就是利用setnx命令，<span style="color:red">确保可以排他地设置一个键值对。</span></p>
+<p><span style="color:red">本质上Redis的分布式锁就是一个键值对。</span></p>
+<img src="/2022/11/07/使用Redis实现一个分布式锁/2.png">
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *LockClientDemo)</span> <span class="title">Lock</span><span class="params">(ctx context.Context, key <span class="keyword">string</span>, expiration time.Duration)</span> <span class="params">(*LockDemo, error)</span></span> &#123;</span><br><span class="line">    token := uuid.New().String()</span><br><span class="line">    ok, err := c.client.SetNX(ctx, key, token, expiration).Result()</span><br><span class="line">    <span class="keyword">if</span> ok &#123;</span><br><span class="line">        <span class="keyword">return</span> &amp;LockDemo&#123;</span><br><span class="line">            key: key,</span><br><span class="line">            token: token,</span><br><span class="line">            client: c.client,</span><br><span class="line">            <span class="built_in">close</span>: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">1</span>),</span><br><span class="line">        &#125;, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个代码奇怪的地方在于：</p>
+<ul>
+<li><span style="color:red">为什么要设置过期时间？</span>不应该是用户主动释放吗？</li>
+<li><span style="color:red">为什么要用uuid来作为值？</span></li>
+</ul>
+<h2 id="Redis分布式锁如果没有过期时间"><a href="#Redis分布式锁如果没有过期时间" class="headerlink" title="Redis分布式锁如果没有过期时间"></a><span style="color:#00ACC1;">Redis分布式锁如果没有过期时间</span></h2><img src="/2022/11/07/使用Redis实现一个分布式锁/3.png">
+<p>如果没有过期时间，那么原本加锁的实例崩溃之后，<span style="color:red">永远也没有人去释放锁。</span></p>
+<h2 id="为什么用uuid作为值"><a href="#为什么用uuid作为值" class="headerlink" title="为什么用uuid作为值"></a><span style="color:#00ACC1;">为什么用uuid作为值</span></h2><p><span style="color:red">本质上，我们就是需要一个唯一的值，用来比较这是某个实例加的锁。</span></p>
+<p>UUID就成了一个不错的选择。当然也可以使用其它的值，只要确保同一把锁的值不会冲突就可以。</p>
+<img src="/2022/11/07/使用Redis实现一个分布式锁/4.png">
+<p>实例1在释放锁的时候，根本没有检查是不是自己加的锁，所以会把实例2的锁释放掉。</p>
+<h2 id="锁释放"><a href="#锁释放" class="headerlink" title="锁释放"></a><span style="color:#00ACC1;">锁释放</span></h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Lock)</span> <span class="title">Release</span><span class="params">(ctx context.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        l.<span class="built_in">close</span> &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    status, err := luaRelease.Run(ctx, l.client,</span><br><span class="line">        []<span class="keyword">string</span>&#123;l.key&#125;, l.token).Result()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> status == <span class="keyword">int64</span>(<span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ErrFailedToRelease</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>释放锁的时候，需要做两件事：</p>
+<ul>
+<li><span style="color:red">看看是不是自己加的锁</span>（比较Redis里面的token是不是自己的）</li>
+<li><span style="color:red">如果是，直接释放锁</span></li>
+</ul>
+<p>lua脚本里面要检测key的对应的值是不是我设置的值，是的话就释放锁。如果不是，说明出了点问题。</p>
+<h2 id="过期时间设置多长？"><a href="#过期时间设置多长？" class="headerlink" title="过期时间设置多长？"></a><span style="color:#00ACC1;">过期时间设置多长？</span></h2><img src="/2022/11/07/使用Redis实现一个分布式锁/5.png">
+<p>对于锁的用户来说，他很难确定锁的过期时间应该设置多长：</p>
+<ul>
+<li>设置短了，那么业务还没完成，锁就超时了</li>
+<li>设置长了，万一实例真的崩溃了，那么其它实例长时间拿不到锁</li>
+</ul>
+<p><span style="color:red">更严重的是，不管你设置多长，极端情况下，都会出现业务执行时间超过超时时间。</span></p>
+<p>不管你用一分钟还是十分钟，极端情况下，业务执行时间都会超过锁超时时间。&lt;/span&gt;</p>
+<h2 id="续约"><a href="#续约" class="headerlink" title="续约"></a><span style="color:#00ACC1;">续约</span></h2><p>我们可以考虑在锁还没有超时的时候，再一次延长超时时间，那么：</p>
+<ul>
+<li><span style="color:red">超时时间不必设置得很长，自动续约会帮我们设置好</span></li>
+<li>如果实例崩溃了，则没有人再续约，<span style="color:red">过一段时间之后自然就会过期，其它实例就能拿到锁了</span></li>
+</ul>
+<img src="/2022/11/07/使用Redis实现一个分布式锁/6.png">
+<p>这种自动续约的API还是很难设计的，要考虑：</p>
+<ul>
+<li><span style="color:red">每一次调用Redis续约，超时时间多长？</span></li>
+<li><span style="color:red">隔多久续约一次？</span></li>
+<li><span style="color:red">每次续约续多长？</span></li>
+</ul>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LockDemo)</span> <span class="title">AutoRefresh</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">    timeout time.Duration,</span></span></span><br><span class="line"><span class="function"><span class="params">    interval time.Duration, newExpire time.Duration)</span> &lt;- <span class="title">chan</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> error, <span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        ticker := time.NewTicker(interval)</span><br><span class="line">        <span class="keyword">for</span> &#123;</span><br><span class="line">            <span class="keyword">select</span> &#123;</span><br><span class="line">            <span class="keyword">case</span> &lt;- ticker.C:</span><br><span class="line">                ctx, cancel := context.WithTimeout(context.Background(), timeout)</span><br><span class="line">                status, err := luaRefresh.Run(ctx,</span><br><span class="line">                    l.client, []<span class="keyword">string</span>&#123;l.key&#125;, l.token, newExpire.Milliseconds()).Result()</span><br><span class="line">                cancel()</span><br><span class="line">                <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                    ch &lt;- err</span><br><span class="line">                    <span class="comment">// 这里没有有关闭 l.close，其实问题也不大，因为最终都是垃圾回收</span></span><br><span class="line">                    <span class="built_in">close</span>(ch)</span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> status != <span class="keyword">int64</span>(<span class="number">1</span>) &#123;</span><br><span class="line">                    ch &lt;- ErrFailedToRefresh</span><br><span class="line">                    <span class="built_in">close</span>(ch)</span><br><span class="line">                &#125;</span><br><span class="line">            <span class="keyword">case</span> &lt;- l.<span class="built_in">close</span>:</span><br><span class="line">                <span class="built_in">close</span>(ch)</span><br><span class="line">                <span class="built_in">close</span>(l.<span class="built_in">close</span>)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">return</span> ch</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>AutoRefresh将这些参数完全交给用户来指定。同时返回了一个channel，如果在续约过程中出现问题，则会返回错误。用户需要在收到信号之后考虑中断当前的业务。</p>
+<p>更加偷懒的做法就是，<span style="color:red">直接不提供</span>AutoRefresh，而仅仅提供Refresh，用户自己写类似AutoRefresh的方法。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LockDemo)</span> <span class="title">Refresh</span><span class="params">(ctx context.Context, newExpire time.Duration)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    status, err := luaRefresh.Run(ctx, l.client,</span><br><span class="line">        []<span class="keyword">string</span>&#123;l.key&#125;, l.token, newExpire.Milliseconds()).Result()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> status == <span class="keyword">int64</span>(<span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ErrFailedToRefresh</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Refresh和释放锁一样，也需要检查是不是自己的锁，所以也用lua脚本来执行。</p>
+<h1 id="使用注意事项"><a href="#使用注意事项" class="headerlink" title="使用注意事项"></a><span style="color:#339AFF;">使用注意事项</span></h1><p>对于用户来说，即便我们进行了一定的封装，他们依旧要处理—些异常情况：</p>
+<ul>
+<li><span style="color:red">加锁超时了怎么办？</span>此时可能加成功了，可能没加成功</li>
+<li><span style="color:red">释放锁超时了怎么办？</span>此时可能释放成功了，也可能没成功，可以直接重试</li>
+<li><span style="color:red">续约超时了怎么办？</span>此时可能成功，也可能没成功，可以直接重试</li>
+<li><span style="color:red">续约失败了怎么办？</span>也就是你怎么中断你的业务</li>
+</ul>
+<h2 id="加锁超时与重试"><a href="#加锁超时与重试" class="headerlink" title="加锁超时与重试"></a><span style="color:#00ACC1;">加锁超时与重试</span></h2><p>我们可以在加锁超时之后，尝试重试。重试逻辑：</p>
+<ul>
+<li><span style="color:red">如果超时了，则直接加锁</span></li>
+<li><span style="color:red">检查一下key对应的值是不是我们刚才超时加锁请求的值</span>，如果是，直接返回，前一次加锁成功了（这里你可能需要考虑重置一下过期时间）</li>
+<li><span style="color:red">如果不是，直接返回，加锁失败</span></li>
+</ul>
+<img src="/2022/11/07/使用Redis实现一个分布式锁/7.png">
+<h1 id="Redis主从切换"><a href="#Redis主从切换" class="headerlink" title="Redis主从切换"></a><span style="color:#339AFF;">Redis主从切换</span></h1><p>前面讨论的都是单点的Redis，在集群部署的时候，需要额外考虑一个问题：<span style="color:red">主从切换。</span></p>
+<blockquote>
+<p>这是一切顺利的情况</p>
+</blockquote>
+<img src="/2022/11/07/使用Redis实现一个分布式锁/8.png">
+<blockquote>
+<p>这是主从切换异常情况</p>
+</blockquote>
+<img src="/2022/11/07/使用Redis实现一个分布式锁/9.png">
+<h2 id="Redlock"><a href="#Redlock" class="headerlink" title="Redlock"></a><span style="color:#00ACC1;">Redlock</span></h2><p>Redlock之前几位大佬还battle过，这里只做简单的介绍。思路都是类似的，就是我们<span style="color:red">这一次不再部署单一主从集群，而是多个主节点没有从节点）。</span></p>
+<p>比如说我们部署五个主节点，那么加锁过程是类似的，只是要<span style="color:red">在五个主节点上都加上锁，如果多数（这里是三个）都成功了，那么就认为加锁成功。</span></p>
+<img src="/2022/11/07/使用Redis实现一个分布式锁/10.png">
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a><span style="color:#339AFF;">总结</span></h1><ul>
+<li>使用分布式锁，<span style="color:red">你不能指望框架提供万无一失的方案</span>，自己还是要处理各种异常情况（超时）</li>
+<li>自己写分布式锁，<span style="color:red">要考虑过期时间</span>，以及要不要续约</li>
+<li>不管要对锁做什么操作，首先要确认这把锁是我们自己的锁</li>
+<li>大多数时候，<span style="color:red">与其选择复杂方案，不如直接让业务失败，可能成本还要低一点</span>。（有时候直接赔钱，比你部署一大堆节点，招一大堆开发，搞好几个机房还要便宜，而且便宜很多）也就是选择恰好的方案，而不是完美的方案</li>
+</ul>
+<h1 id="代码"><a href="#代码" class="headerlink" title="代码"></a><span style="color:#339AFF;">代码</span></h1><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> cache</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"context"</span></span><br><span class="line">    <span class="string">"errors"</span></span><br><span class="line">    <span class="string">"github.com/go-redis/redis/v9"</span></span><br><span class="line">    <span class="string">"github.com/google/uuid"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    luaRefresh = redis.NewScript(<span class="string">`if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("pexpire", KEYS[1], ARGV[2]) else return 0 end`</span>)</span><br><span class="line"></span><br><span class="line">    luaRelease = redis.NewScript(<span class="string">`if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`</span>)</span><br><span class="line"></span><br><span class="line">    ErrFailedToRefresh = errors.New(<span class="string">"续约失败"</span>)</span><br><span class="line">    ErrFailedToRelease = errors.New(<span class="string">"释放锁失败"</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> LockClientDemo <span class="keyword">struct</span> &#123;</span><br><span class="line">    client *redis.Client</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *LockClientDemo)</span> <span class="title">Lock</span><span class="params">(ctx context.Context, key <span class="keyword">string</span>, expiration time.Duration)</span> <span class="params">(*LockDemo, error)</span></span> &#123;</span><br><span class="line">    token := uuid.New().String()</span><br><span class="line">    ok, err := c.client.SetNX(ctx, key, token, expiration).Result()</span><br><span class="line">    <span class="keyword">if</span> ok &#123;</span><br><span class="line">        <span class="keyword">return</span> &amp;LockDemo&#123;</span><br><span class="line">            key: key,</span><br><span class="line">            token: token,</span><br><span class="line">            client: c.client,</span><br><span class="line">            <span class="built_in">close</span>: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">1</span>),</span><br><span class="line">        &#125;, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> LockDemo <span class="keyword">struct</span> &#123;</span><br><span class="line">    key <span class="keyword">string</span></span><br><span class="line">    token <span class="keyword">string</span></span><br><span class="line">    client *redis.Client</span><br><span class="line">    <span class="built_in">close</span> <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LockDemo)</span> <span class="title">AutoRefresh</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">    timeout time.Duration,</span></span></span><br><span class="line"><span class="function"><span class="params">    interval time.Duration, newExpire time.Duration)</span> &lt;- <span class="title">chan</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> error, <span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        ticker := time.NewTicker(interval)</span><br><span class="line">        <span class="keyword">for</span> &#123;</span><br><span class="line">            <span class="keyword">select</span> &#123;</span><br><span class="line">            <span class="keyword">case</span> &lt;- ticker.C:</span><br><span class="line">                ctx, cancel := context.WithTimeout(context.Background(), timeout)</span><br><span class="line">                status, err := luaRefresh.Run(ctx,</span><br><span class="line">                    l.client, []<span class="keyword">string</span>&#123;l.key&#125;, l.token, newExpire.Milliseconds()).Result()</span><br><span class="line">                cancel()</span><br><span class="line">                <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                    ch &lt;- err</span><br><span class="line">                    <span class="comment">// 这里咩有关闭 l.close，其实问题也不大，因为最终都是垃圾回收</span></span><br><span class="line">                    <span class="built_in">close</span>(ch)</span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> status != <span class="keyword">int64</span>(<span class="number">1</span>) &#123;</span><br><span class="line">                    ch &lt;- ErrFailedToRefresh</span><br><span class="line">                    <span class="built_in">close</span>(ch)</span><br><span class="line">                &#125;</span><br><span class="line">            <span class="keyword">case</span> &lt;- l.<span class="built_in">close</span>:</span><br><span class="line">                <span class="built_in">close</span>(ch)</span><br><span class="line">                <span class="built_in">close</span>(l.<span class="built_in">close</span>)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">return</span> ch</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LockDemo)</span> <span class="title">Refresh</span><span class="params">(ctx context.Context, newExpire time.Duration)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    status, err := luaRefresh.Run(ctx, l.client,</span><br><span class="line">        []<span class="keyword">string</span>&#123;l.key&#125;, l.token, newExpire.Milliseconds()).Result()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> status == <span class="keyword">int64</span>(<span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ErrFailedToRefresh</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LockDemo)</span> <span class="title">Release</span><span class="params">(ctx context.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        l.<span class="built_in">close</span> &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    status, err := luaRelease.Run(ctx, l.client,</span><br><span class="line">        []<span class="keyword">string</span>&#123;l.key&#125;, l.token).Result()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> status == <span class="keyword">int64</span>(<span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ErrFailedToRelease</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/分布式锁/" rel="tag"># 分布式锁</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/11/06/14-隔离性：实现悲观协议，除了锁还有别的办法吗？/" rel="next" title="14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？">
+                <i class="fa fa-chevron-left"></i> 14 | 隔离性：实现悲观协议，除了锁还有别的办法吗？
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/11/10/Swoole-Hyperf/" rel="prev" title="Swoole + Hyperf">
+                Swoole + Hyperf <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#什么是分布式锁"><span class="nav-number">1.</span> <span class="nav-text">什么是分布式锁</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#用Redis来实现一个分布式锁"><span class="nav-number">2.</span> <span class="nav-text">用Redis来实现一个分布式锁</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis分布式锁如果没有过期时间"><span class="nav-number">2.1.</span> <span class="nav-text">Redis分布式锁如果没有过期时间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么用uuid作为值"><span class="nav-number">2.2.</span> <span class="nav-text">为什么用uuid作为值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#锁释放"><span class="nav-number">2.3.</span> <span class="nav-text">锁释放</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#过期时间设置多长？"><span class="nav-number">2.4.</span> <span class="nav-text">过期时间设置多长？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#续约"><span class="nav-number">2.5.</span> <span class="nav-text">续约</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#使用注意事项"><span class="nav-number">3.</span> <span class="nav-text">使用注意事项</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#加锁超时与重试"><span class="nav-number">3.1.</span> <span class="nav-text">加锁超时与重试</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis主从切换"><span class="nav-number">4.</span> <span class="nav-text">Redis主从切换</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Redlock"><span class="nav-number">4.1.</span> <span class="nav-text">Redlock</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#代码"><span class="nav-number">6.</span> <span class="nav-text">代码</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

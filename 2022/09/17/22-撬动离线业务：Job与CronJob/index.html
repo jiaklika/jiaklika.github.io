@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="深入剖析Kubernetes">
+<meta property="og:type" content="article">
+<meta property="og:title" content="22 | 撬动离线业务：Job与CronJob">
+<meta property="og:url" content="http://yoursite.com/2022/09/17/22-撬动离线业务：Job与CronJob/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-10-11T11:20:52.925Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="22 | 撬动离线业务：Job与CronJob">
+<meta name="twitter:description" content="思考并回答以下问题：">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/09/17/22-撬动离线业务：Job与CronJob/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>22 | 撬动离线业务：Job与CronJob | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/09/17/22-撬动离线业务：Job与CronJob/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">22 | 撬动离线业务：Job与CronJob
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-09-17 23:17:35" itemprop="dateCreated datePublished" datetime="2022-09-17T23:17:35+08:00">2022-09-17</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-10-11 19:20:52" itemprop="dateModified" datetime="2022-10-11T19:20:52+08:00">2022-10-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">7.2k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">7 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<p>在前面的几篇文章中，我和你详细分享了Deployment、StatefulSet，以及DaemonSet这三个编排概念。你有没有发现它们的共同之处呢？实际上，它们主要编排的对象，都是“在线业务”，即：LongRunningTask（长作业）。比如，我在前面举例时常用的Nginx、Tomcat，以及MySQL等等。这些应用一旦运行起来，除非出错或者停止，它的容器进程会一直保持在Running状态。但是，有一类作业显然不满足这样的条件，这就是“离线业务”，或者叫作BatchJob（计算业务）。这种业务在计算完成后就直接退出了，而此时如果你依然用Deployment来管理这种业务的话，就会发现Pod会在计算结束后退出，然后被DeploymentController不断地重启；而像“滚动更新”这样的编排功能，更无从谈起了。所以，早在Borg项目中，Google就已经对作业进行了分类处理，提出了LRS（LongRunningService）和BatchJobs两种作业形态，对它们进行“分别管理”和“混合调度”。不过，在2015年Borg论文刚刚发布的时候，Kubernetes项目并不支持对BatchJob的管理。直到v1.4版本之后，社区才逐步设计出了一个用来描述离线业务的API对象，它的名字就是：Job。JobAPI对象的定义非常简单，我来举个例子，如下所示：</p>
+<p>此时，相信你对Kubernetes的API对象已经不再陌生了。在这个Job的YAML文件里，你肯定一眼就会看到一位“老熟人”：Pod模板，即spec.template字段。在这个Pod模板中，我定义了一个Ubuntu镜像的容器（准确地说，是一个安装了bc命令的Ubuntu镜像），它运行的程序是：</p>
+<p>其中，bc命令是Linux里的“计算器”；-l表示，我现在要使用标准数学库；而a(1)，则是调用数学库中的arctangent函数，计算atan(1)。这是什么意思呢？中学知识告诉我们：tan(π/4)=1。所以，4*atan(1)正好就是π，也就是3.1415926…。备注：如果你不熟悉这个知识也不必担心，我也是在查阅资料后才知道的。所以，这其实就是一个计算π值的容器。而通过scale=10000，我指定了输出的小数点后的位数是10000。在我的计算机上，这个计算大概用时1分54秒。但是，跟其他控制器不同的是，Job对象并不要求你定义一个spec.selector来描述要控制哪些Pod。具体原因，我马上会讲解到。现在，我们就可以创建这个Job了：</p>
+<p>在成功创建后，我们来查看一下这个Job对象，如下所示：</p>
+<p>可以看到，这个Job对象在创建后，它的Pod模板，被自动加上了一个controller-uid=&lt;一个随机字符串&gt;这样的Label。而这个Job对象本身，则被自动加上了这个Label对应的Selector，从而保证了Job与它所管理的Pod之间的匹配关系。而JobController之所以要使用这种携带了UID的Label，就是为了避免不同Job对象所管理的Pod发生重合。需要注意的是，这种自动生成的Label对用户来说并不友好，所以不太适合推广到Deployment等长作业编排对象上。接下来，我们可以看到这个Job创建的Pod进入了Running状态，这意味着它正在计算Pi的值。</p>
+<p>而几分钟后计算结束，这个Pod就会进入Completed状态：</p>
+<p>这也是我们需要在Pod模板中定义restartPolicy=Never的原因：离线计算的Pod永远都不应该被重启，否则它们会再重新计算一遍。事实上，restartPolicy在Job对象里只允许被设置为Never和OnFailure；而在Deployment对象里，restartPolicy则只允许被设置为Always。此时，我们通过kubectllogs查看一下这个Pod的日志，就可以看到计算得到的Pi值已经被打印了出来：</p>
+<p>这时候，你一定会想到这样一个问题，如果这个离线作业失败了要怎么办？比如，我们在这个例子中定义了restartPolicy=Never，那么离线作业失败后JobController就会不断地尝试创建一个新Pod，如下所示：</p>
+<p>可以看到，这时候会不断地有新Pod被创建出来。当然，这个尝试肯定不能无限进行下去。所以，我们就在Job对象的spec.backoffLimit字段里定义了重试次数为4（即，backoffLimit=4），而这个字段的默认值是6。需要注意的是，JobController重新创建Pod的间隔是呈指数增加的，即下一次重新创建Pod的动作会分别发生在10s、20s、40s…后。而如果你定义的restartPolicy=OnFailure，那么离线作业失败后，JobController就不会去尝试创建新的Pod。但是，它会不断地尝试重启Pod里的容器。这也正好对应了restartPolicy的含义（你也可以借此机会再回顾一下第15篇文章《深入解析Pod对象（二）：使用进阶》中的相关内容）。如前所述，当一个Job的Pod运行结束后，它会进入Completed状态。但是，如果这个Pod因为某种原因一直不肯结束呢？在Job的API对象里，有一个spec.activeDeadlineSeconds字段可以设置最长运行时间，比如：</p>
+<p>一旦运行超过了100s，这个Job的所有Pod都会被终止。并且，你可以在Pod的状态里看到终止的原因是reason:DeadlineExceeded。以上，就是一个JobAPI对象最主要的概念和用法了。不过，离线业务之所以被称为BatchJob，当然是因为它们可以以“Batch”，也就是并行的方式去运行。接下来，我就来为你讲解一下JobController对并行作业的控制方法。在Job对象中，负责并行控制的参数有两个：spec.parallelism，它定义的是一个Job在任意时间最多可以启动多少个Pod同时运行；spec.completions，它定义的是Job至少要完成的Pod数目，即Job的最小完成数。这两个参数听起来有点儿抽象，所以我准备了一个例子来帮助你理解。现在，我在之前计算Pi值的Job里，添加这两个参数：</p>
+<p>这样，我们就指定了这个Job最大的并行数是2，而最小的完成数是4。接下来，我们来创建这个Job对象：</p>
+<p>可以看到，这个Job其实也维护了两个状态字段，即DESIRED和SUCCESSFUL，如下所示：</p>
+<p>其中，DESIRED的值，正是completions定义的最小完成数。然后，我们可以看到，这个Job首先创建了两个并行运行的Pod来计算Pi：</p>
+<p>而在40s后，这两个Pod相继完成计算。这时我们可以看到，每当有一个Pod完成计算进入Completed状态时，就会有一个新的Pod被自动创建出来，并且快速地从Pending状态进入到ContainerCreating状态：</p>
+<p>紧接着，JobController第二次创建出来的两个并行的Pod也进入了Running状态：</p>
+<p>最终，后面创建的这两个Pod也完成了计算，进入了Completed状态。这时，由于所有的Pod均已经成功退出，这个Job也就执行完了，所以你会看到它的SUCCESSFUL字段的值变成了4：</p>
+<p>通过上述Job的DESIRED和SUCCESSFUL字段的关系，我们就可以很容易地理解JobController的工作原理了。首先，JobController控制的对象，直接就是Pod。其次，JobController在控制循环中进行的调谐（Reconcile）操作，是根据实际在Running状态Pod的数目、已经成功退出的Pod的数目，以及parallelism、completions参数的值共同计算出在这个周期里，应该创建或者删除的Pod数目，然后调用KubernetesAPI来执行这个操作。以创建Pod为例。在上面计算Pi值的这个例子中，当Job一开始创建出来时，实际处于Running状态的Pod数目=0，已经成功退出的Pod数目=0，而用户定义的completions，也就是最终用户需要的Pod数目=4。所以，在这个时刻，需要创建的Pod数目=最终需要的Pod数目-实际在Running状态Pod数目-已经成功退出的Pod数目=4-0-0=4。也就是说，JobController需要创建4个Pod来纠正这个不一致状态。可是，我们又定义了这个Job的parallelism=2。也就是说，我们规定了每次并发创建的Pod个数不能超过2个。所以，JobController会对前面的计算结果做一个修正，修正后的期望创建的Pod数目应该是：2个。</p>
+<p>这时候，JobController就会并发地向kube-apiserver发起两个创建Pod的请求。类似地，如果在这次调谐周期里，JobController发现实际在Running状态的Pod数目，比parallelism还大，那么它就会删除一些Pod，使两者相等。综上所述，JobController实际上控制了，作业执行的并行度，以及总共需要完成的任务数这两个重要参数。而在实际使用时，你需要根据作业的特性，来决定并行度（parallelism）和任务数（completions）的合理取值。接下来，我再和你分享三种常用的、使用Job对象的方法。第一种用法，也是最简单粗暴的用法：外部管理器+Job模板。这种模式的特定用法是：把Job的YAML文件定义为一个“模板”，然后用一个外部工具控制这些“模板”来生成Job。这时，Job的定义方式如下所示：</p>
+<p>可以看到，我们在这个Job的YAML里，定义了$ITEM这样的“变量”。所以，在控制这种Job时，我们只要注意如下两个方面即可：创建Job时，替换掉$ITEM这样的变量；所有来自于同一个模板的Job，都有一个jobgroup:jobexample标签，也就是说这一组Job使用这样一个相同的标识。而做到第一点非常简单。比如，你可以通过这样一句shell把$ITEM替换掉：</p>
+<p>这样，一组来自于同一个模板的不同Job的yaml就生成了。接下来，你就可以通过一句kubectlcreate指令创建这些Job了：</p>
+<p>这个模式看起来虽然很“傻”，但却是Kubernetes社区里使用Job的一个很普遍的模式。原因很简单：大多数用户在需要管理BatchJob的时候，都已经有了一套自己的方案，需要做的往往就是集成工作。这时候，Kubernetes项目对这些方案来说最有价值的，就是Job这个API对象。所以，你只需要编写一个外部工具（等同于我们这里的for循环）来管理这些Job即可。这种模式最典型的应用，就是TensorFlow社区的KubeFlow项目。很容易理解，在这种模式下使用Job对象，completions和parallelism这两个字段都应该使用默认值1，而不应该由我们自行设置。而作业Pod的并行控制，应该完全交由外部工具来进行管理（比如，KubeFlow）。第二种用法：拥有固定任务数目的并行Job。这种模式下，我只关心最后是否有指定数目（spec.completions）个任务成功退出。至于执行时的并行度是多少，我并不关心。比如，我们这个计算Pi值的例子，就是这样一个典型的、拥有固定任务数目（completions=4）的应用场景。它的parallelism值是2；或者，你可以干脆不指定parallelism，直接使用默认的并行度（即：1）。此外，你还可以使用一个工作队列（WorkQueue）进行任务分发。这时，Job的YAML文件定义如下所示：</p>
+<p>我们可以看到，它的completions的值是：8，这意味着我们总共要处理的任务数目是8个。也就是说，总共会有8个任务会被逐一放入工作队列里（你可以运行一个外部小程序作为生产者，来提交任务）。在这个实例中，我选择充当工作队列的是一个运行在Kubernetes里的RabbitMQ。所以，我们需要在Pod模板里定义BROKER_URL，来作为消费者。所以，一旦你用kubectlcreate创建了这个Job，它就会以并发度为2的方式，每两个Pod一组，创建出8个Pod。每个Pod都会去连接BROKER_URL，从RabbitMQ里读取任务，然后各自进行处理。这个Pod里的执行逻辑，我们可以用这样一段伪代码来表示：</p>
+<p>可以看到，每个Pod只需要将任务信息读取出来，处理完成，然后退出即可。而作为用户，我只关心最终一共有8个计算任务启动并且退出，只要这个目标达到，我就认为整个Job处理完成了。所以说，这种用法，对应的就是“任务总数固定”的场景。第三种用法，也是很常用的一个用法：指定并行度（parallelism），但不设置固定的completions的值。此时，你就必须自己想办法，来决定什么时候启动新Pod，什么时候Job才算执行完成。在这种情况下，任务的总数是未知的，所以你不仅需要一个工作队列来负责任务分发，还需要能够判断工作队列已经为空（即：所有的工作已经结束了）。这时候，Job的定义基本上没变化，只不过是不再需要定义completions的值了而已：</p>
+<p>而对应的Pod的逻辑会稍微复杂一些，我可以用这样一段伪代码来描述：</p>
+<p>由于任务数目的总数不固定，所以每一个Pod必须能够知道，自己什么时候可以退出。比如，在这个例子中，我简单地以“队列为空”，作为任务全部完成的标志。所以说，这种用法，对应的是“任务总数不固定”的场景。不过，在实际的应用中，你需要处理的条件往往会非常复杂。比如，任务完成后的输出、每个任务Pod之间是不是有资源的竞争和协同等等。所以，在今天这篇文章中，我就不再展开Job的用法了。因为，在实际场景里，要么干脆就用第一种用法来自己管理作业；要么，这些任务Pod之间的关系就不那么“单纯”，甚至还是“有状态应用”（比如，任务的输入/输出是在持久化数据卷里）。在这种情况下，我在后面要重点讲解的Operator，加上Job对象一起，可能才能更好地满足实际离线任务的编排需求。最后，我再来和你分享一个非常有用的Job对象，叫作：CronJob。顾名思义，CronJob描述的，正是定时任务。它的API对象，如下所示：</p>
+<p>在这个YAML文件中，最重要的关键词就是jobTemplate。看到它，你一定恍然大悟，原来CronJob是一个Job对象的控制器（Controller）！没错，CronJob与Job的关系，正如同Deployment与ReplicaSet的关系一样。CronJob是一个专门用来管理Job对象的控制器。只不过，它创建和删除Job的依据，是schedule字段定义的、一个标准的UnixCron格式的表达式。比如，<code>&quot;*/1****&quot;</code>。这个Cron表达式里*/1中的*表示从0开始，/表示“每”，1表示偏移量。所以，它的意思就是：从0开始，每1个时间单位执行一次。那么，时间单位又是什么呢？Cron表达式中的五个部分分别代表：分钟、小时、日、月、星期。所以，上面这句Cron表达式的意思是：从当前开始，每分钟执行一次。而这里要执行的内容，就是jobTemplate定义的Job了。所以，这个CronJob对象在创建1分钟后，就会有一个Job产生了，如下所示：</p>
+<p>此时，CronJob对象会记录下这次Job执行的时间：</p>
+<p>需要注意的是，由于定时任务的特殊性，很可能某个Job还没有执行完，另外一个新Job就产生了。这时候，你可以通过spec.concurrencyPolicy字段来定义具体的处理策略。比如：concurrencyPolicy=Allow，这也是默认情况，这意味着这些Job可以同时存在；concurrencyPolicy=Forbid，这意味着不会创建新的Pod，该创建周期被跳过；concurrencyPolicy=Replace，这意味着新产生的Job会替换旧的、没有执行完的Job。而如果某一次Job创建失败，这次创建就会被标记为“miss”。当在指定的时间窗口内，miss的数目达到100时，那么CronJob会停止再创建这个Job。这个时间窗口，可以由spec.startingDeadlineSeconds字段指定。比如startingDeadlineSeconds=200，意味着在过去200s里，如果miss的数目达到了100次，那么这个Job就不会被创建执行了。</p>
+<p>总结在今天这篇文章中，我主要和你分享了Job这个离线业务的编排方法，讲解了completions和parallelism字段的含义，以及JobController的执行原理。紧接着，我通过实例和你分享了Job对象三种常见的使用方法。但是，根据我在社区和生产环境中的经验，大多数情况下用户还是更倾向于自己控制Job对象。所以，相比于这些固定的“模式”，掌握Job的API对象，和它各个字段的准确含义会更加重要。最后，我还介绍了一种Job的控制器，叫作：CronJob。这也印证了我在前面的分享中所说的：用一个对象控制另一个对象，是Kubernetes编排的精髓所在。思考题根据Job控制器的工作原理，如果你定义的parallelism比completions还大的话，比如：</p>
+<p>那么，这个Job最开始创建的时候，会同时启动几个Pod呢？原因是什么？</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/深入剖析Kubernetes/" rel="tag"># 深入剖析Kubernetes</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/09/17/21-容器化守护进程的意义：DaemonSet/" rel="next" title="21 | 容器化守护进程的意义：DaemonSet">
+                <i class="fa fa-chevron-left"></i> 21 | 容器化守护进程的意义：DaemonSet
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/09/17/23-声明式API与Kubernetes编程范式/" rel="prev" title="23 | 声明式API与Kubernetes编程范式">
+                23 | 声明式API与Kubernetes编程范式 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

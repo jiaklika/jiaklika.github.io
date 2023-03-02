@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL介于普通读和锁定读的加锁方式——semi-consistent read">
+<meta property="og:url" content="http://yoursite.com/2022/08/26/MySQL介于普通读和锁定读的加锁方式——semi-consistent-read/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-10-25T07:15:01.791Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MySQL介于普通读和锁定读的加锁方式——semi-consistent read">
+<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/08/26/MySQL介于普通读和锁定读的加锁方式——semi-consistent-read/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>MySQL介于普通读和锁定读的加锁方式——semi-consistent read | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/08/26/MySQL介于普通读和锁定读的加锁方式——semi-consistent-read/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">MySQL介于普通读和锁定读的加锁方式——semi-consistent read
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-08-26 17:45:37" itemprop="dateCreated datePublished" datetime="2022-08-26T17:45:37+08:00">2022-08-26</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-10-25 15:15:01" itemprop="dateModified" datetime="2022-10-25T15:15:01+08:00">2022-10-25</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">15k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">13 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>总结一下，这章作者最主要想表达什么观点？</li>
+</ul>
+<a id="more"></a>
+<h1 id="事前准备"><a href="#事前准备" class="headerlink" title="事前准备"></a>事前准备</h1><p>为了故事的顺利发展，我们先建一个表，并向表中插入一些记录，下边是SQL语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> hero (</span><br><span class="line">    <span class="built_in">number</span> <span class="built_in">INT</span>,</span><br><span class="line">    <span class="keyword">name</span> <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    country <span class="built_in">varchar</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="built_in">number</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_name (<span class="keyword">name</span>)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br><span class="line"></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> hero <span class="keyword">VALUES</span></span><br><span class="line">    (<span class="number">1</span>, <span class="string">'l刘备'</span>, <span class="string">'蜀'</span>),</span><br><span class="line">    (<span class="number">3</span>, <span class="string">'z诸葛亮'</span>, <span class="string">'蜀'</span>),</span><br><span class="line">    (<span class="number">8</span>, <span class="string">'c曹操'</span>, <span class="string">'魏'</span>),</span><br><span class="line">    (<span class="number">15</span>, <span class="string">'x荀彧'</span>, <span class="string">'魏'</span>),</span><br><span class="line">    (<span class="number">20</span>, <span class="string">'s孙权'</span>, <span class="string">'吴'</span>);</span><br></pre></td></tr></table></figure></p>
+<p>现在hero表中的记录情况就如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM hero;</span><br><span class="line">+--------+------------+---------+</span><br><span class="line">| number | name       | country |</span><br><span class="line">+--------+------------+---------+</span><br><span class="line">|      1 | l刘备      | 蜀      |</span><br><span class="line">|      3 | z诸葛亮    | 蜀      |</span><br><span class="line">|      8 | c曹操      | 魏      |</span><br><span class="line">|     15 | x荀彧      | 魏      |</span><br><span class="line">|     20 | s孙权      | 吴      |</span><br><span class="line">+--------+------------+---------+</span><br><span class="line">5 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.01 sec)</span><br></pre></td></tr></table></figure></p>
+<h1 id="现象"><a href="#现象" class="headerlink" title="现象"></a>现象</h1><p>在小册答疑群里有一位同学提了一个问题：说是在READ COMMITTED隔离级别下发生了一件百思不得其解的事儿。好的，首先构造环境，将当前会话默认的隔离级别设置成READ COMMITTED：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line">事务T1先执行：</span><br><span class="line"></span><br><span class="line"><span class="comment"># T1中，隔离级别为READ COMMITTED</span></span><br><span class="line">mysql&gt; BEGIN;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; SELECT * FROM hero WHERE country = <span class="string">'魏'</span> FOR UPDATE;</span><br><span class="line">+--------+---------+---------+</span><br><span class="line">| number | name    | country |</span><br><span class="line">+--------+---------+---------+</span><br><span class="line">|      8 | c曹操   | 魏      |</span><br><span class="line">|     15 | x荀彧   | 魏      |</span><br><span class="line">+--------+---------+---------+</span><br><span class="line">2 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.01 sec)</span><br></pre></td></tr></table></figure></p>
+<p>country列并不是索引列，所以本条语句执行时肯定是使用扫描聚簇索引的全表扫描方式来执行，EXPLAIN语句也证明了我们的想法：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; EXPLAIN SELECT * FROM hero WHERE country = <span class="string">'魏'</span> FOR UPDATE;</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+</span><br><span class="line">| id | select_type | table | partitions | <span class="built_in">type</span> | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+</span><br><span class="line">|  1 | SIMPLE      | hero  | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    5 |    20.00 | Using <span class="built_in">where</span> |</span><br><span class="line">+----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.02 sec)</span><br></pre></td></tr></table></figure></p>
+<p>我们之前学过MySQL语句的加锁分析，知道在READ COMMITTED隔离级别下，如果采用全表扫描的方式执行查询语句时，InnoDB存储引擎将依次对每条记录加正经记录锁，在server层测试该记录是否符合WHERE条件，如果不符合则将加在该记录上的锁释放掉。本例中使用FOR UPDATE语句，肯定加的是X型正经记录锁。只有两条记录符合WHERE条件，所以最终其实只对这两条符合条件的记录加了X型正经记录锁（就是number列值为8和15的两条记录）。当然，我们可以使用SHOW ENGINE INNODB STATUS命令证明我们的分析：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SHOW ENGINE INNODB STATUS\G</span><br><span class="line">... 省略了很多内容</span><br><span class="line"></span><br><span class="line">------------</span><br><span class="line">TRANSACTIONS</span><br><span class="line">------------</span><br><span class="line">Trx id counter 39764</span><br><span class="line">Purge <span class="keyword">done</span> <span class="keyword">for</span> trx<span class="string">'s n:o &lt; 39763 undo n:o &lt; 0 state: running but idle</span></span><br><span class="line"><span class="string">History list length 36</span></span><br><span class="line"><span class="string">Total number of lock structs in row lock hash table 1</span></span><br><span class="line"><span class="string">LIST OF TRANSACTIONS FOR EACH SESSION:</span></span><br><span class="line"><span class="string">---TRANSACTION 281479653009568, not started</span></span><br><span class="line"><span class="string">0 lock struct(s), heap size 1160, 0 row lock(s)</span></span><br><span class="line"><span class="string">---TRANSACTION 281479653012832, not started</span></span><br><span class="line"><span class="string">0 lock struct(s), heap size 1160, 0 row lock(s)</span></span><br><span class="line"><span class="string">---TRANSACTION 39763, ACTIVE 468 sec</span></span><br><span class="line"><span class="string">2 lock struct(s), heap size 1160, 2 row lock(s)</span></span><br><span class="line"><span class="string">MySQL thread id 19, OS thread handle 123145470611456, query id 586 localhost 127.0.0.1 root</span></span><br><span class="line"><span class="string">TABLE LOCK table `xiaohaizi`.`hero` trx id 39763 lock mode IX</span></span><br><span class="line"><span class="string">RECORD LOCKS space id 287 page no 3 n bits 72 index PRIMARY of table `xiaohaizi`.`hero` trx id 39763 lock_mode X locks rec but not gap</span></span><br><span class="line"><span class="string">Record lock, heap no 4 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span></span><br><span class="line"><span class="string"> 0: len 4; hex 80000008; asc     ;;</span></span><br><span class="line"><span class="string"> 1: len 6; hex 000000009b4a; asc      J;;</span></span><br><span class="line"><span class="string"> 2: len 7; hex 80000001d3012a; asc       *;;</span></span><br><span class="line"><span class="string"> 3: len 7; hex 63e69bb9e6938d; asc c      ;;</span></span><br><span class="line"><span class="string"> 4: len 3; hex e9ad8f; asc    ;;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Record lock, heap no 5 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span></span><br><span class="line"><span class="string"> 0: len 4; hex 8000000f; asc     ;;</span></span><br><span class="line"><span class="string"> 1: len 6; hex 000000009b4a; asc      J;;</span></span><br><span class="line"><span class="string"> 2: len 7; hex 80000001d30137; asc       7;;</span></span><br><span class="line"><span class="string"> 3: len 7; hex 78e88d80e5bda7; asc x      ;;</span></span><br><span class="line"><span class="string"> 4: len 3; hex e9ad8f; asc    ;;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string"> ... 省略了很多内容</span></span><br></pre></td></tr></table></figure></p>
+<p>其中id为39763的事务就是指T1，可以看出它为heap no值为4和5的两条记录加了X型正经记录锁（lock_mode X locks rec but not gap）。</p>
+<p>然后再开启一个隔离级别也为READ COMMITTED的事务T2，在其中执行：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># T2中，隔离级别为READ COMMITTED</span></span><br><span class="line">mysql&gt; BEGIN;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; SELECT * FROM hero WHERE country = <span class="string">'吴'</span> FOR UPDATE;</span><br><span class="line">(进入阻塞状态)</span><br></pre></td></tr></table></figure></p>
+<p>很显然，这条语句也会采用全表扫描的方式来执行，会依次去获取每一条聚簇索引记录的锁。不过因为number值为8的记录已经被T1加了X型正经记录锁，T2想得却得不到，只能眼巴巴的进行阻塞状态，此时的SHOW ENGINE INNODB STATUS也能证明我们的猜想（只截取了一部分）：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">---TRANSACTION 39764, ACTIVE 34 sec fetching rows</span><br><span class="line">mysql tables <span class="keyword">in</span> use 1, locked 1</span><br><span class="line">LOCK WAIT 3 lock struct(s), heap size 1160, 1 row lock(s)</span><br><span class="line">MySQL thread id 20, OS thread handle 123145471168512, query id 590 localhost 127.0.0.1 root Sending data</span><br><span class="line">SELECT * FROM hero WHERE country = <span class="string">'吴'</span> FOR UPDATE</span><br><span class="line">------- TRX HAS BEEN WAITING 34 SEC FOR THIS LOCK TO BE GRANTED:</span><br><span class="line">RECORD LOCKS space id 287 page no 3 n bits 72 index PRIMARY of table `xiaohaizi`.`hero` trx id 39764 lock_mode X locks rec but not gap waiting</span><br><span class="line">Record lock, heap no 4 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span><br><span class="line"> 0: len 4; hex 80000008; asc     ;;</span><br><span class="line"> 1: len 6; hex 000000009b4a; asc      J;;</span><br><span class="line"> 2: len 7; hex 80000001d3012a; asc       *;;</span><br><span class="line"> 3: len 7; hex 63e69bb9e6938d; asc c      ;;</span><br><span class="line"> 4: len 3; hex e9ad8f; asc    ;;</span><br></pre></td></tr></table></figure></p>
+<p>可以看到T2正在等待获取heap no为4的记录上的X型正经记录锁（lock_mode X locks rec but not gap waiting）。</p>
+<p>以上是很正常的阻塞逻辑，我们都可以分析出来，不过如果在T2中执行下边的UPDATE语句：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># T2中，隔离级别为READ COMMITTED</span></span><br><span class="line">mysql&gt; BEGIN;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; UPDATE hero SET name = <span class="string">'xxx'</span> WHERE country = <span class="string">'吴'</span>;</span><br><span class="line">Query OK, 1 row affected (0.02 sec)</span><br><span class="line">Rows matched: 1  Changed: 1  Warnings: 0</span><br></pre></td></tr></table></figure></p>
+<p>WTF? 竟然没有阻塞，就这么随意地执行成功了？同样的WHERE条件，同样的执行计划，怎么SELECT … FOR UPDATE和UPDATE语句的加锁情况不一样？</p>
+<p>原因<br>哈哈，是的，的确不一样。其实MySQL支持3种类型的读语句：</p>
+<ul>
+<li>普通读（也称一致性读，英文名：Consistent Read）。</li>
+</ul>
+<p>这个就是指普通的SELECT语句，在末尾不加FOR UPDATE或者LOCK IN SHARE MODE的SELECT语句。普通读的执行方式是生成ReadView直接利用MVCC机制来进行读取，并不会对记录进行加锁。</p>
+<blockquote>
+<p>小贴士：对于SERIALIZABLE隔离级别来说，如果autocommit系统变量被设置为OFF，那普通读的语句会转变为锁定读，和在普通的SELECT语句后边加LOCK IN SHARE MODE达成的效果一样。</p>
+</blockquote>
+<ul>
+<li>锁定读（英文名：Locking Read）。</li>
+</ul>
+<p>这个就是事务在读取记录之前，需要先获取该记录对应的锁。当然，获取什么类型的锁取决于当前事务的隔离级别、语句的执行计划、查询条件等因素，具体可参见：</p>
+<ul>
+<li>半一致性读（英文名：Semi-Consistent Read）。</li>
+</ul>
+<p>这是一种夹在普通读和锁定读之间的一种读取方式。它只在READ COMMITTED隔离级别下（或者在开启了innodb_locks_unsafe_for_binlog系统变量的情况下）使用UPDATE语句时才会使用。具体的含义就是当UPDATE语句读取已经被其他事务加了锁的记录时，InnoDB会将该记录的最新提交的版本读出来，然后判断该版本是否与UPDATE语句中的WHERE条件相匹配，如果不匹配则不对该记录加锁，从而跳到下一条记录；如果匹配则再次读取该记录并对其进行加锁。这样子处理只是为了让UPDATE语句尽量少被别的语句阻塞。</p>
+<blockquote>
+<p>小贴士：半一致性读只适用于对聚簇索引记录加锁的情况，并不适用于对二级索引记录加锁的情况。</p>
+</blockquote>
+<p>很显然，我们上边所唠叨的例子中是因为事务T2执行UPDATE语句时使用了半一致性读，判断number列值为8和15这两条记录的最新提交版本的country列值均不为UPDATE语句中WHERE条件中的’吴’，所以直接就跳过它们，不对它们加锁了。</p>
+<p>本知识点容易被忽略，各位同学在工作过程中分析的时候别忘记考虑一下Semi-Consistent Read喔，码字不易，有帮助帮着转发喔，么么哒～</p>
+<h1 id="死锁分析"><a href="#死锁分析" class="headerlink" title="死锁分析"></a>死锁分析</h1><p>如果我们的业务处在一个非常初级的阶段，并发程度比较低，那么我们可以几年都遇不到一次死锁问题的发生，反之，我们业务的并发程度非常高，那么时不时爆出的死锁问题肯定让我们非常挠头。不过在死锁问题发生时，很多没有经验的同学的第一反应就是成为一直鸵鸟：这玩意儿很高深，我也看不懂，听天由命吧，又不是一直发生。其实如果大家认真研读了我们之前写了3篇关于MySQL中语句加锁分析的文章，加上本篇关于死锁日志的分析，那么解决死锁问题应该也不是那么摸不着头脑的事情了。</p>
+<p>准备工作<br>为了故事的顺利发展，我们需要建一个表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> hero (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span>,</span><br><span class="line">    <span class="keyword">name</span> <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    country <span class="built_in">varchar</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="keyword">id</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_name (<span class="keyword">name</span>)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
+<p>我们为hero表的id列创建了聚簇索引，为name列创建了一个二级索引。这个hero表主要是为了存储三国时的一些英雄，我们向表中插入一些记录：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> hero <span class="keyword">VALUES</span></span><br><span class="line">    (<span class="number">1</span>, <span class="string">'l刘备'</span>, <span class="string">'蜀'</span>),</span><br><span class="line">    (<span class="number">3</span>, <span class="string">'z诸葛亮'</span>, <span class="string">'蜀'</span>),</span><br><span class="line">    (<span class="number">8</span>, <span class="string">'c曹操'</span>, <span class="string">'魏'</span>),</span><br><span class="line">    (<span class="number">15</span>, <span class="string">'x荀彧'</span>, <span class="string">'魏'</span>),</span><br><span class="line">    (<span class="number">20</span>, <span class="string">'s孙权'</span>, <span class="string">'吴'</span>);</span><br></pre></td></tr></table></figure></p>
+<p>现在表中的数据就是这样的：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SELECT * FROM hero;</span><br><span class="line">+<span class="comment">----+------------+---------+</span></span><br><span class="line">| id | name       | country |</span><br><span class="line">+<span class="comment">----+------------+---------+</span></span><br><span class="line">|  1 | l刘备      | 蜀      |</span><br><span class="line">|  3 | z诸葛亮    | 蜀      |</span><br><span class="line">|  8 | c曹操      | 魏      |</span><br><span class="line">| 15 | x荀彧      | 魏      |</span><br><span class="line">| 20 | s孙权      | 吴      |</span><br><span class="line">+<span class="comment">----+------------+---------+</span></span><br><span class="line">5 rows in <span class="keyword">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure></p>
+<p>准备工作就做完了。</p>
+<p>创建死锁情景<br>我们先创建一个发生死锁的情景，在Session A和Session B中分别执行两个事务，具体情况如下：</p>
+<p>我们分析一下：</p>
+<p>从第③步中可以看出，Session A中的事务先对hero表聚簇索引的id值为1的记录加了一个X型正经记录锁。</p>
+<p>从第④步中可以看出，Session B中的事务对hero表聚簇索引的id值为3的记录加了一个X型正经记录锁。</p>
+<p>从第⑤步中可以看出，Session A中的事务接着想对hero表聚簇索引的id值为3的记录也加了一个X型正经记录锁，但是与第④步中Session B中的事务加的锁冲突，所以Session A进入阻塞状态，等待获取锁。</p>
+<p>从第⑥步中可以看出，Session B中的事务想对hero表聚簇索引的id值为1的记录加了一个X型正经记录锁，但是与第③步中Session A中的事务加的锁冲突，而此时Session A和Session B中的事务循环等待对方持有的锁，死锁发生，被MySQL服务器的死锁检测机制检测到了，所以选择了一个事务进行回滚，并向客户端发送一条消息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ERROR 1213 (40001): Deadlock found when trying to get lock; try restarting transaction</span><br></pre></td></tr></table></figure></p>
+<p>以上是我们从语句加了什么锁的角度出发来进行死锁情况分析的，但是实际应用中我们可能压根儿不知道到底是哪几条语句产生了死锁，我们需要根据MySQL在死锁发生时产生的死锁日志来逆向定位一下到底是什么语句产生了死锁，从而再优化我们的业务。</p>
+<p>查看死锁日志<br>设计InnoDB的大叔给我们提供了SHOW ENGINE INNODB STATUS命令来查看关于InnoDB存储引擎的一些状态信息，其中就包括了系统最近一次发生死锁时的加锁情况。在上边例子中的死锁发生时，我们运行一下这个命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; SHOW ENGINE INNODB STATUS\G</span><br><span class="line">...省略了好多其他信息</span><br><span class="line">------------------------</span><br><span class="line">LATEST DETECTED DEADLOCK</span><br><span class="line">------------------------</span><br><span class="line">2019-06-20 13:39:19 0x70000697e000</span><br><span class="line">*** (1) TRANSACTION:</span><br><span class="line">TRANSACTION 30477, ACTIVE 10 sec starting index <span class="built_in">read</span></span><br><span class="line">mysql tables <span class="keyword">in</span> use 1, locked 1</span><br><span class="line">LOCK WAIT 3 lock struct(s), heap size 1160, 2 row lock(s)</span><br><span class="line">MySQL thread id 2, OS thread handle 123145412648960, query id 46 localhost 127.0.0.1 root statistics</span><br><span class="line">select * from hero <span class="built_in">where</span> id = 3 <span class="keyword">for</span> update</span><br><span class="line">*** (1) WAITING FOR THIS LOCK TO BE GRANTED:</span><br><span class="line">RECORD LOCKS space id 171 page no 3 n bits 72 index PRIMARY of table `dahaizi`.`hero` trx id 30477 lock_mode X locks rec but not gap waiting</span><br><span class="line">Record lock, heap no 3 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span><br><span class="line"> 0: len 4; hex 80000003; asc     ;;</span><br><span class="line"> 1: len 6; hex 000000007517; asc     u ;;</span><br><span class="line"> 2: len 7; hex 80000001d0011d; asc        ;;</span><br><span class="line"> 3: len 10; hex 7ae8afb8e8919be4baae; asc z         ;;</span><br><span class="line"> 4: len 3; hex e89c80; asc    ;;</span><br><span class="line"></span><br><span class="line">*** (2) TRANSACTION:</span><br><span class="line">TRANSACTION 30478, ACTIVE 8 sec starting index <span class="built_in">read</span></span><br><span class="line">mysql tables <span class="keyword">in</span> use 1, locked 1</span><br><span class="line">3 lock struct(s), heap size 1160, 2 row lock(s)</span><br><span class="line">MySQL thread id 3, OS thread handle 123145412927488, query id 47 localhost 127.0.0.1 root statistics</span><br><span class="line">select * from hero <span class="built_in">where</span> id = 1 <span class="keyword">for</span> update</span><br><span class="line">*** (2) HOLDS THE LOCK(S):</span><br><span class="line">RECORD LOCKS space id 171 page no 3 n bits 72 index PRIMARY of table `dahaizi`.`hero` trx id 30478 lock_mode X locks rec but not gap</span><br><span class="line">Record lock, heap no 3 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span><br><span class="line"> 0: len 4; hex 80000003; asc     ;;</span><br><span class="line"> 1: len 6; hex 000000007517; asc     u ;;</span><br><span class="line"> 2: len 7; hex 80000001d0011d; asc        ;;</span><br><span class="line"> 3: len 10; hex 7ae8afb8e8919be4baae; asc z         ;;</span><br><span class="line"> 4: len 3; hex e89c80; asc    ;;</span><br><span class="line"></span><br><span class="line">*** (2) WAITING FOR THIS LOCK TO BE GRANTED:</span><br><span class="line">RECORD LOCKS space id 171 page no 3 n bits 72 index PRIMARY of table `dahaizi`.`hero` trx id 30478 lock_mode X locks rec but not gap waiting</span><br><span class="line">Record lock, heap no 2 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span><br><span class="line"> 0: len 4; hex 80000001; asc     ;;</span><br><span class="line"> 1: len 6; hex 000000007517; asc     u ;;</span><br><span class="line"> 2: len 7; hex 80000001d00110; asc        ;;</span><br><span class="line"> 3: len 7; hex 6ce58898e5a487; asc l      ;;</span><br><span class="line"> 4: len 3; hex e89c80; asc    ;;</span><br><span class="line"></span><br><span class="line">*** WE ROLL BACK TRANSACTION (2)</span><br><span class="line">------------</span><br><span class="line">...省略了好多其他信息</span><br></pre></td></tr></table></figure></p>
+<p>我们只关心最近发生的死锁信息，所以就把以LATEST DETECTED DEADLOCK这一部分给单独提出来分析一下。下边我们就逐行看一下这个输出的死锁日志都是什么意思：</p>
+<p>首先看第一句：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2019-06-20 13:39:19 0x70000697e000</span><br></pre></td></tr></table></figure></p>
+<p>这句话的意思就是死锁发生的时间是：2019-06-20 13:39:19，后边的一串十六进制0x70000697e000表示的操作系统为当前session分配的线程的线程id。</p>
+<p>然后是关于死锁发生时第一个事务的有关信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">*** (1) TRANSACTION:</span><br><span class="line"></span><br><span class="line"><span class="comment"># 为事务分配的id为30477，事务处于ACTIVE状态已经10秒了，事务现在正在做的操作就是：“starting index read”</span></span><br><span class="line">TRANSACTION 30477, ACTIVE 10 sec starting index <span class="built_in">read</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 此事务使用了1个表，为1个表上了锁（此处不是说为该表加了表锁，只要不是进行一致性读的表，都需要加锁，具体怎么加锁请看加锁语句分析或者小册章节）</span></span><br><span class="line">mysql tables <span class="keyword">in</span> use 1, locked 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 此事务处于LOCK WAIT状态，拥有3个锁结构（2个行锁结构，1个表级别X型意向锁结构，锁结构在小册中重点介绍过），heap size是为了存储锁结构而申请的内存大小（我们可以忽略），其中有2个行锁的结构</span></span><br><span class="line">LOCK WAIT 3 lock struct(s), heap size 1160, 2 row lock(s)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 本事务所在线程的id是2（MySQL自己命名的线程id），该线程在操作系统级别的id就是那一长串数字，当前查询的id为46（MySQL内部使用，可以忽略），还有用户名主机信息</span></span><br><span class="line">MySQL thread id 2, OS thread handle 123145412648960, query id 46 localhost 127.0.0.1 root statistics</span><br><span class="line"></span><br><span class="line"><span class="comment"># 本事务发生阻塞的语句</span></span><br><span class="line">select * from hero <span class="built_in">where</span> id = 3 <span class="keyword">for</span> update</span><br><span class="line"></span><br><span class="line"><span class="comment"># 本事务当前在等待获取的锁：</span></span><br><span class="line">*** (1) WAITING FOR THIS LOCK TO BE GRANTED:</span><br><span class="line"></span><br><span class="line"><span class="comment"># 等待获取的表空间ID为151，页号为3，也就是表hero的PRIMAY索引中的某条记录的锁（n_bits是为了存储本页面的锁信息而分配的一串内存空间，小册中有详细介绍），该锁的类型是X型正经记录锁（rec but not gap）</span></span><br><span class="line">RECORD LOCKS space id 171 page no 3 n bits 72 index PRIMARY of table `dahaizi`.`hero` trx id 30477 lock_mode X locks rec but not gap waiting</span><br><span class="line"></span><br><span class="line"><span class="comment"># 该记录在页面中的heap_no为2，具体的记录信息如下：</span></span><br><span class="line">Record lock, heap no 3 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这是主键值</span></span><br><span class="line">0: len 4; hex 80000003; asc     ;;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这是trx_id隐藏列</span></span><br><span class="line">1: len 6; hex 000000007517; asc     u ;;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这是roll_pointer隐藏列</span></span><br><span class="line">2: len 7; hex 80000001d0011d; asc        ;;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这是name列</span></span><br><span class="line">3: len 10; hex 7ae8afb8e8919be4baae; asc z         ;;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这是country列</span></span><br><span class="line">4: len 3; hex e89c80; asc    ;;</span><br></pre></td></tr></table></figure></p>
+<p>从这个信息中可以看出，Session A中的事务为2条记录生成了锁结构，但是其中有一条记录上的X型正经记录锁（rec but not gap）并没有获取到，没有获取到锁的这条记录的位置是：表空间ID为151，页号为3，heap_no为2。当然，设计InnoDB的大叔还贴心的给出了这条记录的详细情况，它的主键值为80000003，这其实是InnoDB内部存储使用的格式，其实就代表数字3，也就是该事务在等待获取hero表聚簇索引主键值为3的那条记录的X型正经记录锁。</p>
+<p>然后是关于死锁发生时第二个事务的有关信息：</p>
+<p>其中的大部分信息我们都已经介绍过了，我们就挑重要的说：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">*** (2) TRANSACTION:</span><br><span class="line">TRANSACTION 30478, ACTIVE 8 sec starting index <span class="built_in">read</span></span><br><span class="line">mysql tables <span class="keyword">in</span> use 1, locked 1</span><br><span class="line">3 lock struct(s), heap size 1160, 2 row lock(s)</span><br><span class="line">MySQL thread id 3, OS thread handle 123145412927488, query id 47 localhost 127.0.0.1 root statistics</span><br><span class="line">select * from hero <span class="built_in">where</span> id = 1 <span class="keyword">for</span> update</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示该事务获取到的锁信息</span></span><br><span class="line">*** (2) HOLDS THE LOCK(S):</span><br><span class="line">RECORD LOCKS space id 171 page no 3 n bits 72 index PRIMARY of table `dahaizi`.`hero` trx id 30478 lock_mode X locks rec but not gap</span><br><span class="line">Record lock, heap no 3 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 主键值为3</span></span><br><span class="line">0: len 4; hex 80000003; asc     ;;</span><br><span class="line">1: len 6; hex 000000007517; asc     u ;;</span><br><span class="line">2: len 7; hex 80000001d0011d; asc        ;;</span><br><span class="line">3: len 10; hex 7ae8afb8e8919be4baae; asc z         ;;</span><br><span class="line">4: len 3; hex e89c80; asc    ;;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示该事务等待获取的锁信息</span></span><br><span class="line">*** (2) WAITING FOR THIS LOCK TO BE GRANTED:</span><br><span class="line">RECORD LOCKS space id 171 page no 3 n bits 72 index PRIMARY of table `dahaizi`.`hero` trx id 30478 lock_mode X locks rec but not gap waiting</span><br><span class="line">Record lock, heap no 2 PHYSICAL RECORD: n_fields 5; compact format; info bits 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 主键值为1</span></span><br><span class="line">0: len 4; hex 80000001; asc     ;;</span><br><span class="line">1: len 6; hex 000000007517; asc     u ;;</span><br><span class="line">2: len 7; hex 80000001d00110; asc        ;;</span><br><span class="line">3: len 7; hex 6ce58898e5a487; asc l      ;;</span><br><span class="line">4: len 3; hex e89c80; asc    ;;</span><br></pre></td></tr></table></figure></p>
+<p>从上边的输出可以看出来，Session B中的事务获取了hero表聚簇索引主键值为3的记录的X型正经记录锁，等待获取hero表聚簇索引主键值为1的记录的X型正经记录锁（隐含的意思就是这个hero表聚簇索引主键值为1的记录的X型正经记录锁已经被SESSION A中的事务获取到了）。</p>
+<p>看最后一部分：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">*** WE ROLL BACK TRANSACTION (2)</span><br></pre></td></tr></table></figure></p>
+<p>最终InnoDB存储引擎决定回滚第2个食物，也就是Session B中的那个事务。</p>
+<p>思索分析的思路<br>查看死锁日志时，首先看一下发生死锁的事务等待获取锁的语句都是啥。</p>
+<p>本例中，发现SESSION A发生阻塞的语句是：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> hero <span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">3</span> <span class="keyword">for</span> <span class="keyword">update</span></span><br></pre></td></tr></table></figure></p>
+<p>SESSION B发生阻塞的语句是：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> hero <span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">1</span> <span class="keyword">for</span> <span class="keyword">update</span></span><br></pre></td></tr></table></figure></p>
+<p>然后切记：到自己的业务代码中找出这两条语句所在事务的其他语句。</p>
+<p>找到发生死锁的事务中所有的语句之后，对照着事务获取到的锁和正在等待的锁的信息来分析死锁发生过程。</p>
+<p>从死锁日志中可以看出来，SESSION A获取了hero表聚簇索引id值为1的记录的X型正经记录锁（这其实是从SESSION B正在等待的锁中获取的），查看SESSION A中的语句，发现是下边这个语句造成的（对照着语句加锁分析那三篇文章）:<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> hero <span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">1</span> <span class="keyword">for</span> <span class="keyword">update</span>;</span><br></pre></td></tr></table></figure></p>
+<p>还有SESSION B获取了hero表聚簇索引id值为3的记录的X型正经记录锁，查看SESSION B中的语句，发现是下边这个语句造成的（对照着语句加锁分析那三篇文章）:<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> hero <span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">3</span> <span class="keyword">for</span> <span class="keyword">update</span>;</span><br></pre></td></tr></table></figure></p>
+<p>然后看SESSION A正在等待hero表聚簇索引id值为3的记录的X型正经记录锁，这个是由于下边这个语句造成的：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> hero <span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">3</span> <span class="keyword">for</span> <span class="keyword">update</span>;</span><br></pre></td></tr></table></figure></p>
+<p>然后看SESSION B正在等待hero表聚簇索引id值为1的记录的X型正经记录锁，这个是由于下边这个语句造成的：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> hero <span class="keyword">where</span> <span class="keyword">id</span> = <span class="number">1</span> <span class="keyword">for</span> <span class="keyword">update</span>;</span><br></pre></td></tr></table></figure></p>
+<p>然后整个死锁形成过程就根据死锁日志给还原出来了。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/MySQL是怎样运行的：从根儿上理解MySQL/" rel="tag"># MySQL是怎样运行的：从根儿上理解MySQL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/08/26/MySQL如何查看事务加锁情况/" rel="next" title="MySQL如何查看事务加锁情况">
+                <i class="fa fa-chevron-left"></i> MySQL如何查看事务加锁情况
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/08/26/两条一样的INSERT语句竟然引发了死锁？/" rel="prev" title="两条一样的INSERT语句竟然引发了死锁？">
+                两条一样的INSERT语句竟然引发了死锁？ <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#事前准备"><span class="nav-number">1.</span> <span class="nav-text">事前准备</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#现象"><span class="nav-number">2.</span> <span class="nav-text">现象</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#死锁分析"><span class="nav-number">3.</span> <span class="nav-text">死锁分析</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

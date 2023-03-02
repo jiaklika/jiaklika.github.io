@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  当两个或多个操作必须按正确的顺序执行，而程序并未保证这个顺序，就会发生竞争条件。怎么理解？">
+<meta name="keywords" content="Go语言并发之道">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第1章 并发概述">
+<meta property="og:url" content="http://yoursite.com/2021/09/09/第1章-并发概述/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  当两个或多个操作必须按正确的顺序执行，而程序并未保证这个顺序，就会发生竞争条件。怎么理解？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2021/09/09/第1章-并发概述/1.png">
+<meta property="og:image" content="http://yoursite.com/2021/09/09/第1章-并发概述/0.png">
+<meta property="og:updated_time" content="2021-11-01T03:37:37.021Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第1章 并发概述">
+<meta name="twitter:description" content="思考并回答以下问题：  当两个或多个操作必须按正确的顺序执行，而程序并未保证这个顺序，就会发生竞争条件。怎么理解？">
+<meta name="twitter:image" content="http://yoursite.com/2021/09/09/第1章-并发概述/1.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2021/09/09/第1章-并发概述/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>第1章 并发概述 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/09/09/第1章-并发概述/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">第1章 并发概述
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2021-09-09 14:47:04" itemprop="dateCreated datePublished" datetime="2021-09-09T14:47:04+08:00">2021-09-09</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-11-01 11:37:37" itemprop="dateModified" datetime="2021-11-01T11:37:37+08:00">2021-11-01</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">17k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">16 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>当两个或多个操作必须按正确的顺序执行，而程序并未保证这个顺序，就会发生竞争条件。怎么理解？</li>
+</ul>
+<a id="more"></a>
+<p>并发是一个有趣的词，在我们的认知中，不同的人对它有不同的理解。除了 “并发”之外，你可能已经听到了被到处传播的“异步”“并行”或“线程”这几个词。有些人认为这些词表示同一件事，有些人则非常具体地描绘出这些词之间的区别。如果我们要花一整本书的时间讨论并发，那么有必要先花些时间讨论一下我们所说的“并发”究竟是什么。</p>
+<p>第2章我们将花些时间讲并发的哲学，但现在先给并发一个较为实际的定义，它将作为我们理解的基础。</p>
+<p>当大多数人使用“并发”这个词时，通常指的是与一个或多个进程同时发生的过程。通常，这也意味着所有这些进程都在同一时间取得进展。理解这个定义的一个简单方法是想象成人。你目前正在阅读这本书，而世界上的其他人同时也在生活。他们与你同时存在。</p>
+<p>并发是计算机科学中的一个宽泛的话题，从这个定义中可以学到各种各样的主题：理论，建模的方法，逻辑的正确性，实际的问题，甚至是理论物理！在本书中，我们将讨论一些辅助主题，但我们将主要基于Go语言环境讨论一些并发的实际问题，具体来说：如何选择模型并发，从这个模型中产生哪些问题，以及我们如何在这个模型中组合原语来解决问题。</p>
+<p>在本章中，我们将深入了解并发成为计算机科学中的一个重要话题的原因，为什么并发是困难的，并且值得仔细研究，最重要的是，尽管这些想法富有挑战性，Go语言可以通过其并发原语使程序更加清晰和迅捷。</p>
+<p>就像大多数的理解事物的路径一样，我们将从一些历史开始。让我们先来看看并发是如何成为这样一个重要的主题。</p>
+<h1 id="摩尔定律，Web-Scale和我们所陷入的混乱"><a href="#摩尔定律，Web-Scale和我们所陷入的混乱" class="headerlink" title="摩尔定律，Web Scale和我们所陷入的混乱"></a><span style="color:#339AFF;">摩尔定律，Web Scale和我们所陷入的混乱</span></h1><p>在1965年，戈登·摩尔写了一篇三页的论文，描述了电子市场对集成电路的整合，以及至少十年内每年集成电路中的元件数量的就会翻番。在1975年，他修改了这一预测，指出集成电路上的组件数每两年就会翻一番。直到最近，大约2012年这一预测或多或少被证实了。</p>
+<p>一些公司预见到摩尔定律预测的增速将会放缓，并开始研究提高计算能力的替代方法。俗话说，必要性是创新之母，因此，多核处理器就这样诞生了。</p>
+<p>这看起来像是一个巧妙的方法来解决摩尔定律的边界问题，但计算机科学家很快发现自己面临着另一条定律的限制——Amdahl定律，以计算机架构师Gene Amdahl命名。</p>
+<p>Amdahl定律描述了一种方法，使用并行方式可以解决的问题，可以使用这种方法对其潜在的性能收益进行建模。简而言之，它指出，收益的限制取决于有多少程序必须以顺序的方式编写。</p>
+<p>例如，假设你正在编写一个主要基于GUI的程序：一个用户会得到一个界面，单击一些按钮，然后发生一些事情。这类程序受限于流程中一个巨大的顺序部分：人类的交互。无论你为此程序提供多少内核，它都将始终受用户与界面交互速度的限制。</p>
+<p>现在考虑一个不同的例子，计算pi。它可以很容易地被划分为并行任务，这有赖于一类叫做spigot的算法，这个问题被称为“令人尴尬的并行问题”，这是一个技术术语，尽管听起来像是编造的。在这种情况下，可以通过将更多的核心提供给你的程序来取得显著的收益，之后困扰你的问题将变成如何组合和存储结果。</p>
+<p>Amdahl定律可以帮助我们理解这两个问题之间的区别，并帮助我们确定并行化是否是解决系统中的性能问题的正确方法。</p>
+<p>对于“令人尴尬的并行问题”，建议你编写程序，使其可以水平缩放。这意味着你可以独立执行程序的实例，在多个的CPU或计算机上运行它，这将使系统运行时得到改善。“令人尴尬的并行问题”非常适合这个模型，因为它很容易以这样的方式构造你的程序，你可以将问题拆分开，发送到应用程序的不同实例。</p>
+<p>在21世纪初，当一个新的范式开始出现时，横向缩放变得更加容易：云计算。尽管有迹象表明这个说法早在20世纪70年代就已经被使用过，但在21世纪初期，这个想法在时代思潮中根深蒂固。云计算隐含了一种新的规模化的方法，用于应用程序部署和水平扩展。不需要你精心策划、安装软件和维护的机器，云计算意味着可以访问大量的资源池，它们被自动调配到适当的机器中以满足工作负载需求。物理机几乎变成了短暂性的东西，并配置成某种形式以适配即将运行的程序。通常（但不总是）这些资源池是由其他公司的数据中心托管。</p>
+<p>这种变化催生了一种新的思维方式。突然之间，开发者获得了大量的计算能力，可以用来解决庞大的问题。解决方案现在可以分散到许多机器上甚至是全球不同的区域。云计算使得一种全新的解决方案成为可能，而这些问题之前只有技术巨头才可能解决。</p>
+<p>但是云计算也带来了许多新的挑战。提供这些资源，在机器实例之间进行通信，聚合和存储结果都成为了需要解决的问题。但其中最困难的是如何设计并行计算的模型。你的解决方案的各部分可以在不同的机器上运行，这一事实加剧了在建模并行问题时常面临的一些问题。很快就产生了一种新型的软件（即Web Scale）成功解决这些问题。</p>
+<p>如果软件是Web Scale的，不用多想，你几乎可以确定，这一定是“令人尴尬的并行问题”。即，Web Scale软件通常可以通过添加更多应用程序实例来处理数十万（或更多）并发的工作负载。这产生了各种特性，如滚动升级，弹性水平可伸缩的体系结构，以及基于地理的分布式架构。它还引入了新的复杂程度，包括理解和容错。</p>
+<p>因此，在这个多核、云计算、Web Scale以及可并行化或不可并行化的问题的世界中，我们发现现代开发者可能有些不知所措。众所周知，增速放缓已经开始影响到我们，我们预计将面临在现在所用的硬件范围内解决未来问题的挑战。在2005年，Herb Sutter创作了一篇写给Dobb博士的文章“The free lunch is over: A fundamental turn toward concurrency in software”。标题很贴切，文章也有先见之明。在文章的最后Sutter指出，“我们迫切需要一个比现有语言提供的层次更高的并发编程模型。”</p>
+<p>想理解为什么Sutter使用如此强烈的言语，我们必须看看为什么并发是如此难以正确地构建。</p>
+<p>车斌：上面不需要看懂，就是说并发是必需的。重要的是看代码。</p>
+<h1 id="为什么并发很难？"><a href="#为什么并发很难？" class="headerlink" title="为什么并发很难？"></a><span style="color:#339AFF;">为什么并发很难？</span></h1><p>众所周知，并发代码是很难正确构建的。它通常需要完成几个迭代才能让它按预期的方式工作，即使这样，在某些时间点（更高的磁盘利用率、更多的用户登录到系统等）到达之前，bug在代码中存在数年的事情也不少见，以至于以前未被发现的bug在后面显露出来。事实上，对于本书，我已经尽可能多地反复查看了代码，以尝试和减轻这一点。</p>
+<p>幸运的是，在使用并发编程时，每个人都会遇到同样的问题。正因为如此计算机科学家已经对共同的问题进行了标记，这使我们能够讨论它们是如何产生的，为什么会这样，以及如何解决它们。</p>
+<p>那让我们开始吧。下面是一些最常见的问题，它们让使用并发代码既令人沮丧又让人感到有趣。</p>
+<h2 id="竞争条件"><a href="#竞争条件" class="headerlink" title="竞争条件"></a><span style="color:#00ACC1;">竞争条件</span></h2><p>当两个或多个操作必须按正确的顺序执行，而程序并未保证这个顺序，就会发生竞争条件。</p>
+<p>大多数情况下，这将在所谓的数据中出现，其中一个并发操作尝试读取一个变量，而在某个不确定的时间，另一个并发操作试图写入同一个变量。</p>
+<p>下面是一个基本示例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> data <span class="keyword">int</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123; <span class="comment">// ①</span></span><br><span class="line">    data++</span><br><span class="line">&#125;()</span><br><span class="line"><span class="keyword">if</span> data == <span class="number">0</span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"the value is %v.\n"</span>, data)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>①在Go语言中，你可以使用关键字go来并发地运行一个函数。这样做会产生所谓的goroutine。我们将在第3章的“goroutine”一节中详细讨论这一点。</li>
+</ul>
+<p>在这里，第3行和第5行都试图访问变量data，但并不能保证以什么顺序进行访问。运行这段代码有三种可能的结果：</p>
+<ul>
+<li>不打印任何东西。在这种情况下，第3行在第5行之前执行。</li>
+<li>打印“the value is 0”。在这种情况下，第5行和第6行在第3行之前执行。</li>
+<li>打印“the value is 1”。在这种情况下，第5行在第3行之前执行，但第3行在第6行之前执行。</li>
+</ul>
+<p>如你所见，虽然只有几行不正确的代码，但在你的程序中引入了巨大的不确定性。</p>
+<p>在大多数情况下，引入数据竞争的原因是因为开发人员在用顺序性的思维来思考问题。他们假设，某一行代码在另一个之前就会先运行。他们认为上述goroutine将在if语句读取数据变量之前被安排执行。</p>
+<p>在编写并发代码时，你必须仔细地遍历所有可能的方案。除非你正在使用本书稍后将介绍的一些技术，否则你无法保证你的代码将按照它在源代码中的顺序运行。我发现，有时候想象在两个操作之间会经过很长一段时间很有帮助。假设调用goroutine的时间和它运行的时间相差1h。那程序的其余部分将如何运行呢？如果在goroutine执行成功和程序执行到if语句之间也花费了一小时，又会发生什么呢？以这种方式思考对我很有帮助，因为对于计算机来说，规模可能不同，但相对的时间差异或多或少是相同的。</p>
+<p>实际上，有些开发人员在他们的代码中使用了很多这种休眠语句，因为它似乎解决了他们的并发问题。让我们在前面的程序中尝试这样修改一下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> data <span class="keyword">int</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">    data++</span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line">time.Sleep(<span class="number">1</span>*time.Second)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> data == <span class="number">0</span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"the value is %v.\n"</span>, data)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们的数据竞争问题解决了吗？并没有。事实上，在这个程序中之前的三个结果仍然有可能出现，只是可能性更小了。我们在调用goroutine和检查数据值之间的休眠的时间越长，我们的程序就越接近正确，但那只是概率上接近逻辑的正确性，它永远不会真的变成逻辑上的正确。</p>
+<p>除此之外，这让我们的算法变得低效。我们现在不得不休眠1s，来降低我们的程序出现数据竞争的可能。但如果我们使用正确的工具，我们就不必等待了，或者等待时间可能只有1us。</p>
+<p>这里的结论是，你应该始终以逻辑正确性为目标。在代码中引入休眠可以方便地调试并发程序，但这并不能称之为一个解决方案。</p>
+<p>竞争条件是最难以发现的并发bug类型之一，因为它们可能在代码投入生产多年之后才出现。通常代码正在执行时环境产生变化，或发生了某些罕见的事情，都有可能使其浮现出来。往往代码只是看上去在用正确的方式来执行，但是事实上只是执行的顺序是正确的这件事本身的概率比较大而已，最终早晚有可能会出现一些意想之外的结果。</p>
+<h2 id="原子性"><a href="#原子性" class="headerlink" title="原子性"></a><span style="color:#00ACC1;">原子性</span></h2><p>当某些东西被认为是原子的，或者具有原子性的时候，这意味着在它运行的环境中，它是不可分割的或不可中断的。</p>
+<p>那么这到底意味着什么，为什么在使用并发代码时知道这一点很重要？</p>
+<p>第一件非常重要的事情是“上下文（context）”这个词。可能在某个上下文中有些东西是原子性的，而在另一个上下文中却不是。在你的进程上下文中进行原子操作在操作系统的上下文中可能就不是原子操作，在操作系统环境中原子操作在机器环境中可能就不是原子的，在你的机器上下文中原子操作在你的应用程序的上下文中可能不是原子的。换句话说，操作的原子性可以根据当前定义的范围而改变。这种特性对你来说有利有弊！</p>
+<p>在考虑原子性时，经常第一件需要做的事就是定义上下文或范围，然后再考虑这些操作是否是原子性的。一切都应当遵循这个原则。</p>
+<blockquote>
+<p>有趣的事实<br><br>2006年，游戏公司Blizzard成功起诉了MDY Industries索赔600万美元，因为该公司制作了一个名为“Glider”的程序，该程序可以在没有用户干预的情况下自动操作他们的游戏“魔兽世界”。这些类型的程序通常被称为“bots”（机器人的缩写）。<br><br>当时，“魔兽世界”有一个反作弊程序叫做“Warden”，它可以在你进行游戏期间任意地运行。除此之外，Warden还会扫描主机的内存并进行启发式扫描，寻找可能用于作弊的程序。<br><br>Glider利用原子上下文的概念成功避过了这种检查。Warden认为扫描机器上的内存是一种原子操作，但在开始扫描之前，Glider利用硬件中断来隐藏自己！Warden认为对内存的扫描在进程的上下文中是原子的，而不是在操作系统的上下文中。</p>
+</blockquote>
+<p>现在让我们来看一下术语“不可分割”（indivisible）和“不可中断”（uninterruptible）。这些术语意味着在你所定义的上下文中，原子的东西将被完整的运行，而在这种情况下不会同时发生任何事情。这仍然是一个整体，所以我们来看一个例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">i++</span><br></pre></td></tr></table></figure></p>
+<p>这是一个任何人都可以设计的简单例子，但它很容易证明原子性的概念。它可能看起来很原子，但是简要地分析一下就会发现其中有以下步骤：</p>
+<ul>
+<li>检索i的值。 </li>
+<li>增加i的值。 </li>
+<li>存储i的值。</li>
+</ul>
+<p>尽管这些操作中的每一个都是原子的，但三者的结合就可能不是，这取决于你的上下文。这揭示了原子操作的一个有趣的性质：将它们结合并不一定会产生更大的原子操作。使一个操作变为原子操作取决于你想让它在哪个上下文中。如果你的上下文是一个没有并发进程的程序，那么该代码在该上下文中就是原子的。如果你的上下文是一个goroutine，它不会将i暴露给其他goroutine，那么这个代码就是原子的。</p>
+<p>为什么我们要关心这些呢？原子性非常重要，因为如果某个东西是原子的，隐含的意思是它在并发环境中是安全的。这使我们能够编写逻辑上正确的程序，而且稍后将会看到，这甚至可以作为优化并发程序的一种方式。</p>
+<p>大多数语句不是原子的，更不用说函数、方法和程序了。如果原子性是构成逻辑正确程序的关键，而大多数语句不是原子的，那么我们如何调和这个矛盾呢？稍后我们会进一步讨论，但是，总之我们可以通过各种技术来使操作强制保持原子性。之后的工作就是确定代码的哪些部分需要是原子化，以及在什么粒度级别上原子化。我们将在下一节讨论其中的一些挑战。</p>
+<h2 id="内存访问同步"><a href="#内存访问同步" class="headerlink" title="内存访问同步"></a><span style="color:#00ACC1;">内存访问同步</span></h2><p>假设有这样一个数据竞争：两个并发进程试图访问相同的内存区域，它们访问内存的方式不是原子的。之前有一个简单的数据竞争的例子，这里稍作修改就可以说明：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> data <span class="keyword">int</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">    data++</span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> data == <span class="number">0</span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">"the value is 0"</span>)</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"the value is %v.\n"</span>, data)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们在这里添加了一个else子句，所以不管数据的值如何，我们总会得到一些输出。请记住，正如之前所介绍，如果有一个数据竞争存在，那么该程序的输出将是完全不确定的。</p>
+<p>实际上，程序中需要独占访问共享资源的部分有一个专有名词，叫临界区（critical section）。在这个例子中，我们有三个临界区：</p>
+<ul>
+<li>我们的goroutine正在增加数据变量。</li>
+<li>我们的if语句，它检查数据的值是否为0。</li>
+<li>我们的fmt.Printf语句，在检索并输出数据的值。</li>
+</ul>
+<p>有很多方法可以保护你的程序的临界区，Go语言在设计时有一些更好的想法来解决这个问题，不过解决这个问题的其中一个办法是在你的临界区之间内存访问做同步。我们来看看是什么样的。</p>
+<p>下面的代码不是Go语言中惯用的方法（我不建议像这样解决你的数据竞争问题），但它很简单地演示了内存访问同步。如果这个例子中的任何类型，函数或者方法对你来说是陌生的，那没关系。借助后面的备注关注内存访问同步的概念就行。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> memoryAccess sync.Mutex <span class="comment">// ①</span></span><br><span class="line"><span class="keyword">var</span> value <span class="keyword">int</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    memoryAccess.Lock() <span class="comment">// ②</span></span><br><span class="line">    value++</span><br><span class="line">    memoryAccess.Unlock() <span class="comment">// ③</span></span><br><span class="line">&#125;()</span><br><span class="line">memoryAccess.Lock() <span class="comment">// ④</span></span><br><span class="line"><span class="keyword">if</span> value == <span class="number">0</span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"the value is %v.\n"</span>, value)</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"the value is %v.\n"</span>, value)</span><br><span class="line">&#125;</span><br><span class="line">memoryAccess.Unlock() <span class="comment">// ⑤</span></span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>①在这里，我们添加一个变量，它将允许我们的代码对内存数据的访问做同步。我们将在第3章的“sync包”中详细介绍sync.Mutex类型。</li>
+<li>②在这里，我们声明，直到我们的声明结束前，我们的goroutine应该独占该内存的访问权。</li>
+<li>③在这里，我们宣布goroutine使用完了这段内存。</li>
+<li>④在这里，我们再次声明以下条件语句应独占变量data内存的访问权。 </li>
+<li>⑤在这里，我们宣布我们的独占结束。</li>
+</ul>
+<p>在这个例子中，我们为开发者制定了一个约定。无论何时，开发人员想要访问变量data的内存，必须首先调用Lock，当访问结束后，他们必须调用Unlock。我们可以假设这两条语句之间的代码拥有对变量data的独占访问权；至此，我们已经成功地对内存的访问进行了同步。另外请注意，如果开发者不遵循这个约定，我们就无法保证独占访问！我们将在第4章的“约束”中再回顾这一思想。</p>
+<p>你可能已经注意到，虽然我们已经解决了数据竞争，但并没有真正解决我们的竞争条件！这个程序的操作顺序仍然是不确定的。我们刚刚只是缩小了非确定性的范围。在这个例子中，goroutine和if和else块都有可能会先执行。我们仍然不知道在这个程序的执行过程中哪段代码会先执行。之后，我们将探索正确解决这类问题的方法。</p>
+<p>从表面上看，这似乎很简单：如果你发现你的代码中有临界区，那就添加锁来同步内存访问！很简单，对吧？那么…还有些问题。</p>
+<p>的确，你可以通过内存访问同步来解决一些问题，但正如我们刚刚看到的，它不会自动解决数据竞争或逻辑正确性问题。此外，它也可能造成维护和性能问题。</p>
+<p>请注意，我们之前创建了一个约定，当需要对某些内存进行独占访问时要进行声明。约定是好的，但它们也容易被忽略，特别是在软件工程中，业务需求有时有时间限制。通过这种方式同步对内存的访问，需要期望所有开发人员在当前和未来都遵循相同约定。这是一个非常艰巨的任务。值得庆幸的是，在这本书的稍后部分，我们还将探讨一些方法，可以有效地帮助我们的同事。</p>
+<p>以这种方式同步对内存的访问还有性能上的问题。更多的细节我们将在第3章的“sync包”中描述，不过现在你就能看到Lock的调用会使我们的程序变慢。每次执行这些操作时，我们的程序就会暂停一段时间。</p>
+<p>这带来了两个问题：</p>
+<ul>
+<li>我的临界区是否是频繁进入和退出？</li>
+<li>我的临界区应该有多大？</li>
+</ul>
+<p>在程序的上下文中解决这两个问题是一种艺术，并且增加了内存访问同步的难度。</p>
+<p>同步对内存的访问在对并发进行建模时还存在一些问题，我们将在下一节讨论这些问题。</p>
+<h1 id="死锁、活锁和饥饿"><a href="#死锁、活锁和饥饿" class="headerlink" title="死锁、活锁和饥饿"></a><span style="color:#339AFF;">死锁、活锁和饥饿</span></h1><p>前面的部分都是关于程序正确性的讨论，如果这些问题得到正确的处理，你的程序将永远不会给出错误的答案。不幸的是，即使你成功处理了这些问题，还有另一类问题需要解决：死锁、活锁和饥饿。所有这些问题都与你的程序密切相关，它们保证了你的程序在任何时候都在做着一些真正有用的事。如果没有正确处理，程序可能会进入一种完全停止正常工作的状态。</p>
+<h2 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a><span style="color:#00ACC1;">死锁</span></h2><p>死锁程序是所有并发进程彼此等待的程序。在这种情况下，如果没有外界的干预，这个程序将永远无法恢复。</p>
+<p>这听起来很严峻，那是因为的确如此！Go语言的运行时会尽其所能，检测一些死锁（所有的goroutine必须被阻塞，或者“asleep”）（有一个被接受的建议是允许运行时检测部分死锁，但是还没有实现。有关更多信息，请参见<a href="https://github.com/golang/go/issues/13759" target="_blank" rel="noopener">https://github.com/golang/go/issues/13759</a>），但是这对于防止死锁并没有太多的帮助。</p>
+<p>为了帮助理解死锁是什么，我们先来看一个例子。同样，忽略任何你不知道的类型，函数，方法或是你不知道的包，只理解什么是死锁即可。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> value <span class="keyword">struct</span> &#123;</span><br><span class="line">    mu sync.Mutex</span><br><span class="line">    value <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">printSum := <span class="function"><span class="keyword">func</span><span class="params">(v1, v2 *value)</span></span> &#123;</span><br><span class="line">    <span class="keyword">defer</span> wg.Done()</span><br><span class="line">    v1.mu.Lock() <span class="comment">// ①</span></span><br><span class="line">    <span class="keyword">defer</span> v1.mu.Unlock() <span class="comment">// ②</span></span><br><span class="line"></span><br><span class="line">    time.Sleep(<span class="number">2</span> * time.Second) <span class="comment">// ③</span></span><br><span class="line">    v2.mu.Lock()</span><br><span class="line">    <span class="keyword">defer</span> v2.mu.Unlock()</span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"sum=%v\n"</span>, v1.value + v2.value)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> a, b value</span><br><span class="line">wg.Add(<span class="number">2</span>)</span><br><span class="line"><span class="keyword">go</span> printSum(&amp;a, &amp;b)</span><br><span class="line"><span class="keyword">go</span> printSum(&amp;b, &amp;a)</span><br><span class="line">wg.Wait()</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>①在这里，我们尝试进入临界区来传入一个值。</li>
+<li>②在这里，我们使用defer语句在printSum返回之前退出临界区。</li>
+<li>③在这里，我们休眠了一段时间来模拟一些工作（并触发死锁）。</li>
+</ul>
+<p>如果尝试运行此代码，你可能会看到：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fatal error: all goroutines are asleep - deadlock!</span><br></pre></td></tr></table></figure></p>
+<p>为什么呢？如果仔细观察，你将在此代码中看到时机问题。以下是运行时的图形表示。这些框表示函数，水平线表示调用这些函数，竖线表示图形头部的函数生存时间（见图1-1）。</p>
+<blockquote>
+<p>图1-1：一个因时间问题导致死锁的演示</p>
+</blockquote>
+<img src="/2021/09/09/第1章-并发概述/1.png">
+<p>本质上，我们创建了两个不能转动的齿轮：第一次调用printSum锁定a，然后试图锁定b，但在此期间，第二次调用printSum已锁定b并试图锁定a。这两个goroutine都无限地等待着。</p>
+<blockquote>
+<p>讽刺<br><br>为了保持这个例子简单，我使用一个time.Sleep来触发死锁。但是，这引入了一个竞争条件！你能找到吗？<br><br>一个逻辑上“完美”的死锁将需要正确地同步（我们实际上并不能保证goroutines的运行顺序，或者需要多长时间才能启动。虽然不太可能，但是一个goroutine可以在另一个goroutine开始之前获得和释放锁，从而避免死锁，这是有道理的）。</p>
+</blockquote>
+<p>以图形的方式展示为什么会出现死锁似乎很明确，但是更严格的定义会给我们带来更多的好处。事实证明，出现死锁有几个必要条件。1971年，Edgar Coffman在一篇论文中列举了这些条件。这些条件现在被称为Coffman条件，是帮助检测、防止和纠正死锁的技术依据。</p>
+<p>Coffman条件如下：</p>
+<p><em>相互排斥</em><br>&emsp;&emsp;&emsp;&emsp;并发进程同时拥有资源的独占权。<br><em>等待条件</em><br>&emsp;&emsp;&emsp;&emsp;并发进程必须同时拥有一个资源，并等待额外的资源。<br><em>没有抢占</em><br>&emsp;&emsp;&emsp;&emsp;并发进程拥有的资源只能被该进程释放，即可满足这个条件。<br><em>循环等待</em><br>&emsp;&emsp;&emsp;&emsp;一个并发进程（P1）必须等待一系列其他并发进程（P2），这些并发进程同时也在等待进程（P1），这样便满足了这个最终条件。</p>
+<img src="/2021/09/09/第1章-并发概述/0.png">
+<p>来看看我们设计的程序，并确定它是否符合所有四个条件：</p>
+<ul>
+<li>1、printSum函数确实需要a和b的独占权，所以它满足了这个条件。</li>
+<li>2、因为printSum持有a或b并正在等待另一个，所以它满足这个条件。 </li>
+<li>3、我们没有任何办法让我们的goroutine被抢占。</li>
+<li>4、我们第一次调用printsum正在等待我们的第二次调用，反之亦然。</li>
+</ul>
+<p>是的，我们写出来的无疑是一个死锁了。</p>
+<p>这些规则也帮助我们防止死锁。如果确保至少有一个条件不成立，我们可以防止发生死锁。不幸的是，实际上这些条件很难推理，因此很难预防。网络上散布着诸如你和我这样的开发者的疑问，他们想知道为什么一小段代码是死锁的。通常情况下，一旦有人指出，这是非常明显的，但往往需要另一双眼睛。我们将在本章后面的“确定并发安全性”中讨论这是为什么。</p>
+<h2 id="活锁"><a href="#活锁" class="headerlink" title="活锁"></a><span style="color:#00ACC1;">活锁</span></h2><p>活锁是正在主动执行并发操作的程序，但是这些操作无法向前推进程序的状态。</p>
+<p>你曾经在走廊走向另一个人吗？她移动到一边让你通过，但你也做了同样的事情。所以你转到另一边，但她也是这样做的。想象一下这个情形永远持续下去，你就明白了活锁。</p>
+<p>我们实际上编写一些代码来演示这种情况。首先，我们将设置一些辅助函数来简化示例。为了有一个可以工作的例子，这里的代码利用了我们尚未涉及的几个主题。我不建议试图了解它的细节，直到你有把握可以使用好sync包。相反，我建议遵循代码标注来理解强调的部分，然后将注意力转向包含示例核心的第二个代码块。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">cadence := sync.NewCond(&amp;sync.Mutex&#123;&#125;)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="keyword">range</span> time.Tick(<span class="number">1</span>*time.Millisecond)&#123;</span><br><span class="line">        cadence.Broadcast()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;()</span><br><span class="line"></span><br><span class="line">takeStep :=f unc()&#123;</span><br><span class="line">    cadence.L.lock()</span><br><span class="line">    cadence.Wait()</span><br><span class="line">    cadence.L.Unlock()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">tryDir := <span class="function"><span class="keyword">func</span><span class="params">(dirName <span class="keyword">string</span>, dir *<span class="keyword">int32</span>, out *bytes.Buffer)</span> <span class="title">bool</span></span>&#123; <span class="comment">// ①</span></span><br><span class="line">    fmt.Fprintf(out, <span class="string">" %v"</span>, dirName)</span><br><span class="line">    atomic.AddInt32(dir, <span class="number">1</span>) <span class="comment">// ②</span></span><br><span class="line">    takeStep() <span class="comment">// ③</span></span><br><span class="line">    <span class="keyword">if</span> atomic.LoadInt32(dir) == <span class="number">1</span> &#123;</span><br><span class="line">        fmt.Fprint(out, <span class="string">". Success!"</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    takeStep()</span><br><span class="line">    atomic.AddInt32(dir, <span class="number">-1</span>) <span class="comment">// ④</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> left, right <span class="keyword">int32</span></span><br><span class="line">tryLeft := <span class="function"><span class="keyword">func</span><span class="params">(out *bytes.Buffer)</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> tryDir(<span class="string">"left"</span>, &amp;left, out)&#125; </span><br><span class="line">tryRight := <span class="function"><span class="keyword">func</span><span class="params">(out *bytes.Buffer)</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> tryDir(<span class="string">"right"</span>, &amp;right, out)&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>①tryDir允许一个人尝试向一个方向移动，并返回是否成功。dir，每个方向都表示为试图朝这个方向移动的人数。</li>
+<li>②首先，我们宣布将要向这个方向移动一个距离。我们将在第3章中详细讨论这个atomic包。现在，你只需要知道这个包的操作是原子操作。</li>
+<li>③为了演示活锁，每个人都必须以相同的速度或节奏移动。takeStep模拟所有对象之间的一个不变的节奏。</li>
+<li>④这里的人意识到他们不能向这个方向走而放弃。我们通过把这个方向减1来表示。</li>
+</ul>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">walk := <span class="function"><span class="keyword">func</span><span class="params">(walking *sync.WaitGroup, name <span class="keyword">string</span>)</span></span>&#123; </span><br><span class="line">    <span class="keyword">var</span> out bytes.Buffer</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; fmt.Println(out.<span class="keyword">string</span>()) &#125;() </span><br><span class="line">    <span class="keyword">defer</span> walking.Done()</span><br><span class="line">    fmt.Fprintf(&amp;out, <span class="string">"%v is trying to scoot:"</span>, name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt;<span class="number">5</span>; i++&#123; <span class="comment">// ①</span></span><br><span class="line">        <span class="keyword">if</span> tryleft(&amp;out) || tryRight(&amp;out) &#123; <span class="comment">// ②</span></span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Fprintf(&amp;out, <span class="string">"\n%v tosses her hands up in exasperation!"</span>, name) </span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">var</span> peopleInHallway sync.WaitGroup <span class="comment">// ③</span></span><br><span class="line">peopleInHallway.Add(<span class="number">2</span>)</span><br><span class="line"><span class="keyword">go</span> walk(&amp;peopleInHallway, <span class="string">"Alice"</span>)</span><br><span class="line"><span class="keyword">go</span> walk(&amp;peopleInHallway, <span class="string">"Barbara"</span>)</span><br><span class="line">peopleInHallway.Wait()</span><br></pre></td></tr></table></figure>
+<ul>
+<li>①我对尝试次数进行了人为限制，以便此程序能结束。在一个有活锁的程序中，可能没有这个限制，这就是为什么它是一个问题！</li>
+<li>②首先，这个人会试图向左走，如果失败了，他们会尝试向右走。</li>
+<li>③这个变量为程序提供了一个等待直到两个人都能够相互通过或放弃的方式。</li>
+</ul>
+<p>输出如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Alice is trying to scoot: left right left right left right left right left right Alice tosses her hands up in exasperation!</span><br><span class="line">Barbara is trying to scoot: left right left right left right left right left right</span><br><span class="line">Barbara tosses her hands up in exasperation!</span><br></pre></td></tr></table></figure></p>
+<p>你可以看到，Alice和Barbara在最终退出之前，会持续竞争。</p>
+<p>这个例子演示了使用活锁的一个十分常见的原因：两个或两个以上的并发进程试图在没有协调的情况下防止死锁。这就好比，如果走廊里的人都同意，只有一个人会移动，那就不会有活锁；一个人会站着不动，另一个人会移到另一边，他们就会继续移动。</p>
+<p>在我看来，活锁要比死锁更复杂，因为它看起来程序好像在工作。如果一个活锁程序在你的机器上运行，那你可以通过查看CPU利用率来确定它是否在做处理某些逻辑，你可能会认为它确实是在工作。根据活锁的不同，它甚至可能发出其他信号，让你认为它在工作。然而，你的程序将会一直上演“hallway-shuffle”的循环游戏。</p>
+<p>活锁是一组被称为“饥饿”的更大问题的子集。我们下一节会讲到。</p>
+<h2 id="饥饿"><a href="#饥饿" class="headerlink" title="饥饿"></a><span style="color:#00ACC1;">饥饿</span></h2><p>饥饿是在任何情况下，并发进程都无法获得执行工作所需的所有资源。</p>
+<p>当我们讨论活锁时，每个goroutine的资源是一个共享锁。</p>
+<p>活锁保证讨论与饥饿是无关的，因为在活锁中，所有并发进程都是相同的，并且没有完成工作。更广泛地说，饥饿通常意味着有一个或多个贪婪的并发进程，它们不公平地阻止一个或多个并发进程，以尽可能有效地完成工作，或者阻止全部并发进程。</p>
+<p>这里有一个程序的例子，有一个贪婪的goroutine和一个平和的goroutine：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> wg sync.WaitGroup </span><br><span class="line"><span class="keyword">var</span> sharedlock sync.Mutex </span><br><span class="line"><span class="keyword">const</span> runtime = <span class="number">1</span>*time.Second</span><br><span class="line"></span><br><span class="line">greedyWorker := <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123; </span><br><span class="line">    <span class="keyword">defer</span> wg.Done()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> count <span class="keyword">int</span></span><br><span class="line">    <span class="keyword">for</span> begin := time.Now(); time.Since(begin)&lt;=runtime; &#123; </span><br><span class="line">        sharedlock.Lock()</span><br><span class="line">        time.Sleep(<span class="number">3</span>*time.Nanosecond)</span><br><span class="line">        sharedLock.Unlock()</span><br><span class="line">        count++</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"Greedy worker was able to execute %v work loops\n"</span>, count) </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">politeWorker := <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">defer</span> wg.Done()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> count <span class="keyword">int</span></span><br><span class="line">    <span class="keyword">for</span> begin := time.Now();time.Since(begin)&lt;=runtime;&#123;</span><br><span class="line">        sharedLock.Lock()</span><br><span class="line">        time.Sleep(<span class="number">1</span>*time.Nanosecond)</span><br><span class="line">        sharedLock.Unlock()</span><br><span class="line"></span><br><span class="line">        sharedLock.Lock()</span><br><span class="line">        time.Sleep(<span class="number">1</span>*time.Nanosecond) </span><br><span class="line">        sharedLock.Unlock()</span><br><span class="line"></span><br><span class="line">        sharedLock.lock()</span><br><span class="line">        time.Sleep(<span class="number">1</span>*time.Nanosecond) </span><br><span class="line">        sharedlock.Unlock()</span><br><span class="line"></span><br><span class="line">        count++</span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Printf(<span class="string">"Polite worker was able to execute %v work loops.\n"</span>, count)</span><br><span class="line">&#125;</span><br><span class="line">wg.Add(<span class="number">2</span>)</span><br><span class="line"><span class="keyword">go</span> greedyWorker() </span><br><span class="line"><span class="keyword">go</span> politeWorker() </span><br><span class="line"></span><br><span class="line">wg.Wait()</span><br></pre></td></tr></table></figure></p>
+<p>输出如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Polite worker was able to execute 289777 work loops. </span><br><span class="line">Greedy worker was able to execute 471287 work loops.</span><br></pre></td></tr></table></figure></p>
+<p>贪婪的worker会贪婪地抢占共享锁，以完成整个工作循环，而平和的worker则试图只在需要时锁定。两种worker都做同样多的模拟工作（sleeping时间为3ns），但是你可以看到，在同样的时间里，贪婪的worker工作量几乎是平和的worker工作量的两倍！</p>
+<p>假设两种worker都有同样大小的临界区，而不是认为贪婪的worker的算法更有效（或调用Lock和Unlock的时候，它们也不是缓慢的），我们得出这样的结论，贪婪的worker不必要地扩大其持有共享锁上的临界区，并阻止（通过饥饿）平和的worker的goroutine高效工作。</p>
+<p>请注意，我们这里的技术用于识别饥饿一个metric。饥饿会为记录和取样提供一个很好的metric。一个发现和解决饥饿的方法是，通过记录来确定进程工作速度是否和你预期的一样高。</p>
+<blockquote>
+<p>找到一个平衡<br><br>值得一提的是，前面的代码示例还可以作为内存访问同步的性能影响的示例。因为同步访问内存是昂贵的，所以将我们的锁扩展到临界段之外是有利的。另一方面，这样做我们将冒着饿死其他并发进程的风险。<br><br>如果你使用了内存访问同步，你将不得不在粗粒度同步和细粒度同步之间找到一个平衡点。当需要对应用程序进行性能调优时，我强烈建议只将内存访问同步限制在关键部分；如果同步成为性能问题，你可以一直扩展范围。走另一条路要难得多。</p>
+</blockquote>
+<p>所以，饥饿会导致你的程序表现不佳或不正确。前面的示例演示了低效场景，但是如果你有一个非常贪婪的并发进程，以至于完全阻止另一个并发进程完成工作，那么你就会遇到一个更大的问题。</p>
+<p>我们还应该考虑到来自于外部过程的饥饿。请记住，饥饿也可以应用于CPU、内存、文件句柄、数据库连接：任何必须共享的资源都是饥饿的候选者。</p>
+<h1 id="确定并发安全"><a href="#确定并发安全" class="headerlink" title="确定并发安全"></a><span style="color:#339AFF;">确定并发安全</span></h1><p>最后，我们来谈谈开发并发代码的最困难的地方，即所有其他问题的根源人。每行代码的后面至少有一个人。</p>
+<p>正如我们所发现的，并发代码很难写有很多原因。如果你是一名开发人员，并且你在引入新功能时尝试解决所有这些问题，或修复程序中的错误作出正确的修改，确实很困难。</p>
+<p>如果你从一个空白的石板开始，需要建立一个合理的方法来模拟你的问题空间，并且涉及并发，那么很难找到合适的抽象层次。你如何向调用者说明并发？</p>
+<p>你使用什么技术来创建易于使用和修改的解决方案？这个问题的并发性是什么水平？虽然有办法以结构化的方式思考这些问题，但它仍然是一门艺术。</p>
+<p>作为一个与现有代码交互的开发人员，如何利用并发编写代码，以及如何安全地使用代码并不总是那么明确的。拿这个函数来说：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// CalculatePi在开始和结束位置之间计算Pi的数字</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CalculatePi</span><span class="params">(begin, end <span class="keyword">int64</span>, pi *Pi)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>以较高的精度计算Pi是个非常棒的例子，但是这个例子引发了很多问题：</p>
+<ul>
+<li>如何使用这个函数。</li>
+<li>为了并发地调用，我是否需要多次实例化这个函数。</li>
+<li>看起来我传入Pi后，函数的所有实例都将在当前实例上运行，那我需要内存访问同步吗？或者Pi类型帮我做了这个事情？</li>
+</ul>
+<p>一个函数就带来了这么多问题。想象一下任何一个中等规模的程序，你就能理解并发的复杂性了。</p>
+<p>注释可以带来一些改观。如果CalculatePi函数是这样写的：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// CalculatePi计算Pi从begin到end的那一部分。</span></span><br><span class="line"><span class="comment">// 在内部，CalculatePi将并发地调用FLOOR[(end-begin)/2]。</span></span><br><span class="line"><span class="comment">// </span></span><br><span class="line"><span class="comment">// CalculatePi会递归地调用。</span></span><br><span class="line"><span class="comment">// Pi的写入同步由Pi结构体内部处理</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CalculatePi</span><span class="params">(begin, end <span class="keyword">int64</span>, pi *Pi)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>现在明白了我们可以直接调用这个函数，而不用担心并发或同步的问题。重要的是，注释涵盖了这些内容：</p>
+<ul>
+<li>谁负责并发？</li>
+<li>如何利用并发原语解决这个问题的？ </li>
+<li>谁负责同步？</li>
+</ul>
+<p>当公开涉及并发的函数，方法和变量时，请替同事和未来的自己考虑一下：宁可让注释变得冗长，也应该尽可能涵盖这三个方面。</p>
+<p>还要考虑到，这个函数模糊地暗示了我们对它的模型理解是错误的。也许我们应该采取一种纯函数式的方法，确保我们没有做多余的工作。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CalculatePi</span><span class="params">(begin, end <span class="keyword">int64</span>)</span> []<span class="title">uint</span></span></span><br></pre></td></tr></table></figure></p>
+<p>这个函数的声明消除了同步的问题，但仍然有并发使用的问题。我们可以再次修改声明，抛出另一个相关的信号，反馈正在发生的事情：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CalculatePi</span><span class="params">(begin, end <span class="keyword">int64</span>)</span> &lt;-<span class="title">chan</span> <span class="title">uint</span></span></span><br></pre></td></tr></table></figure></p>
+<p>这里我们看到了所谓channel的第一个用法。稍后将在第3章的“channel”中探讨的细节，现在你只要理解这表明Calculatepi将至少会启动一个goroutine，而我们不用考虑这些问题即可。</p>
+<p>然而，这些修改会带来性能上的影响，这使我们又回到了平衡明确性和性能的问题上。明确性非常重要，因为我们希望尽可能让将来使用这些代码的人正确使用它，不过显而易见，性能也很重要重要。两者并不相互排斥，但难以协调。</p>
+<p>现在考虑一下如何告诉别人这些障碍，并尝试在团队项目中推广你的做法。</p>
+<p>这是一个好问题。</p>
+<p>好消息是，Go语言已经取得了进展，使得这些类型的问题更容易解决。语言本身有利于可读性和简单性。它对并发代码进行建模的方式有助于正确性、可组合性和可伸缩性。事实上，Go语言处理并发的方式实际上可以帮助更清楚地表达问题域！让我们来看看为什么是这样的情况。</p>
+<h1 id="面对复杂性的简单性"><a href="#面对复杂性的简单性" class="headerlink" title="面对复杂性的简单性"></a><span style="color:#339AFF;">面对复杂性的简单性</span></h1><p>以上，我描绘了一个非常严峻的画面。并发在计算机科学中当然是一个困难的领域，但是我希望给你留下一个希望：这些问题不是棘手的，并且使用Go语言的并发原语，可以更安全，更清晰地表达并发算法。我们讨论的运行时间和通信困难并不是Go语言解决的，但是它们变得非常容易。在下一章中，我们将会探讨为什么会存在“运行时与通信”问题的根源。在这里，我们花一点时间来探讨Go语言的并发原语实际上可以更容易地对问题域进行建模并更清楚地表达算法。</p>
+<p>Go语言的运行时完成了大部分的繁重工作，并为Go语言的大部分并发优势提供了基础。我们将讨论第6章如何工作，但在这里我们将讨论这些事情如何让你的工作变得更轻松。</p>
+<p>首先讨论Go语言的并发，低延GC。在一种语言中有GC是否是正确的，开发者之间经常会有争论。批评者认为，在需要实时性或确定性的特定领域中 GC妨碍了正常的工作，暂停程序中的所有活动来进行GC简直是不可接受的。虽然有一些影响，但是Go语言出色的GC效果，大大减少了使用者对Go语言的GC工作细节的关注。从Go1.8开始，GC暂停一般在10~100us之间！</p>
+<p>这对你有什么帮助呢？内存管理可以称为计算机科学领域的另一个难题，当与并发结合使用时，编写正确的代码变得非常困难。如果大多数开发人员不需要担心只有10us的暂停时间，那么通过不强迫用户管理内存，Go语言可以更容易地使用并发程序，更不用说跨进程并发。</p>
+<p>Go语言的运行时也会自动处理并发操作到操作系统线程上。这是一个整体，我们将在第3章的“goroutine”中确切地说明这意味着什么。为了理解这对你有什么帮助，你只需要知道它可以让你直接将并发问题映射到并发结构，而不是处理启动和管理线程的细节，并在可用线程间均匀映射逻辑。</p>
+<p>例如，假设你编写了一个Web服务器，并且你希望每个连接都可以被其他连接同时处理。在某些语言中，在Web服务器开始接受连接之前，你可能必须创建一个线程集合（通常称为线程池），然后将传入连接映射到线程。然后，在你创建的每个线程中，你需要循环该线程上的所有连接，以确保它们都获得了一些CPU时间。另外，你必须编写你的连接处理逻辑，使它可以与其他连接公平地共享。</p>
+<p>相比之下，在Go语言中你可以编写一个函数，然后用Go语言关键字预先调用它。运行时会自动处理我们讨论的所有内容！当你正在经历设计你的程序的过程时，你认为在哪种模式下你更有可能达到并发？你认为哪个更可能是正确的？</p>
+<p>Go语言的并发原语也使得处理更大的问题变得容易。正如我们将在第3章的“channel”中看到的，Go语言的channel原语为并发进程之间的通信提供了可组合、并发安全的方式。</p>
+<p>我已经掩盖了这些工作的大部分细节，但是我想给你一些关于Go语言如何让你在程序中使用并发的感觉，以帮助你以一种清晰和高效的方式解决你的问题。在接下来的章节中，我们将讨论并发理念，以及为什么Go语言有这么多的正确性。如果你急于了解某些代码，你可能会想跳转到第3章。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Go语言并发之道/" rel="tag"># Go语言并发之道</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/09/09/对自己的现状不满意，应该怎么改变？/" rel="next" title="对自己的现状不满意，应该怎么改变？">
+                <i class="fa fa-chevron-left"></i> 对自己的现状不满意，应该怎么改变？
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2021/09/09/第2章-对你的代码建模：通信顺序进程/" rel="prev" title="第2章 对你的代码建模：通信顺序进程">
+                第2章 对你的代码建模：通信顺序进程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#摩尔定律，Web-Scale和我们所陷入的混乱"><span class="nav-number">1.</span> <span class="nav-text">摩尔定律，Web Scale和我们所陷入的混乱</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#为什么并发很难？"><span class="nav-number">2.</span> <span class="nav-text">为什么并发很难？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#竞争条件"><span class="nav-number">2.1.</span> <span class="nav-text">竞争条件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#原子性"><span class="nav-number">2.2.</span> <span class="nav-text">原子性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存访问同步"><span class="nav-number">2.3.</span> <span class="nav-text">内存访问同步</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#死锁、活锁和饥饿"><span class="nav-number">3.</span> <span class="nav-text">死锁、活锁和饥饿</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#死锁"><span class="nav-number">3.1.</span> <span class="nav-text">死锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#活锁"><span class="nav-number">3.2.</span> <span class="nav-text">活锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#饥饿"><span class="nav-number">3.3.</span> <span class="nav-text">饥饿</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#确定并发安全"><span class="nav-number">4.</span> <span class="nav-text">确定并发安全</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#面对复杂性的简单性"><span class="nav-number">5.</span> <span class="nav-text">面对复杂性的简单性</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

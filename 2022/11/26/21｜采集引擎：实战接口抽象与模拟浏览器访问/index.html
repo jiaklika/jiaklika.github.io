@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="Go进阶·分布式爬虫实战">
+<meta property="og:type" content="article">
+<meta property="og:title" content="21｜采集引擎：实战接口抽象与模拟浏览器访问">
+<meta property="og:url" content="http://yoursite.com/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/1.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/2.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/3.png">
+<meta property="og:image" content="http://yoursite.com/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/6.jpg">
+<meta property="og:updated_time" content="2023-01-28T08:33:37.248Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="21｜采集引擎：实战接口抽象与模拟浏览器访问">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/1.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>21｜采集引擎：实战接口抽象与模拟浏览器访问 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">21｜采集引擎：实战接口抽象与模拟浏览器访问
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-11-26 16:01:10" itemprop="dateCreated datePublished" datetime="2022-11-26T16:01:10+08:00">2022-11-26</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2023-01-28 16:33:37" itemprop="dateModified" datetime="2023-01-28T16:33:37+08:00">2023-01-28</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">16k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">14 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<p>我们知道，接口是实现功能模块化、构建复杂程序强有力的手段。在上一节课，我介绍了接口的最佳实践和原理。这一节课，让我们在爬虫程序中实战接口，对采集引擎完成接口抽象。</p>
+<h1 id="接口抽象"><a href="#接口抽象" class="headerlink" title="接口抽象"></a><span style="color:#339AFF;">接口抽象</span></h1><p>在<a href="/2022/11/22/19｜从正则表达式到CSS选择器：4种网页文本处理手段/" title="第19讲">第19讲</a>，我们已经将爬取网站信息的代码封装为了fetch函数，完成了第一轮的功能抽象。但是随着爬取的网站越来越复杂，加上服务器本身的反爬机制等原因，我们需要用到不同的爬取技术。例如后面会讲到的模拟浏览器访问、代理访问等。要想比较容易地切换不同的爬取方法，用模块化的方式对功能进行组合、测试，我们可以很容易地想到可以对爬取网站数据的代码模块进行接口抽象。</p>
+<h1 id="实战接口"><a href="#实战接口" class="headerlink" title="实战接口"></a><span style="color:#339AFF;">实战接口</span></h1><p>具体的做法，我们首先要创建一个新的文件夹，将package命名为collect，把它作为我们的采取引擎。之后所有和爬取相关的代码都会放在这个目录下。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mkdir collect</span><br><span class="line">touch collect/collect.go</span><br></pre></td></tr></table></figure></p>
+<p>接着我们要定义一个Fetcher接口，内部有一个方法签名Get，参数为网站的URL。后面我们还将对函数的方法签名进行改变，也会添加其他方法签名，比如用于控制超时的Context参数等。不过要知道的是，在Go语言中，对接口的变更是非常轻量的，我们不用提前费劲去设计。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Fetcher <span class="keyword">interface</span> &#123;</span><br><span class="line">    Get(url <span class="keyword">string</span>) ([]<span class="keyword">byte</span>, error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>接下来，我们要定义一个结构体BaseFetch，用最基本的爬取逻辑实现Fetcher接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(BaseFetch)</span> <span class="title">Get</span><span class="params">(url <span class="keyword">string</span>)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">    resp, err := http.Get(url)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">defer</span> resp.Body.Close()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> resp.StatusCode != http.StatusOK &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Error status code:%d"</span>, resp.StatusCode)</span><br><span class="line">    &#125;</span><br><span class="line">    bodyReader := bufio.NewReader(resp.Body)</span><br><span class="line">    e := DeterminEncoding(bodyReader)</span><br><span class="line">    utf8Reader := transform.NewReader(bodyReader, e.NewDecoder())</span><br><span class="line">    <span class="keyword">return</span> ioutil.ReadAll(utf8Reader)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在main.go中定义一个类型为BaseFetch的结构体，用接口Fetcher接收并调用Get方法，这样就完成了使用接口来实现基本爬取的逻辑。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> f collect.Fetcher = collect.BaseFetch&#123;&#125;</span><br><span class="line">body, err := f.Get(url)</span><br></pre></td></tr></table></figure></p>
+<h1 id="模拟浏览器访问"><a href="#模拟浏览器访问" class="headerlink" title="模拟浏览器访问"></a><span style="color:#339AFF;">模拟浏览器访问</span></h1><p>上面BaseFetch的Get函数是比较简单的，但有时我们需要对爬取进行更复杂的处理。例如我们用上面的代码去爬取豆瓣读书网站上的页面，则会失败。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">url := <span class="string">"https://book.douban.com/subject/1007305/"</span></span><br><span class="line"><span class="keyword">var</span> f collect.Fetcher= collect.BaseFetch&#123;&#125;</span><br><span class="line">body, err := f.Get(url)</span><br></pre></td></tr></table></figure></p>
+<p>报错为Error status code:418，服务器会返回一个不正常的状态码，并且没有正常的HTML内容。</p>
+<p>为什么这个网站可以通过浏览器正常访问，但是通过程序却不行呢？这二者的区别在哪里？</p>
+<p>显然，豆瓣现在有一些反爬机制阻止了我们对服务器的访问。如果我们使用浏览器的开发者工具，或者通过wireshark等抓包工具查看数据包，会看到浏览器自动在HTTP Header中设置了很多内容，其中比较重要的一个就是<strong>User-Agent字段，它可以表明当前正在使用的应用程序、设备类型和操作系统的类型与版本</strong>。</p>
+<img src="/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/1.png">
+<p>大多数浏览器使用<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent" target="_blank" rel="noopener">以下格式</a>发送User-Agent：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Mozilla/5.0 (操作系统信息) 运行平台(运行平台细节) &lt;扩展信息&gt;</span><br></pre></td></tr></table></figure></p>
+<p>我当前的Chrome（谷歌浏览器）发送的信息如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36</span><br></pre></td></tr></table></figure></p>
+<p>其中，Mozilla/5.0由于历史原因，是现在的主流浏览器都会发送的。</p>
+<p>Macintosh; IntelMacOSX10_15_7代表当前操作系统的版本号。</p>
+<p>AppleWebKit/537.36是在Apple设备上使用的Web渲染引擎标识符。</p>
+<p>KHTML是在Safari和Chrome上使用的引擎。</p>
+<p>Chrome/103.0.0.0Safari/537.36指代浏览器的名字和版本号。</p>
+<p><strong>使用不同的浏览器、设备，User-Agent都会略有不同。</strong>不同应用程序的User-Agent参考如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Lynx: Lynx/2.8.8pre.4 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/2.12.23</span><br><span class="line"></span><br><span class="line">Wget: Wget/1.15 (linux-gnu)</span><br><span class="line"></span><br><span class="line">Curl: curl/7.35.0</span><br><span class="line"></span><br><span class="line">Samsung Galaxy Note 4: Mozilla/5.0 (Linux; Android 6.0.1; SAMSUNG SM-N910F Build/MMB29M) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/4.0 Chrome/44.0.2403.133 Mobile Safari/537.36</span><br><span class="line"></span><br><span class="line">Apple iPhone: Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.0 Mobile/14E304 Safari/602.1</span><br><span class="line"></span><br><span class="line">Apple iPad: Mozilla/5.0 (iPad; CPU OS 8_4_1 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12H321 Safari/600.1.4</span><br><span class="line"></span><br><span class="line">Microsoft Internet Explorer 11 / IE 11: Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko</span><br></pre></td></tr></table></figure></p>
+<p><strong>有时候，我们的爬虫服务需要动态生成User-Agent列表，方便在测试、或者在使用代理大量请求单一网站时，动态设置不同的User-Agent（我会在后面的课程中给出相关的代码）。</strong></p>
+<p>因为有些服务器会检测User-Agent，以此识别请求是否是特定的应用程序发出的，阻止爬虫机器人访问服务器。而使用正确的User-Agent会让我们的请求看起来更有“人性”，让我们能够更自由地从目标网站收集数据。</p>
+<p>接下来我们就来实验一下。如下所示，我们创建一个新的结构体BrowserFetch并让其实现Fetcher接口。为了能够设置HTTP请求头，我们不能够再使用简单的<code>http.Get</code>方法了。</p>
+<p>我们首先要创建一个HTTP客户端<code>http.Client</code>，然后通过<code>http.NewRequest</code>创建一个请求。在请求中调用<code>req.Header.Set</code>设置User-Agent请求头。最后调用<code>client.Do</code>完成HTTP请求。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> BrowserFetch <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//模拟浏览器访问</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(BrowserFetch)</span> <span class="title">Get</span><span class="params">(url <span class="keyword">string</span>)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">    client := &amp;http.Client&#123;&#125;</span><br><span class="line"></span><br><span class="line">    req, err := http.NewRequest(<span class="string">"GET"</span>, url, <span class="literal">nil</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"get url failed:%v"</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    req.Header.Set(<span class="string">"User-Agent"</span>, <span class="string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"</span>)</span><br><span class="line"></span><br><span class="line">    resp, err := client.Do(req)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    bodyReader := bufio.NewReader(resp.Body)</span><br><span class="line">    e := DeterminEncoding(bodyReader)</span><br><span class="line">    utf8Reader := transform.NewReader(bodyReader, e.NewDecoder())</span><br><span class="line">    <span class="keyword">return</span> ioutil.ReadAll(utf8Reader)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其实<code>http.Get</code>方法之所以简单，只是对上面这些步骤完成了封装。如下所示，<code>http.Get</code>会默认生成内置的<code>http.Client</code>，创建请求NewRequest，并调用<code>client.Do</code>函数，<code>client.Do</code>最终会调用<code>Transport.roundTrip</code>函数发送请求。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> DefaultClient = &amp;Client&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Get</span><span class="params">(url <span class="keyword">string</span>)</span> <span class="params">(resp *Response, err error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> DefaultClient.Get(url)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Client)</span> <span class="title">Get</span><span class="params">(url <span class="keyword">string</span>)</span> <span class="params">(resp *Response, err error)</span></span> &#123;</span><br><span class="line">    req, err := NewRequest(<span class="string">"GET"</span>, url, <span class="literal">nil</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> c.Do(req)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>现在我们只要在main函数中将采集引擎替换为<code>collect.BrowserFetch</code>，就可以轻松获取到豆瓣网站中的内容了。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    url := <span class="string">"https://book.douban.com/subject/1007305/"</span></span><br><span class="line">    <span class="keyword">var</span> f collect.Fetcher = collect.BrowserFetch&#123;&#125;</span><br><span class="line">    body, err := f.Get(url)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"read content failed:%v"</span>, err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Println(<span class="keyword">string</span>(body))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="远程访问浏览器"><a href="#远程访问浏览器" class="headerlink" title="远程访问浏览器"></a><span style="color:#339AFF;">远程访问浏览器</span></h1><p>仅仅在请求头中传递User-Agent是不够的。正如我们之前提到过的，浏览器引擎会对HTML与CSS文件进行渲染，并且执行JavaScript脚本，还可能会完成一些实时推送、异步调用工作。这导致内容会被延迟展示，无法直接通过简单的http.Get方法获取到数据。</p>
+<p>更进一步的，有些数据需要进行用户交互，例如我们需要点击某些按钮才能获得这些信息。这就迫切地需要我们具有模拟浏览器的能力，或者更简单一点：直接操作浏览器，让浏览器来帮助我们爬取数据。</p>
+<p>要借助浏览器的能力实现自动化爬取，目前依靠的技术有以下三种：</p>
+<ul>
+<li>借助浏览器驱动协议（Web Driver protocol）远程与浏览器交互；</li>
+<li>借助谷歌开发者工具协议（CDP，Chrome DevTools Protocol）远程与浏览器交互；</li>
+<li>在浏览器应用程序中注入要执行的JavaScript，典型的工具有Cypress，TestCafe。</li>
+</ul>
+<p>由于第三种技术通常只用于测试，所以下面我们就重点来说说前面两种技术。</p>
+<h2 id="Webdriver-Protocol"><a href="#Webdriver-Protocol" class="headerlink" title="Webdriver Protocol"></a><span style="color:#00ACC1;">Webdriver Protocol</span></h2><p>Webdriver协议是操作浏览器的一种远程控制协议。借助Webdriver协议完成爬虫的框架或库有Selenium，WebdriverIO，Nightwatch，其中最知名的就是Selenium。</p>
+<p><a href="https://www.selenium.dev/documentation/webdriver/getting_started/install_library/" target="_blank" rel="noopener">Selenium</a>为每一种语言（例如Java、Python、Ruby等）都准备了一个对应的clinet库，它整合了不同浏览器的驱动（这些驱动由浏览器厂商提供，例如谷歌浏览器的驱动和火狐浏览器的驱动）。</p>
+<p>Selenium通过<a href="https://www.w3.org/TR/webdriver1/" target="_blank" rel="noopener">W3C约定的WebDriver协议</a>与指定的浏览器驱动进行通信，之后浏览器驱动操作特定浏览器，从而实现开发者操作浏览器的目的。由于Selenium整合了不同的浏览器驱动，因此它对于不同的浏览器都具有良好的兼容性。</p>
+<h2 id="Chrome-DevTools-Protocol"><a href="#Chrome-DevTools-Protocol" class="headerlink" title="Chrome DevTools Protocol"></a><span style="color:#00ACC1;">Chrome DevTools Protocol</span></h2><p>第二种远程与浏览器交互的协议叫做<a href="https://chromedevtools.github.io/devtools-protocol/" target="_blank" rel="noopener">Chrome DevTools Protocol</a>（谷歌开发者工具协议）。顾名思义，该协议最初是由谷歌开发者工具团队维护的，负责调试、操作浏览器的协议。目前，现代大多数浏览器都支持谷歌开发者工具协议。我们经常使用到的谷歌浏览器的开发者工具就是使用这个协议来操作浏览器的。</p>
+<p>查看谷歌开发者工具与浏览器交互的协议的方式是，打开谷歌浏览器，在开发者工具→设置→实验中勾选Protocol Monitor（协议监视器）。</p>
+<img src="/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/2.png">
+<p>接下来，我们要重启开发者工具，在右侧点击更多工具，这样就可以看到协议监视器面板了。面板中有开发者工具通过协议与浏览器交互的细节。</p>
+<img src="/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/3.png">
+<p>与Selenium需要与浏览器驱动进行交互不同的是，Chrome DevTools协议直接通过WebSocket协议与浏览器暴露的API进行通信，这使得ChromeD evTools协议操作浏览器变得更快。</p>
+<p>所以，相比Selenium，我更推荐使用Chrome DevTools协议来访问浏览器。Selenium4虽然已经提供了对于Chrome DevTools协议的支持，但是它目前还没有对Go的官方的Client库。在Go中实现了Chrome DevTools协议的知名第三方库是chromedp。它的操作简单，也不需要额外的依赖。借助chromedp提供的能力与浏览器交互，我们就具有了许多灵活的能力，例如截屏、模拟鼠标点击、提交表单、下载/上传文件等。chromedp的一些操作样例你可以参考example代码库。这里我模拟鼠标点击事件，给你做一个演示。假设我们访问Gotime包的说明文档，例如After函数，会发现下图的参考代码是折叠的。</p>
+<p>通过鼠标点击，折叠的代码可以展示出<code>time.After</code>函数的参考代码。</p>
+<p>我们经常面临这种情况，即需要完成一些交互才能获取到对应的数据。要模拟上面的完整操作，代码如下所示：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"context"</span></span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"github.com/chromedp/chromedp"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 1、创建谷歌浏览器实例</span></span><br><span class="line">    ctx, cancel := chromedp.NewContext(</span><br><span class="line">        context.Background(),</span><br><span class="line">    )</span><br><span class="line">    <span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2、设置context超时时间</span></span><br><span class="line">    ctx, cancel = context.WithTimeout(ctx, <span class="number">15</span>*time.Second)</span><br><span class="line">    <span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3、爬取页面，等待某一个元素出现,接着模拟鼠标点击，最后获取数据</span></span><br><span class="line">    <span class="keyword">var</span> example <span class="keyword">string</span></span><br><span class="line">    err := chromedp.Run(ctx,</span><br><span class="line">        chromedp.Navigate(<span class="string">`https://pkg.go.dev/time`</span>),</span><br><span class="line">        chromedp.WaitVisible(<span class="string">`body &gt; footer`</span>),</span><br><span class="line">        chromedp.Click(<span class="string">`#example-After`</span>, chromedp.NodeVisible),</span><br><span class="line">        chromedp.Value(<span class="string">`#example-After textarea`</span>, &amp;example),</span><br><span class="line">    )</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Fatal(err)</span><br><span class="line">    &#125;</span><br><span class="line">    log.Printf(<span class="string">"Go's time.After example:\\n%s"</span>, example)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>解释一下。首先我们导入了chromedp库，并调用<code>chromedp.NewContext</code>为我们创建了一个浏览器的实例。它的实现原理非常简单，即查找当前系统指定路径下指定的谷歌应用程序，并默认用无头模式（Headless模式）启动谷歌浏览器实例。通过无头模式，我们肉眼不会看到谷歌浏览器窗口的打开过程，但它确实已经在后台运行了。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">findExecPath</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> locations []<span class="keyword">string</span></span><br><span class="line">    <span class="keyword">switch</span> runtime.GOOS &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"darwin"</span>:</span><br><span class="line">        locations = []<span class="keyword">string</span>&#123;</span><br><span class="line">            <span class="comment">// Mac</span></span><br><span class="line">            <span class="string">"/Applications/Chromium.app/Contents/MacOS/Chromium"</span>,</span><br><span class="line">            <span class="string">"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"</span>,</span><br><span class="line">        &#125;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"windows"</span>:</span><br><span class="line">        locations = []<span class="keyword">string</span>&#123;</span><br><span class="line">            <span class="comment">// Windows</span></span><br><span class="line">            <span class="string">"chrome"</span>,</span><br><span class="line">            <span class="string">"chrome.exe"</span>, <span class="comment">// in case PATHEXT is misconfigured</span></span><br><span class="line">            <span class="string">`C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe`</span>,</span><br><span class="line">            <span class="string">`C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe`</span>,</span><br><span class="line">            filepath.Join(os.Getenv(<span class="string">"USERPROFILE"</span>), <span class="string">`AppData\\Local\\Google\\Chrome\\Application\\chrome.exe`</span>),</span><br><span class="line">            filepath.Join(os.Getenv(<span class="string">"USERPROFILE"</span>), <span class="string">`AppData\\Local\\Chromium\\Application\\chrome.exe`</span>),</span><br><span class="line">        &#125;</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        locations = []<span class="keyword">string</span>&#123;</span><br><span class="line">            <span class="comment">// Unix-like</span></span><br><span class="line">            <span class="string">"headless_shell"</span>,</span><br><span class="line">            ...</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>所以说，当前程序能够运行的重要前提是在指定路径中存在谷歌浏览器程序。当然，一般我们系统中可浏览的谷歌浏览器的大小都是比较大的，所以chromedp还好心地为我们提供了一个包含了无头谷歌浏览器的应用程序的镜像：headless-shell。第二步，用<code>context.WithTimeout</code>设置当前爬取数据的超时时间，这里我们设置成了15s。第三步，chromedp.Run执行多个action，chromedp中抽象了action和task两种行为。其中，action指的是爬取、等待、点击、获取数据这样的行为。而task指的是一个任务，task是多个action的集合。因此，<code>chromedp.Run</code>会将多个action封装为一个任务，并依次执行。</p>
+<p><code>chromedp.Navigate</code>指的是爬取指定的网址：<code>https://pkg.go.dev/time</code>。chromedp.WaitVisible指的是“等待当前标签可见”，其参数使用的是CSS选择器的形式。在这个例子中，<code>body&gt;footer</code>标签可见，代表正文已经加载完毕。<code>chromedp.Click</code>指的是“模拟对某一个标签的点击事件”。<code>chromedp.Value</code>用于获取指定标签的数据。最终代码执行结果如下，这样我们就成功获取到了<code>time.After</code>的代码示例。</p>
+<p>在后面的课程中，我们还会对chromedp进行封装，实现我们定义的采集引擎的接口。你也可以先试着使用chromedp来构建一下自己的采集引擎。可以看到，接口在这里再次发挥了巨大作用。只要合理地组合设计，我们的程序就可以很方便地切换任何的采集引擎。不管是用原生还是模拟浏览器方式，不管是使用Selenium、chromedp的方式，亦或是未来新的采集方式，都不会破坏我们其他模块的代码。空接口好了，前面我们介绍的接口都是带有方法签名的。其实还有一类特殊的接口不带任何的方法签名，被称为空接口。我们在后面的项目中还会频繁使用到它。任何类型都隐式实现了空接口。正如Go的创始人RobPike所说：“Empty interface say nothing”，空接口并没有任何的含义，既然如此，空接口有什么作用呢？由于Go是强类型的语言，使用空接口可以为外界提供一个更加通用的能力。然而在处理接口的过程中却需要默默承受解析空接口带来的痛苦。通过使用空接口，常见的fmt.Println函数提供了打印任何类型的功能。</p>
+<p>如果不使用空接口，那么每一个类型都需要实现一个对应的Println函数，是非常不方便的。</p>
+<p>不过，空接口带来便利的同时，也意味着我们必须在内部解析接口的类型，并对不同的类型进行相应的处理。以<code>fmt.Println</code>为例，Println函数内部通过检测接口的具体类型来调用不同的处理函数。如果是自定义类型，还需要使用反射、递归等手段完成复杂类型的打印功能。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *pp)</span> <span class="title">printArg</span><span class="params">(arg <span class="keyword">interface</span>&#123;&#125;, verb <span class="keyword">rune</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> f := arg.(<span class="keyword">type</span>) &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="keyword">bool</span>:</span><br><span class="line">        p.fmtBool(f, verb)</span><br><span class="line">    <span class="keyword">case</span> <span class="keyword">float32</span>:</span><br><span class="line">        p.fmtFloat(<span class="keyword">float64</span>(f), <span class="number">32</span>, verb)</span><br><span class="line">    <span class="keyword">case</span> <span class="keyword">float64</span>:</span><br><span class="line">        p.fmtFloat(f, <span class="number">64</span>, verb)</span><br><span class="line">    <span class="keyword">case</span> <span class="keyword">complex64</span>:</span><br><span class="line">        p.fmtComplex(<span class="keyword">complex128</span>(f), <span class="number">64</span>, verb)</span><br><span class="line">        ....</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>类似的API设计还有用于序列化与反序列化的JSON标准库等。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Marshal</span><span class="params">(v <span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">    e := newEncodeState()</span><br><span class="line"></span><br><span class="line">    err := e.marshal(v, encOpts&#123;escapeHTML: <span class="literal">true</span>&#125;)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    buf := <span class="built_in">append</span>([]<span class="keyword">byte</span>(<span class="literal">nil</span>), e.Bytes()...)</span><br><span class="line"></span><br><span class="line">    encodeStatePool.Put(e)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> buf, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>JSON标准库内部使用了反射来判断接口中存储的实际类型，以此分配不同的序列化器。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newTypeEncoder</span><span class="params">(t reflect.Type, allowAddr <span class="keyword">bool</span>)</span> <span class="title">encoderFunc</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">switch</span> t.Kind() &#123;</span><br><span class="line">    <span class="keyword">case</span> reflect.Bool:</span><br><span class="line">        <span class="keyword">return</span> boolEncoder</span><br><span class="line">    <span class="keyword">case</span> reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:</span><br><span class="line">        <span class="keyword">return</span> intEncoder</span><br><span class="line">    <span class="keyword">case</span> reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:</span><br><span class="line">        <span class="keyword">return</span> uintEncoder</span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>除此之外，对于跨服务调用的API，使用空接口可以提高它们的扩展性。因为在这种场景下，修改API的成本通常比较高，服务器需要改造并发布新的SDK，客服端还需要适配新的SDK并联调测试。</p>
+<p>如下所示，在Info结构体中增加扩展类型<code>map[string]interface{}</code>，新的功能如果需要传递新的信息，当前服务甚至可以不用修改API。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> info <span class="keyword">struct</span>&#123;</span><br><span class="line">    ExtraData <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125; <span class="string">`json:"extra_data"`</span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在后面的课程中我们还会看到，由于爬虫爬取的数据是多种多样的，我们也会用空接口来实现数据存储的拓展性。</p>
+<p>可以看出，空接口为API带来了扩展性和灵活性，但是也为模块的内部处理增加了额外的成本。因为API内部处理空接口时使用了大量的反射，而反射通常比较消耗性能。在实际项目中，当我们JSON序列化一个复杂的结构体时，有时候会有上百毫秒的耗时。</p>
+<h1 id="空接口与反射"><a href="#空接口与反射" class="headerlink" title="空接口与反射"></a><span style="color:#339AFF;">空接口与反射</span></h1><p>空接口是实现反射的基础，因为空接口中会存储动态类型的信息，这为我们提供了复杂、意想不到的处理能力和灵活性。我们可以获取结构体变量内部的方法名、属性名，能够动态地检查函数或方法的参数个数和返回值个数，也可以在运行时通过函数名动态调用函数。这些能力不使用反射都无法做到。</p>
+<p>举一个例子，假如现在有一个Student结构体：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Student <span class="keyword">struct</span> &#123;</span><br><span class="line">    Age <span class="keyword">int</span></span><br><span class="line">    Name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果我们希望写一个可以将该结构体转换为SQL语句的函数，按照过去的实现方式，可以为这个结构体添加一个CreateSQL方法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s*Student)</span> <span class="title">CreateSQL</span><span class="params">()</span> <span class="title">string</span></span>&#123;</span><br><span class="line">    sql := fmt.Sprintf(<span class="string">"insert into student values(%d, %s)"</span>, s.Age, s.Name)</span><br><span class="line">    <span class="keyword">return</span> sql</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这样当调用CreateSQL方法时，可以生成一条SQL语句：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    o := Student&#123;</span><br><span class="line">        Age: <span class="number">20</span>,</span><br><span class="line">        Name: <span class="string">"jonson"</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Println(o.CreateSQL())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>结果打印为：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> student <span class="keyword">values</span>(<span class="number">20</span>, jonson)</span><br></pre></td></tr></table></figure></p>
+<p>但是，假如我们的其他结构体也有相同的需求呢？很显然，按照之前学过的知识，我们可以为每个类型都添加一个CreateSQL方法，并生成一个接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> SQL <span class="keyword">interface</span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">func</span> <span class="title">CreateSQL</span><span class="params">()</span> <span class="title">string</span></span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>这种方法在项目初期，以及结构体类型简单的时候是比较方便的。但是如果项目中定义的类型非常多，而且可能当前类型还没有被创建出来（需要运行时创建，或者通过远程过程调用触发），我们就要书写很多逻辑相同的重复代码。有没有一种更加简单通用的办法可以解决这一类问题呢？如果可以在运行时探测到结构体变量中的方法名就好了。</p>
+<p>这恰恰就是反射为我们提供的便利。如下所示，我们可以将上面的场景改造成反射的形式。在createQuery函数中，我们可以传递任何的结构体类型，该函数会遍历结构体中所有的字段，并构造Query字符串。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">createQuery</span><span class="params">(q <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">string</span></span>&#123;</span><br><span class="line">    <span class="comment">// 判断类型为结构体</span></span><br><span class="line">    <span class="keyword">if</span> reflect.ValueOf(q).Kind() == reflect.Struct &#123;</span><br><span class="line">        <span class="comment">// 获取结构体名字</span></span><br><span class="line">        t := reflect.TypeOf(q).Name()</span><br><span class="line">        <span class="comment">// 查询语句</span></span><br><span class="line">        query := fmt.Sprintf(<span class="string">"insert into %s values("</span>, t)</span><br><span class="line">        v := reflect.ValueOf(q)</span><br><span class="line">        <span class="comment">// 遍历结构体字段</span></span><br><span class="line">        <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; v.NumField(); i++ &#123;</span><br><span class="line">            <span class="comment">// 判断结构体类型</span></span><br><span class="line">            <span class="keyword">switch</span> v.Field(i).Kind() &#123;</span><br><span class="line">            <span class="keyword">case</span> reflect.Int:</span><br><span class="line">                <span class="keyword">if</span> i == <span class="number">0</span> &#123;</span><br><span class="line">                    query = fmt.Sprintf(<span class="string">"%s%d"</span>, query, v.Field(i).Int())</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    query = fmt.Sprintf(<span class="string">"%s, %d"</span>, query, v.Field(i).Int())</span><br><span class="line">                &#125;</span><br><span class="line">            <span class="keyword">case</span> reflect.String:</span><br><span class="line">                <span class="keyword">if</span> i == <span class="number">0</span> &#123;</span><br><span class="line">                    query = fmt.Sprintf(<span class="string">"%s\\"</span>%s\\<span class="string">""</span>, query, v.Field(i).String())</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    query = fmt.Sprintf(<span class="string">"%s, \\"</span>%s\\<span class="string">""</span>, query, v.Field(i).String())</span><br><span class="line">                &#125;</span><br><span class="line">                ...</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        query = fmt.Sprintf(<span class="string">"%s)"</span>, query)</span><br><span class="line">        fmt.Println(query)</span><br><span class="line">        <span class="keyword">return</span> query</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>现在，假设我们新建了一个Trade结构体，任意结构体都可以通过createQuery方法完成构建过程。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Trade <span class="keyword">struct</span> &#123;</span><br><span class="line">    tradeId <span class="keyword">int</span></span><br><span class="line">    Price <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    createQuery(Student&#123;Age: <span class="number">20</span>, Name: <span class="string">"jonson"</span>,&#125;)</span><br><span class="line">    createQuery(Trade&#123;tradeId: <span class="number">123</span>, Price: <span class="number">456</span>,&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>结果输出为：</p>
+<p>通过反射，我们动态获取到了结构体中字段的名字，这样就可以灵活生成SQL语句了。如果我们把上面这个例子中的函数改造为递归，然后处理更多的类型，这个函数将更加具备通用性，甚至可以作为一个好用的第三方库了。</p>
+<h1 id="接口的陷阱"><a href="#接口的陷阱" class="headerlink" title="接口的陷阱"></a><span style="color:#339AFF;">接口的陷阱</span></h1><p>刚才我们说了接口的很多好处，但是由于接口的特性和内部实现，使用接口时也容易出现几类经典的错误。</p>
+<p>第一类错误是，当接口中存储的是值，但是结构体是指针时，接口动态调用无法编译通过。如下所示：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Binary <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="keyword">uint64</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> Stringer <span class="keyword">interface</span> &#123;</span><br><span class="line">    String() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(i *Binary)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">"hello world"</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    a:= Binary&#123;<span class="number">54</span>&#125;</span><br><span class="line">    b := Stringer(a)</span><br><span class="line">    b.String()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Go语言在编译时阻止了这样的写法，原因在于这种写法会让人产生困惑。如果转换为接口的是值，那么由于内存逃逸，在转换为接口时必定已经把值拷贝到了堆区。因此如果允许这种写法存在，那么即便看起来在方法中修改了接口中的值，却无法修改原始值，这非常容易引起误解。</p>
+<p>第二类错误是将类型切片转换为接口切片。如下所示：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span> []<span class="title">interface</span></span>&#123;&#125; &#123;</span><br><span class="line">    <span class="keyword">return</span> []<span class="keyword">int</span>&#123;<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这种情况仍然会在编译时报错：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cannot use []int literal (type []int) as type []interface &#123;&#125; in return argument</span><br></pre></td></tr></table></figure></p>
+<p>Go语言禁止了这种写法，就像前面所说的，批量转换为接口是效率非常低的操作。因为每个元素都需要完成内存逃逸的额外开销。</p>
+<p>接口的第三类陷阱涉及接口与nil之间的关系。当接口为nil时，接口中的动态类型itab和动态类型值data必须都为nil，初学者常常会在这个问题上犯错。例如在下面的foo函数中，由于返回的err没有任何动态类型和动态值，因此err等于nil。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> err error <span class="comment">// nil</span></span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    err := foo()</span><br><span class="line">    fmt.Println(err == <span class="literal">nil</span>) <span class="comment">// true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然而，如果在foo函数中将错误类型定义为自定义类型，例如<code>*os.PathError</code>，我们会发现err不等于nil。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> err *os.PathError</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    err := foo()</span><br><span class="line">    fmt.Println(err != <span class="literal">nil</span>) <span class="comment">// true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这是因为当接口为nil时，代表接口中的动态类型和动态类型值都为nil，而当前由于接口error具有动态类型<code>*os.PathError</code>，接口的内部结构体itab不为空。如下图所示：</p>
+<img src="/2022/11/26/21｜采集引擎：实战接口抽象与模拟浏览器访问/6.jpg">
+<p>避免这一问题需要谨慎地使用自定义的Error作为定义，而更多的使用内置的errors.New或fmt.Errorf来生成和包裹错误。我在之后的课程还会详细介绍错误处理的最佳实践。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a><span style="color:#339AFF;">总结</span></h1><p>这节课，我们通过一个模拟浏览器访问的案例实战了采集引擎的抽象。由于User-Agent标识了应用程序的类型和版本，所以我们将User-Agent设置成了真实浏览器的值，绕过了这个例子中服务器的反爬机制。不过这只是众多反爬机制中最简单的一种，通过对采集引擎接口的抽象，我们能够比较轻松地实现采集引擎的切换，并进行模块化的测试。</p>
+<p>带方法的接口帮助我们完成了功能的模块化，而不带方法的空接口则增加了API的扩展性。同时，空接口是反射实现的基础，有了它我们才能有“获取字段名”、“通过函数名动态调用方法”这样复杂灵活的能力，因此空接口在一些基础库、RPC框架中的应用也非常广泛。</p>
+<p>不过空接口带给我们的扩展性也有一定的代价，那就是它的内部需要解析繁琐的多种类型，使用反射导致效率变低。</p>
+<h1 id="课后题"><a href="#课后题" class="headerlink" title="课后题"></a><span style="color:#339AFF;">课后题</span></h1><p>最后，我也给你留一道思考题。如果一个网站需要登录才可以访问，我们应该如何实现自动登录的能力？</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Go进阶·分布式爬虫实战/" rel="tag"># Go进阶·分布式爬虫实战</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/11/25/20｜面向组合：接口的使用场景与底层原理/" rel="next" title="20｜面向组合：接口的使用场景与底层原理">
+                <i class="fa fa-chevron-left"></i> 20｜面向组合：接口的使用场景与底层原理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/11/29/22｜优雅的离场-Context超时控制与原理/" rel="prev" title="22｜优雅的离场：Context超时控制与原理">
+                22｜优雅的离场：Context超时控制与原理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#接口抽象"><span class="nav-number">1.</span> <span class="nav-text">接口抽象</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#实战接口"><span class="nav-number">2.</span> <span class="nav-text">实战接口</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#模拟浏览器访问"><span class="nav-number">3.</span> <span class="nav-text">模拟浏览器访问</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#远程访问浏览器"><span class="nav-number">4.</span> <span class="nav-text">远程访问浏览器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Webdriver-Protocol"><span class="nav-number">4.1.</span> <span class="nav-text">Webdriver Protocol</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Chrome-DevTools-Protocol"><span class="nav-number">4.2.</span> <span class="nav-text">Chrome DevTools Protocol</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#空接口与反射"><span class="nav-number">5.</span> <span class="nav-text">空接口与反射</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#接口的陷阱"><span class="nav-number">6.</span> <span class="nav-text">接口的陷阱</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#课后题"><span class="nav-number">8.</span> <span class="nav-text">课后题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

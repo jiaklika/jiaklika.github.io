@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="binlog那些事儿（二）">
+<meta property="og:url" content="http://yoursite.com/2022/09/06/binlog那些事儿（二）/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/binlog那些事儿（二）/1.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/binlog那些事儿（二）/2.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/binlog那些事儿（二）/3.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/binlog那些事儿（二）/4.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/binlog那些事儿（二）/5.awebp">
+<meta property="og:updated_time" content="2022-09-12T05:53:31.696Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="binlog那些事儿（二）">
+<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:image" content="http://yoursite.com/2022/09/06/binlog那些事儿（二）/1.awebp">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/09/06/binlog那些事儿（二）/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>binlog那些事儿（二） | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/09/06/binlog那些事儿（二）/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">binlog那些事儿（二）
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-09-06 11:53:33" itemprop="dateCreated datePublished" datetime="2022-09-06T11:53:33+08:00">2022-09-06</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-09-12 13:53:31" itemprop="dateModified" datetime="2022-09-12T13:53:31+08:00">2022-09-12</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">8k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">7 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>总结一下，这章作者最主要想表达什么观点？</li>
+</ul>
+<a id="more"></a>
+<p>读完上一篇文章，我们应该知道：</p>
+<ul>
+<li>binlog日志用于主从复制以及数据恢复。</li>
+<li>启动选项<code>--log-bin[=basename]</code>可以控制MySQL服务器是否生成binlog，并且控制binlog日志文件所在路径以及文件名称。</li>
+<li>为了记录binlog，MySQL服务器在文件系统上创建了一系列存储真实binlog数据的文件（这些文件都以数字编号），以及binlog索引文件。</li>
+<li>binlog日志文件中记载了数据库发生更改的若干事件。</li>
+<li>使用<code>SHOW BINLOG EVENTS</code>语句可以查看某个binlog日志文件中存储的各种事件。</li>
+<li>mysqlbinlog实用工具可以用文本形式查看某个binlog日志文件所记载各种事件。</li>
+</ul>
+<p>掌握了上述内容之后，我们可以继续展开了。</p>
+<h1 id="binlog日志版本"><a href="#binlog日志版本" class="headerlink" title="binlog日志版本"></a><span style="color:#339AFF;">binlog日志版本</span></h1><p>binlog是自MySQL 3.23.14版本开始诞生的，到现在为止，共经历了4个版本：</p>
+<ul>
+<li>v1</li>
+<li>v2</li>
+<li>v3</li>
+<li>v4</li>
+</ul>
+<p>其中的v4版本从MySQL 5.0就开始使用，直到今天。</p>
+<p>所以本文着重介绍v4版本的binlog格式，其他版本就不关注了。</p>
+<h1 id="binlog日志文件结构概览"><a href="#binlog日志文件结构概览" class="headerlink" title="binlog日志文件结构概览"></a><span style="color:#339AFF;">binlog日志文件结构概览</span></h1><p>废话少说，先看一下一个binlog日志文件的基本格式：</p>
+<img src="/2022/09/06/binlog那些事儿（二）/1.awebp">
+<p>从上图中可以看出：</p>
+<ul>
+<li>每个binlog日志文件的前4个字节是固定的，即：0xfe626963。</li>
+</ul>
+<blockquote>
+<p>小贴士：0xfe626963中的0x626963的ascii码是’bin’，0xfe626963也被称作魔数（magic number），如果一个文件不以0xfe626963开头，那这个文件肯定不算是一个binlog日志。很多软件都会在磁盘文件的某个地方添加一个类似的魔数来表明该文件是本软件处理的文件格式，比方说Intel处理器的BIOS会将磁盘上的第一个扇区加载到内存中，这个扇区的最后两个字节必须为魔数0x55aa，Java的class文件字节码的开头四个字节为魔数0xCAFEBABE。</p>
+</blockquote>
+<ul>
+<li>每个binlog日志文件都是由若干事件构成的。</li>
+<li>每个binlog日志文件所存储的第1个事件都是一个称作格式描述事件（format description event）的特殊事件，我们稍后详细唠叨一下这个特殊事件。</li>
+</ul>
+<p>其中，每个事件都可以被分成event header和event data两个部分，我们以上图的事件2为例展示一下：</p>
+<img src="/2022/09/06/binlog那些事儿（二）/2.awebp">
+<p>其中：</p>
+<ul>
+<li>event header部分描述了该事件是什么类型、什么时候生成的、由哪个服务器生成的等信息。</li>
+<li>event data部分描述了该事件所特有的一些信息，比方说在插入一条记录时，需要将这条记录的内容记录在event data中。</li>
+</ul>
+<h2 id="event-header结构"><a href="#event-header结构" class="headerlink" title="event header结构"></a>event header结构</h2><p>每个事件都会包括一个通用的event header，我们看一下这个event header的结构：</p>
+<img src="/2022/09/06/binlog那些事儿（二）/3.awebp">
+<p>event header中包含了如下几部分内容：</p>
+<ul>
+<li>timestamp（4字节）：产生该事件时的时间戳。</li>
+<li>typecode（1字节）：该事件的类型，事件的类型在枚举结构Log_event_type中列举出来（上一篇文章或者本文后续部分都有提到这个结构）。比方说格式描述事件的typecode就是15。</li>
+<li>server_id（4字节）：产生该事件的主机的server_id。</li>
+<li>event_length（4字节）：该事件总大小（包括event header + event data）。</li>
+<li>next_position（4字节）：下一个事件的位置。</li>
+<li>flags（2字节）：该事件的一些附加属性（称作flags）。<br>extra_headers（不确定大小）：目前这个字段尚未使用（也就是占用的大小为0），可能在将来的版本中使用，大家目前忽略这个字段就好了。</li>
+</ul>
+<h2 id="event-data"><a href="#event-data" class="headerlink" title="event data"></a>event data</h2><p>event data由2部分组成，分别是：</p>
+<ul>
+<li>固定大小部分</li>
+<li>可变大小部分</li>
+</ul>
+<img src="/2022/09/06/binlog那些事儿（二）/4.awebp">
+<p>不过并不是所有事件都有这两个部分，有的事件可以仅有其中的一个部分或者两个部分都没有。</p>
+<p>上一篇文章中唠叨过，MySQL中支持几十种binlog事件，不同事件具有不同的event data部分。</p>
+<p>我们先看一下binlog的事件类型有多少（上一篇文章中引用MySQL internal文档中的内容，有点陈旧，所以这次直接从MySQL5.7.22的源码中获取Log_event_type结构）：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> Log_event_type</span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">    Every time you update this enum (when you add a type), you have to</span></span><br><span class="line"><span class="comment">    fix Format_description_event::Format_description_event().</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line">  UNKNOWN_EVENT= <span class="number">0</span>,</span><br><span class="line">  START_EVENT_V3= <span class="number">1</span>,</span><br><span class="line">  QUERY_EVENT= <span class="number">2</span>,</span><br><span class="line">  STOP_EVENT= <span class="number">3</span>,</span><br><span class="line">  ROTATE_EVENT= <span class="number">4</span>,</span><br><span class="line">  INTVAR_EVENT= <span class="number">5</span>,</span><br><span class="line">  LOAD_EVENT= <span class="number">6</span>,</span><br><span class="line">  SLAVE_EVENT= <span class="number">7</span>,</span><br><span class="line">  CREATE_FILE_EVENT= <span class="number">8</span>,</span><br><span class="line">  APPEND_BLOCK_EVENT= <span class="number">9</span>,</span><br><span class="line">  EXEC_LOAD_EVENT= <span class="number">10</span>,</span><br><span class="line">  DELETE_FILE_EVENT= <span class="number">11</span>,</span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">    NEW_LOAD_EVENT is like LOAD_EVENT except that it has a longer</span></span><br><span class="line"><span class="comment">    sql_ex, allowing multibyte TERMINATED BY etc; both types share the</span></span><br><span class="line"><span class="comment">    same class (Load_event)</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line">  NEW_LOAD_EVENT= <span class="number">12</span>,</span><br><span class="line">  RAND_EVENT= <span class="number">13</span>,</span><br><span class="line">  USER_VAR_EVENT= <span class="number">14</span>,</span><br><span class="line">  FORMAT_DESCRIPTION_EVENT= <span class="number">15</span>,</span><br><span class="line">  XID_EVENT= <span class="number">16</span>,</span><br><span class="line">  BEGIN_LOAD_QUERY_EVENT= <span class="number">17</span>,</span><br><span class="line">  EXECUTE_LOAD_QUERY_EVENT= <span class="number">18</span>,</span><br><span class="line"></span><br><span class="line">  TABLE_MAP_EVENT = <span class="number">19</span>,</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">    The PRE_GA event numbers were used for 5.1.0 to 5.1.15 and are</span></span><br><span class="line"><span class="comment">    therefore obsolete.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  PRE_GA_WRITE_ROWS_EVENT = <span class="number">20</span>,</span><br><span class="line">  PRE_GA_UPDATE_ROWS_EVENT = <span class="number">21</span>,</span><br><span class="line">  PRE_GA_DELETE_ROWS_EVENT = <span class="number">22</span>,</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">    The V1 event numbers are used from 5.1.16 until mysql-trunk-xx</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line">  WRITE_ROWS_EVENT_V1 = <span class="number">23</span>,</span><br><span class="line">  UPDATE_ROWS_EVENT_V1 = <span class="number">24</span>,</span><br><span class="line">  DELETE_ROWS_EVENT_V1 = <span class="number">25</span>,</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">    Something out of the ordinary happened on the master</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  INCIDENT_EVENT= <span class="number">26</span>,</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">    Heartbeat event to be send by master at its idle time</span></span><br><span class="line"><span class="comment">    to ensure master's online status to slave</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line">  HEARTBEAT_LOG_EVENT= <span class="number">27</span>,</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">    In some situations, it is necessary to send over ignorable</span></span><br><span class="line"><span class="comment">    data to the slave: data that a slave can handle in case there</span></span><br><span class="line"><span class="comment">    is code for handling it, but which can be ignored if it is not</span></span><br><span class="line"><span class="comment">    recognized.</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line">  IGNORABLE_LOG_EVENT= <span class="number">28</span>,</span><br><span class="line">  ROWS_QUERY_LOG_EVENT= <span class="number">29</span>,</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Version 2 of the Row events */</span></span><br><span class="line">  WRITE_ROWS_EVENT = <span class="number">30</span>,</span><br><span class="line">  UPDATE_ROWS_EVENT = <span class="number">31</span>,</span><br><span class="line">  DELETE_ROWS_EVENT = <span class="number">32</span>,</span><br><span class="line"></span><br><span class="line">  GTID_LOG_EVENT= <span class="number">33</span>,</span><br><span class="line">  ANONYMOUS_GTID_LOG_EVENT= <span class="number">34</span>,</span><br><span class="line"></span><br><span class="line">  PREVIOUS_GTIDS_LOG_EVENT= <span class="number">35</span>,</span><br><span class="line"></span><br><span class="line">  TRANSACTION_CONTEXT_EVENT= <span class="number">36</span>,</span><br><span class="line"></span><br><span class="line">  VIEW_CHANGE_EVENT= <span class="number">37</span>,</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Prepared XA transaction terminal event similar to Xid */</span></span><br><span class="line">  XA_PREPARE_LOG_EVENT= <span class="number">38</span>,</span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">    Add new events here - right above this comment!</span></span><br><span class="line"><span class="comment">    Existing events (except ENUM_END_EVENT) should never change their numbers</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line">  ENUM_END_EVENT <span class="comment">/* end marker */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>可见在MySQL 5.7.22这个版本中，共支持38种不同的binlog事件类型。把每一种事件格式都唠叨清楚要花费很多篇幅，并且没有多大的必要，我们下边只举一个具体的例子进行描述。</p>
+<h1 id="举一个具体的例子——格式描述事件"><a href="#举一个具体的例子——格式描述事件" class="headerlink" title="举一个具体的例子——格式描述事件"></a>举一个具体的例子——格式描述事件</h1><p>每个binlog日志文件都以格式描述事件作为第一个事件，它对应的Log_event_type就是FORMAT_DESCRIPTION_EVENT。我们看一下这种事件的结构：</p>
+<img src="/2022/09/06/binlog那些事儿（二）/5.awebp">
+<p>从图中我们可以知道，格式描述事件共占用119字节，是由event header和event data两部分构成的，其中event header是各个事件都有的部分，我们上边详细唠叨过event header中各个字段的含义，这里就不赘述了。另外，在event data部分，格式描述事件的event data中只有固定长度部分，没有可变长度部分，其中的各个字段含义如下：</p>
+<ul>
+<li>binlog_version：使用的binlog版本。</li>
+<li>server_version：产生此事件的MySQL服务器的版本。</li>
+<li>create_timestamp：产生此事件时的时间戳，该字段的值和event header中timestamp中的值一样。</li>
+<li>header_length：此事件的event header占用的存储空间大小。</li>
+<li>post-header length：使用1个字节来表示每个事件的event data部分占用的存储空间大小（不包括校验和相关字段），当前我使用的MySQL版本为5.7.22，共包含38种不同的事件，post-header length字段就占用了38个字节。</li>
+<li>checksum_alg：表示计算事件校验和的算法（该字段为1时表示采用CRC32算法）。</li>
+<li>checksum：表示本事件的校验和。</li>
+</ul>
+<p>唠叨了很多，大家真正打开一个binlog日志文件来看一下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">魔数：      FE62696E </span><br><span class="line"></span><br><span class="line">timestamp:     8AB5A861  </span><br><span class="line">typecode:     0F          </span><br><span class="line">server_id:     03000000 </span><br><span class="line">event_length:     77000000 </span><br><span class="line">next_postion:     7B000000 </span><br><span class="line">flags:      0000     </span><br><span class="line">binlog_version:    0400   </span><br><span class="line">server_version:    352E37 2E32312D 6C6F6700 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 000000  </span><br><span class="line">create_timestamp:    8AB5A861 </span><br><span class="line">header_length:     13       </span><br><span class="line">post-header length(共38种): 380D0008 00120004 04040412 00005F00 041A0800 00000808 08020000 000A0A0A 2A2A0012 3400</span><br><span class="line">checksum_alg：    01 </span><br><span class="line">checksum：      5B7108A3</span><br></pre></td></tr></table></figure></p>
+<blockquote>
+<p>小贴士：其他事件的event data部分大家可以参考一下MySQL internal文档。另外，也可以使用mysqlbinlog，配合—hexdump启动选项来直接分析binlog的二进制格式。</p>
+</blockquote>
+<p>基于语句（Statement）和基于行(Row)的binlog</p>
+<p>同一条SQL语句，随着启动选项binlog-format的不同，可能生成不同类型的binlog事件：</p>
+<ul>
+<li>当以启动选项<code>--binlog-format=STATEMENT</code>启动MySQL服务器时，生成的binlog称作基于语句的日志。此时只会将一条SQL语句将会被完整的记录到binlog中，而不管该语句影响了多少记录。</li>
+<li>当以启动选项<code>--binlog-format=ROW</code>启动MySQL服务器时，生成的binlog称作基于行的日志。此时会将该语句所改动的记录的全部信息都记录上。</li>
+<li>当以启动选项<code>--binlog-format=MIXED</code>启动MySQL服务器时，生成的binlog称作基于行的日志。此时在通常情况下采用基于语句的日志，在某些特殊情况下会自动转为基于行的日志（这些具体情况请<a href="https://dev.mysql.com/doc/refman/8.0/en/binary-log-mixed.html" target="_blank" rel="noopener">参考：</a></li>
+</ul>
+<blockquote>
+<p>小贴士：我们也可以通过修改会话级别的binlog_format系统变量的形式来修改只针对本客户端执行语句生成的binlog日志的格式。</p>
+</blockquote>
+<h2 id="基于语句的binlog"><a href="#基于语句的binlog" class="headerlink" title="基于语句的binlog"></a>基于语句的binlog</h2><p>假如服务器启动时添加了<code>--binlog-format=STATEMENT</code>启动选项，我们执行如下语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">UPDATE</span> s1 <span class="keyword">SET</span> common_field = <span class="string">'xx'</span> <span class="keyword">WHERE</span> <span class="keyword">id</span> &gt; <span class="number">9990</span>;</span><br></pre></td></tr></table></figure></p>
+<p>然后使用mysqlbinlog实用工具查看一下相应的binlog内容：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">mysqlbinlog --verbose xiaohaizi-bin.000007</span><br><span class="line">...这里省略了很多内容</span><br><span class="line"><span class="comment"># at 308</span></span><br><span class="line"><span class="comment">#211207 21:00:27 server id 3  end_log_pos 440 CRC32 0x713f80ae  Query thread_id=2 exec_time=0 error_code=0</span></span><br><span class="line">use `xiaohaizi`/*!*/;</span><br><span class="line">SET TIMESTAMP=1638882027/*!*/;</span><br><span class="line">update s1 <span class="built_in">set</span> common_field= <span class="string">'xx'</span> <span class="built_in">where</span> id &gt; 9990</span><br><span class="line">/*!*/;</span><br><span class="line">...这里省略了很多内容</span><br></pre></td></tr></table></figure></p>
+<p>可见，基于语句的binlog只将更新语句是什么记录下来了。</p>
+<h2 id="基于行的binlog"><a href="#基于行的binlog" class="headerlink" title="基于行的binlog"></a>基于行的binlog</h2><p>假如服务器启动时添加了<code>--binlog-format=ROW</code>启动选项，我们执行如下语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">UPDATE</span> s1 <span class="keyword">SET</span> common_field = <span class="string">'xxx'</span> <span class="keyword">WHERE</span> <span class="keyword">id</span> &gt; <span class="number">9990</span>;</span><br></pre></td></tr></table></figure></p>
+<p>然后使用mysqlbinlog实用工具查看一下相应的binlog内容：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">mysqlbinlog --verbose xiaohaizi-bin.000008</span><br><span class="line">...这里省略了很多内容</span><br><span class="line"><span class="comment">### UPDATE `xiaohaizi`.`s1`</span></span><br><span class="line"><span class="comment">### WHERE</span></span><br><span class="line"><span class="comment">###   @1=9991</span></span><br><span class="line"><span class="comment">###   @2='7cgwfh14w6nql61pvult6ok0ccwe'</span></span><br><span class="line"><span class="comment">###   @3='799105223'</span></span><br><span class="line"><span class="comment">###   @4='c'</span></span><br><span class="line"><span class="comment">###   @5='gjjiwstjysv1lgx'</span></span><br><span class="line"><span class="comment">###   @6='zg1hsvqrtyw2pgxgg'</span></span><br><span class="line"><span class="comment">###   @7='y244x02'</span></span><br><span class="line"><span class="comment">###   @8='xx'</span></span><br><span class="line"><span class="comment">### SET</span></span><br><span class="line"><span class="comment">###   @1=9991</span></span><br><span class="line"><span class="comment">###   @2='7cgwfh14w6nql61pvult6ok0ccwe'</span></span><br><span class="line"><span class="comment">###   @3='799105223'</span></span><br><span class="line"><span class="comment">###   @4='c'</span></span><br><span class="line"><span class="comment">###   @5='gjjiwstjysv1lgx'</span></span><br><span class="line"><span class="comment">###   @6='zg1hsvqrtyw2pgxgg'</span></span><br><span class="line"><span class="comment">###   @7='y244x02'</span></span><br><span class="line"><span class="comment">###   @8='xxx'</span></span><br><span class="line"><span class="comment">### UPDATE `xiaohaizi`.`s1`</span></span><br><span class="line"><span class="comment">### WHERE</span></span><br><span class="line"><span class="comment">###   @1=9992</span></span><br><span class="line"><span class="comment">###   @2='2sfq3oftc'</span></span><br><span class="line"><span class="comment">###   @3='815047282'</span></span><br><span class="line"><span class="comment">###   @4='ub'</span></span><br><span class="line"><span class="comment">###   @5='73hw14kbaaoa'</span></span><br><span class="line"><span class="comment">###   @6='fxnqzef3rrpc7qzxcjsvt14nypep4rqi'</span></span><br><span class="line"><span class="comment">###   @7='10vapb6'</span></span><br><span class="line"><span class="comment">###   @8='xx'</span></span><br><span class="line"><span class="comment">### SET</span></span><br><span class="line"><span class="comment">###   @1=9992</span></span><br><span class="line"><span class="comment">###   @2='2sfq3oftc'</span></span><br><span class="line"><span class="comment">###   @3='815047282'</span></span><br><span class="line"><span class="comment">###   @4='ub'</span></span><br><span class="line"><span class="comment">###   @5='73hw14kbaaoa'</span></span><br><span class="line"><span class="comment">###   @6='fxnqzef3rrpc7qzxcjsvt14nypep4rqi'</span></span><br><span class="line"><span class="comment">###   @7='10vapb6'</span></span><br><span class="line"><span class="comment">###   @8='xxx'</span></span><br><span class="line">...这里省略了很多内容</span><br></pre></td></tr></table></figure></p>
+<p>可见，基于行的binlog将更新语句执行过程中每一条记录更新前后的值都记录下来了。</p>
+<h2 id="基于语句的binlog的问题"><a href="#基于语句的binlog的问题" class="headerlink" title="基于语句的binlog的问题"></a>基于语句的binlog的问题</h2><p>在有主从复制的场景中，使用基于语句的日志可能会造成主服务器和从服务器维护的数据不一致的情况。</p>
+<p>比方说我们有一个表t：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> t (</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">INT</span> <span class="keyword">UNSIGNED</span> <span class="keyword">NOT</span> <span class="literal">NULL</span> AUTO_INCREMENT,</span><br><span class="line">    c <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span>(<span class="keyword">ID</span>)</span><br><span class="line">);</span><br></pre></td></tr></table></figure></p>
+<p>如果我们执行如下语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> t(c) <span class="keyword">SELECT</span> c <span class="keyword">FROM</span> other_table;</span><br></pre></td></tr></table></figure></p>
+<p>这个语句是想将other_table表中列c的值都插入到表t的列c中，而表t的id列是自增列，可以自动生成。</p>
+<p>如果主库和从库的服务器执行SELECT c FROM other_table返回记录的顺序不同的话（不同服务器版本、不同的系统变量配置都可能导致同一条语句返回结果的顺序不同），那么针对表t相同id值的记录来说，列c就可能具有不同的值，这就会造成主从之间数据的不一致。</p>
+<p>而如果将binlog的格式改为基于行的日志的话，由于主库在执行完语句后将该语句插入的每条完整的记录都写入binlog日志，就不会造成主从之间不一致了。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/MySQL是怎样运行的：从根儿上理解MySQL/" rel="tag"># MySQL是怎样运行的：从根儿上理解MySQL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/09/06/binlog那些事儿（一）/" rel="next" title="binlog那些事儿（一）">
+                <i class="fa fa-chevron-left"></i> binlog那些事儿（一）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/" rel="prev" title="redo、undo、buffer pool、binlog，谁先谁后，有点儿乱">
+                redo、undo、buffer pool、binlog，谁先谁后，有点儿乱 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#binlog日志版本"><span class="nav-number">1.</span> <span class="nav-text">binlog日志版本</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#binlog日志文件结构概览"><span class="nav-number">2.</span> <span class="nav-text">binlog日志文件结构概览</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#event-header结构"><span class="nav-number">2.1.</span> <span class="nav-text">event header结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#event-data"><span class="nav-number">2.2.</span> <span class="nav-text">event data</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#举一个具体的例子——格式描述事件"><span class="nav-number">3.</span> <span class="nav-text">举一个具体的例子——格式描述事件</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#基于语句的binlog"><span class="nav-number">3.1.</span> <span class="nav-text">基于语句的binlog</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基于行的binlog"><span class="nav-number">3.2.</span> <span class="nav-text">基于行的binlog</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基于语句的binlog的问题"><span class="nav-number">3.3.</span> <span class="nav-text">基于语句的binlog的问题</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

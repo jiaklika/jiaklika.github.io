@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="Go进阶·分布式爬虫实战">
+<meta property="og:type" content="article">
+<meta property="og:title" content="28｜调度引擎：负载均衡与调度器实战">
+<meta property="og:url" content="http://yoursite.com/2023/01/27/28｜调度引擎：负载均衡与调度器实战/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2023/01/27/28｜调度引擎：负载均衡与调度器实战/1.webp">
+<meta property="og:image" content="http://yoursite.com/2023/01/27/28｜调度引擎：负载均衡与调度器实战/2.webp">
+<meta property="og:image" content="http://yoursite.com/2023/01/27/28｜调度引擎：负载均衡与调度器实战/3.webp">
+<meta property="og:updated_time" content="2023-01-31T10:04:03.667Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="28｜调度引擎：负载均衡与调度器实战">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2023/01/27/28｜调度引擎：负载均衡与调度器实战/1.webp">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2023/01/27/28｜调度引擎：负载均衡与调度器实战/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>28｜调度引擎：负载均衡与调度器实战 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/01/27/28｜调度引擎：负载均衡与调度器实战/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">28｜调度引擎：负载均衡与调度器实战
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2023-01-27 11:12:12" itemprop="dateCreated datePublished" datetime="2023-01-27T11:12:12+08:00">2023-01-27</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2023-01-31 18:04:03" itemprop="dateModified" datetime="2023-01-31T18:04:03+08:00">2023-01-31</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">9.9k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">9 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<p>在上一节课程中，我们实战了广度优先搜索算法，不过我们对网站的爬取都是在一个协程中进行的。在真实的实践场景中，我们常常需要爬取多个初始网站，我们希望能够同时爬取这些网站。这就需要合理调度和组织爬虫任务了。因此，这节课的重点就是实战任务调度的高并发模型，使资源得到充分的利用。</p>
+<h1 id="实战调度引擎"><a href="#实战调度引擎" class="headerlink" title="实战调度引擎"></a>实战调度引擎</h1><p>首先，我们新建一个文件夹engine用于存储调度引擎的代码，核心的调度逻辑位于ScheduleEngine.Run中。这部分的完整代码位于tagv0.1.4，你可以对照代码进行查看。</p>
+<p>调度引擎主要目标是完成下面几个功能：</p>
+<p>1，创建调度程序，接收任务并将任务存储起来；</p>
+<p>2，执行调度任务，通过一定的调度算法将任务调度到合适的worker中执行；</p>
+<p>3，创建指定数量的worker，完成实际任务的处理；</p>
+<p>4，创建数据处理协程，对爬取到的数据进行进一步处理。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *ScheduleEngine)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">    requestCh := <span class="built_in">make</span>(<span class="keyword">chan</span> *collect.Request)</span><br><span class="line">    workerCh := <span class="built_in">make</span>(<span class="keyword">chan</span> *collect.Request)</span><br><span class="line">    out := <span class="built_in">make</span>(<span class="keyword">chan</span> collect.ParseResult)</span><br><span class="line">    s.requestCh = requestCh</span><br><span class="line">    s.workerCh = workerCh</span><br><span class="line">    s.out = out</span><br><span class="line">    <span class="keyword">go</span> s.Schedule()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Run方法首先初始化了三个通道。其中，requestCh负责接收请求，workerCh负责分配任务给worker，out负责处理爬取后的数据，完成下一步的存储操作。schedule函数会创建调度程序，负责的是调度的核心逻辑。</p>
+<p>第一步我们来看看schedule函数如何接收任务并完成任务的调度。</p>
+<p>schedule函数如下所示，其中，requestCh通道接收来自外界的请求，并将请求存储到reqQueue队列中。workerCh通道负责传送任务，后面每一个worker将获取该通道的内容，并执行对应的操作。</p>
+<p>在这里，我们使用了for语句，让调度器循环往复地获取外界的爬虫任务，并将任务分发到worker中。如果任务队列reqQueue大于0，意味着有爬虫任务，这时我们获取队列中第一个任务，并将其剔除出队列。最后ch&lt;-req会将任务发送到workerCh通道中，等待worker接收。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Schedule)</span> <span class="title">Schedule</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> reqQueue = s.Seeds</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">for</span> &#123;</span><br><span class="line">            <span class="keyword">var</span> req *collect.Request</span><br><span class="line">            <span class="keyword">var</span> ch <span class="keyword">chan</span> *collect.Request</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> <span class="built_in">len</span>(reqQueue) &gt; <span class="number">0</span> &#123;</span><br><span class="line">                req = reqQueue[<span class="number">0</span>]</span><br><span class="line">                reqQueue = reqQueue[<span class="number">1</span>:]</span><br><span class="line">                ch = s.workerCh</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">select</span> &#123;</span><br><span class="line">            <span class="keyword">case</span> r := &lt;-s.requestCh:</span><br><span class="line">                reqQueue = <span class="built_in">append</span>(reqQueue, r)</span><br><span class="line"></span><br><span class="line">            <span class="keyword">case</span> ch &lt;- req:</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通道还有一个特性，就是我们往nil通道中写入数据会陷入到堵塞的状态。因此，如果reqQueue为空，这时req和ch都是nil，当前协程就会陷入到堵塞的状态，直到接收到新的请求才会被唤醒。</p>
+<p>我们可以用一个例子来验证这一特性：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> ch <span class="keyword">chan</span> *<span class="keyword">int</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        &lt;-ch</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> ch &lt;- <span class="literal">nil</span>:</span><br><span class="line">        fmt.Println(<span class="string">"it's time"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在这个例子中，运行后会出现死锁，因为当前程序全部陷入到了无限堵塞的状态。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fatal error: all goroutines are asleep - deadlock!</span><br></pre></td></tr></table></figure></p>
+<p>调度引擎除了启动schedule函数，还需要安排多个实际干活的worker程序。</p>
+<p>下一步，让我们创建指定数量的worker，完成实际任务的处理。其中WorkCount为执行任务的数量，可以灵活地去配置。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *ScheduleEngine)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">go</span> s.Schedule()</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; s.WorkCount; i++ &#123;</span><br><span class="line">        <span class="keyword">go</span> s.CreateWork()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里的CreateWork创建出实际处理任务的函数，它又细分为下面几个步骤：</p>
+<ul>
+<li><code>←s.workerCh</code>接收到调度器分配的任务；</li>
+<li><code>s.fetcher.Get</code>访问服务器，<code>r.ParseFunc</code>解析服务器返回的数据；</li>
+<li><code>s.out←result</code>将返回的数据发送到out通道中，方便后续的处理。</li>
+</ul>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Schedule)</span> <span class="title">CreateWork</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        r := &lt;-s.workerCh</span><br><span class="line">        body, err := s.Fetcher.Get(r)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            s.Logger.Error(<span class="string">"can't fetch "</span>,</span><br><span class="line">                zap.Error(err),</span><br><span class="line">            )</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        result := r.ParseFunc(body, r)</span><br><span class="line">        s.out &lt;- result</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最后一步，我们需要单独安排一个函数来处理爬取并解析后的数据结构，完整的函数如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Schedule)</span> <span class="title">HandleResult</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> result := &lt;-s.out:</span><br><span class="line">            <span class="keyword">for</span> _, req := <span class="keyword">range</span> result.Requesrts &#123;</span><br><span class="line">                s.requestCh &lt;- req</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">for</span> _, item := <span class="keyword">range</span> result.Items &#123;</span><br><span class="line">                <span class="comment">// todo: store</span></span><br><span class="line">                s.Logger.Sugar().Info(<span class="string">"get result"</span>, item)</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在HandleResult函数中，&lt;-s.out接收所有worker解析后的数据，其中要进一步爬取的Requests列表将全部发送回s.requestCh通道，而result.Items里包含了我们实际希望得到的结果，所以我们先用日志把结果打印出来。</p>
+<p>最后，让我们用之前介绍的爬取豆瓣小组的例子来验证调度器的功能。</p>
+<p>在main函数中，生成初始网址列表作为种子任务。构建engine.Schedule，设置worker的数量，采集器Fetcher和日志Logger，并调用s.Run()运行调度器。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">var</span> seeds []*collect.Request</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt;= <span class="number">0</span>; i += <span class="number">25</span> &#123;</span><br><span class="line">        str := fmt.Sprintf(<span class="string">"&lt;https://www.douban.com/group/szsh/discussion?start=%d&gt;"</span>, i)</span><br><span class="line">        seeds = <span class="built_in">append</span>(seeds, &amp;collect.Request&#123;</span><br><span class="line">            Url:       str,</span><br><span class="line">            WaitTime:  <span class="number">1</span> * time.Second,</span><br><span class="line">            Cookie:    <span class="string">"xxx"</span>,</span><br><span class="line">            ParseFunc: doubangroup.ParseURL,</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> f collect.Fetcher = &amp;collect.BrowserFetch&#123;</span><br><span class="line">        Timeout: <span class="number">3000</span> * time.Millisecond,</span><br><span class="line">        Logger:  logger,</span><br><span class="line">        Proxy:   p,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    s := engine.Schedule&#123;</span><br><span class="line">        WorkCount: <span class="number">5</span>,</span><br><span class="line">        Logger:    logger,</span><br><span class="line">        Fetcher:   f,</span><br><span class="line">        Seeds:     seeds,</span><br><span class="line">    &#125;</span><br><span class="line">    s.Run()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>输出结果为：<br><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"INFO"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-10-19T00:55:54.281+0800"</span>,<span class="attr">"caller"</span>:<span class="string">"engine/schedule.go:78"</span>,<span class="attr">"msg"</span>:<span class="string">"get result: &lt;https://www.douban.com/group/topic/276978032/&gt;"</span>&#125;</span><br><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"INFO"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-10-19T00:55:54.355+0800"</span>,<span class="attr">"caller"</span>:<span class="string">"engine/schedule.go:78"</span>,<span class="attr">"msg"</span>:<span class="string">"get result: &lt;https://www.douban.com/group/topic/276973871/&gt;"</span>&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="函数式选项模式"><a href="#函数式选项模式" class="headerlink" title="函数式选项模式"></a>函数式选项模式</h1><p>在上面的例子中，我们初始化engine.Schedule时将一系列的参数传递到了结构体当中。在实践中可能会有几十个参数等着我们赋值，从面向对象的角度来看，不同参数的灵活组合可能会带来不同的调度器类型。在实践中为了方便使用，开发者可能会创建非常多的API来满足不同场景的需要，如下所示：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 基本调度器</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewBaseSchedule</span><span class="params">()</span> *<span class="title">Schedule</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;Schedule&#123;</span><br><span class="line">        WorkCount: <span class="number">1</span>,</span><br><span class="line">        Fetcher：baseFetch,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 多worker调度器</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMultiWorkSchedule</span><span class="params">(workCount <span class="keyword">int</span>)</span> *<span class="title">Schedule</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;Schedule&#123;</span><br><span class="line">        WorkCount: workCount,</span><br><span class="line">        Fetcher：baseFetch,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 代理调度器</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProxySchedule</span><span class="params">(proxy <span class="keyword">string</span>)</span> *<span class="title">Schedule</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;Schedule&#123;</span><br><span class="line">        WorkCount: <span class="number">1</span>,</span><br><span class="line">        Fetcher：proxyFetch(proxy),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>随着参数的不断增多，这种API会变得越来越多，这就增加了开发者的心理负担。</p>
+<p>另一种使用方式就是传递一个统一的Config配置结构，如下所示。这种方式只需要创建单个API，但是需要在内部对所有的变量进行判断，繁琐且不优雅。对于使用者来说，也很难确定自己需要使用哪一个字段。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Config <span class="keyword">struct</span> &#123;</span><br><span class="line">    WorkCount <span class="keyword">int</span></span><br><span class="line">    Fetcher   collect.Fetcher</span><br><span class="line">    Logger    *zap.Logger</span><br><span class="line">    Seeds     []*collect.Request</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewSchedule</span><span class="params">(c *Config)</span> *<span class="title">Schedule</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> s = &amp;Schedule&#123;&#125;</span><br><span class="line">    <span class="keyword">if</span> c.Seeds != <span class="literal">nil</span> &#123;</span><br><span class="line">        s.Seeds = c.Seeds</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> c.Fetcher != <span class="literal">nil</span> &#123;</span><br><span class="line">        s.Fetcher = c.Fetcher</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> c.Logger != <span class="literal">nil</span> &#123;</span><br><span class="line">        s.Logger = c.Logger</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>那么有没有方法可以更加优雅地处理这种多参数配置问题呢？</p>
+<p>RobPike在2014年的一篇博客中提到了一种优雅的处理方法叫做函数式选项模式(FunctionalOptions)。这种模式展示了闭包函数的有趣用途，目前在很多开源库中都能看到它的身影，我们项目中使用的日志库Zap也使用了这种模式。下面我以上面schedule的配置为例来说明函数式选项模式（完整代码请查看tagv0.1.5）。</p>
+<p>第一步，我们要对schedule结构进行改造，把可以配置的参数放入到options结构中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Schedule <span class="keyword">struct</span> &#123;</span><br><span class="line">    requestCh <span class="keyword">chan</span> *collect.Request</span><br><span class="line">    workerCh  <span class="keyword">chan</span> *collect.Request</span><br><span class="line">    out       <span class="keyword">chan</span> collect.ParseResult</span><br><span class="line">    options</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> options <span class="keyword">struct</span> &#123;</span><br><span class="line">    WorkCount <span class="keyword">int</span></span><br><span class="line">    Fetcher   collect.Fetcher</span><br><span class="line">    Logger    *zap.Logger</span><br><span class="line">    Seeds     []*collect.Request</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>第二步，我们需要书写一系列的闭包函数，这些函数的返回值是一个参数为options的函数：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Option <span class="function"><span class="keyword">func</span><span class="params">(opts *options)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="title">WithLogger</span><span class="params">(logger *zap.Logger)</span> <span class="title">Option</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(opts *options)</span></span> &#123;</span><br><span class="line">        opts.Logger = logger</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithFetcher</span><span class="params">(fetcher collect.Fetcher)</span> <span class="title">Option</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(opts *options)</span></span> &#123;</span><br><span class="line">        opts.Fetcher = fetcher</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithWorkCount</span><span class="params">(workCount <span class="keyword">int</span>)</span> <span class="title">Option</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(opts *options)</span></span> &#123;</span><br><span class="line">        opts.WorkCount = workCount</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithSeeds</span><span class="params">(seed []*collect.Request)</span> <span class="title">Option</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(opts *options)</span></span> &#123;</span><br><span class="line">        opts.Seeds = seed</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>第三步，创建一个生成schedule的新函数，函数参数为Option的可变参数列表。defaultOptions为默认的Option，代表默认的参数列表，然后循环遍历可变函数参数列表并执行。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewSchedule</span><span class="params">(opts ...Option)</span> *<span class="title">Schedule</span></span> &#123;</span><br><span class="line">    options := defaultOptions</span><br><span class="line">    <span class="keyword">for</span> _, opt := <span class="keyword">range</span> opts &#123;</span><br><span class="line">        opt(&amp;options)</span><br><span class="line">    &#125;</span><br><span class="line">    s := &amp;Schedule&#123;&#125;</span><br><span class="line">    s.options = options</span><br><span class="line">    <span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>第四步，在main函数中调用NewSchedule。让我们来看看函数式选项模式的效果：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    s := engine.NewSchedule(</span><br><span class="line">        engine.WithFetcher(f),</span><br><span class="line">        engine.WithLogger(logger),</span><br><span class="line">        engine.WithWorkCount(<span class="number">5</span>),</span><br><span class="line">        engine.WithSeeds(seeds),</span><br><span class="line">    )</span><br><span class="line">    s.Run()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>从这个例子中，我们可以看到函数式选项模式的好处：</p>
+<ul>
+<li>API具有可扩展性，高度可配置化，新增参数不会破坏现有代码；</li>
+<li>参数列表非常简洁，并且可以使用默认的参数；</li>
+<li>option函数使参数的含义非常清晰，易于开发者理解和使用；</li>
+<li>如果将options结构中的参数设置为小写，还可以限制这些参数的权限，防止这些参数在package外部使用。</li>
+</ul>
+<p>刚才，我们实战了fan-in和fan-out高并发模型，并深度使用了通道和select的机制。接下来让我们更进一步，看一下实现通道和select机制的原理，掌握这种高并发模型的底层图像。</p>
+<h1 id="通道的底层原理"><a href="#通道的底层原理" class="headerlink" title="通道的底层原理"></a>通道的底层原理</h1><p>通道的实现并没有想象中复杂。它利用互斥锁实现了并发安全，只不过Go运行时为我们屏蔽了底层的细节。通道包括两种类型，一种是无缓冲的通道，另一种是带缓冲区的通道。通道的结构如下：</p>
+<img src="/2023/01/27/28｜调度引擎：负载均衡与调度器实战/1.webp">
+<p>可以看到，通道中包含了数据的类型、大小、数量，堵塞协程队列，以及用于缓存区的诸多字段。</p>
+<p>我们先来看看无缓冲区的通道是怎么实现的。</p>
+<h2 id="无缓冲区的通道"><a href="#无缓冲区的通道" class="headerlink" title="无缓冲区的通道"></a>无缓冲区的通道</h2><p>通道需要有多个协程分别完成读和写的功能，这样才能保证数据传输是顺畅的。对于无缓冲区的通道来说，如果有一个协程正在将数据写入通道，但是当前没有协程读取数据，那么写入协程将立即陷入到休眠状态。写入协程堵塞之前协程会被封装到sudog结构中，并存储到写入的堵塞队列sendq中，之后协程陷入休眠。</p>
+<p>之前我们介绍过，协程的堵塞是位于用户态的，协程切换时，运行时会保存当前协程的状态、并调用gopark函数切换到g0完成新一轮的调度。如果之后有协程读取数据，那么读取协程会立即读取sendq队列中第一个等待的协程，并将该协程对应的元素拷贝到读取协程中，同时调用goready唤醒写入协程，将写入协程放入到可运行队列中等待被调度器调度。</p>
+<img src="/2023/01/27/28｜调度引擎：负载均衡与调度器实战/2.webp">
+<h2 id="带缓冲区的通道"><a href="#带缓冲区的通道" class="headerlink" title="带缓冲区的通道"></a>带缓冲区的通道</h2><p>而对于带缓冲区的通道来说，假设缓存队列的数量为N，那么如果写入的数据量不大于N，写入协程就不会陷入到休眠状态，所有数据都会存储在缓冲队列中。</p>
+<p>缓冲队列可以在一定程度上削峰填谷，加快处理速度。但是如果写入速度始终大于读取数据，那么缓冲区迟早也有写满的时候，到时候仍然会陷入堵塞，只是延迟了问题的暴露并带来内存的浪费。因此缓冲区的容量不可以过大，我们可以根据实际情况给出一个经验值。例如上面的爬虫案例中，我们就可以给接收任务的requestCh通道加上缓存区，先将缓存区设置为500，这样就不会频繁堵塞住调度器了。</p>
+<p>对于有缓存的通道，存储在buf中的数据虽然是线性的数组，但是这些数组和序号recvx、recvq模拟了一个环形队列。recvx可以定位到buf是从哪个位置读取的通道中的元素，而sendx则能够找到写入时放入buf的位置，这样做主要是为了再次利用已经使用过的空间。从recvx到sendx的距离qcount就是通道队列中的元素数量。</p>
+<img src="/2023/01/27/28｜调度引擎：负载均衡与调度器实战/3.webp">
+<h2 id="Select机制的底层原理"><a href="#Select机制的底层原理" class="headerlink" title="Select机制的底层原理"></a>Select机制的底层原理</h2><p>在前面的实战案例中，我们还看到了大量channel与select结合使用的场景。</p>
+<p>受到通道特性的限制，如果单个通道被堵塞，协程就无法继续执行了。那有没有一种机制可以像网络中的多路复用一样，监听多个通道，使后续处理协程能够及时地运行？</p>
+<p>其实就和网络中把select用于Socket的多路复用机制一样，Go中也可以用select语句实现这样的多路复用机制。select语句中的每一个case都对应着一个待处理的读取或写入通道。举个简单实用的例子，下面的程序如果800毫秒之后也接受不到通道c中的数据，定时器time.After就会接收到数据，从而打印timeout。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> &lt;-c:</span><br><span class="line">        fmt.Println(<span class="string">"random 01"</span>)</span><br><span class="line">    <span class="keyword">case</span> &lt;-time.After(<span class="number">800</span> * time.Millisecond):</span><br><span class="line">        fmt.Println(<span class="string">"timeout"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>借助select可以实现许多有表现力的设计，那select是如何工作的呢？</p>
+<p>Select底层调用了selectgo函数，它的工作可以分为三个部分：</p>
+<ul>
+<li>第一部分涉及到遍历。selectgo首先循环查找当前准备就绪的通道，如果能够找到，则正常进行后续处理。在具体的实现方式上，由于select内部的scases数组存储了所有需要管理的通道，所以很容易想到循环遍历scases，最终找到可用的通道。不过这可能导致一个问题，那就是如果前面的通道始终有数据，后面的通道将永远得不到执行的机会。为了解决这一问题，Go语言为select加入了随机性，会利用洗牌算法随机打散数组顺序，保证了所有通道都有执行的机会。</li>
+<li>第二部分涉及到协程的休眠。如果select找不到准备就绪的通道，这时和单个协程的堵塞一样，它会将当前协程放入到所有通道的等待队列中，并陷入到休眠状态。</li>
+<li>第三部分涉及到协程的唤醒。如果有任意一个通道准备就绪，当前的协程将会被唤醒，并到准备就绪的case处继续执行。要注意的一点是，最后selectgo会将sudog结构体从其他通道的等待队列中移出，因为当前协程已经能够正常运行，不再需要被其他通道唤醒了。</li>
+</ul>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>这节课，我们用fan-in、fan-out并发模式实战了爬虫的任务调度器。在实战中，我们频繁使用了通道与select结合的方式，还深入底层看到了通道与select的原理。最后我们还学习了函数选项模式在构建API时的优势。在后面的项目中，我们还会频繁地用到这种特性。</p>
+<h1 id="课后题"><a href="#课后题" class="headerlink" title="课后题"></a>课后题</h1><p>在我们的课程中，schedule函数其实有一个bug，您能看出来吗？你觉得可以用什么方式找出这样的Bug？</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Go进阶·分布式爬虫实战/" rel="tag"># Go进阶·分布式爬虫实战</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/01/27/27｜掘地三尺：实战深度与广度优先搜索算法/" rel="next" title="27｜掘地三尺：实战深度与广度优先搜索算法">
+                <i class="fa fa-chevron-left"></i> 27｜掘地三尺：实战深度与广度优先搜索算法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/01/27/29｜细节决定成败：切片与哈希表的陷阱与原理/" rel="prev" title="29｜细节决定成败：切片与哈希表的陷阱与原理">
+                29｜细节决定成败：切片与哈希表的陷阱与原理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#实战调度引擎"><span class="nav-number">1.</span> <span class="nav-text">实战调度引擎</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#函数式选项模式"><span class="nav-number">2.</span> <span class="nav-text">函数式选项模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#通道的底层原理"><span class="nav-number">3.</span> <span class="nav-text">通道的底层原理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#无缓冲区的通道"><span class="nav-number">3.1.</span> <span class="nav-text">无缓冲区的通道</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#带缓冲区的通道"><span class="nav-number">3.2.</span> <span class="nav-text">带缓冲区的通道</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Select机制的底层原理"><span class="nav-number">3.3.</span> <span class="nav-text">Select机制的底层原理</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#课后题"><span class="nav-number">5.</span> <span class="nav-text">课后题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

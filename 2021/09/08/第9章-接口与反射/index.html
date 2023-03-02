@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  侵入式接口的主要表现在于实现类需要明确声明自己实现了某个接口。Go的接口是非侵入式的。怎么理解？ 不像大多数面向对象编程语言，在Go语言中接口可以有值。PHP的接口可以有值吗？Go的接口怎么有值？ 多个类型可以实现同一个接口，一个类型可以实现多个接口。怎么理解？">
+<meta name="keywords" content="Go语言编程入门与实战技巧">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第9章 接口与反射">
+<meta property="og:url" content="http://yoursite.com/2021/09/08/第9章-接口与反射/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  侵入式接口的主要表现在于实现类需要明确声明自己实现了某个接口。Go的接口是非侵入式的。怎么理解？ 不像大多数面向对象编程语言，在Go语言中接口可以有值。PHP的接口可以有值吗？Go的接口怎么有值？ 多个类型可以实现同一个接口，一个类型可以实现多个接口。怎么理解？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2023-02-07T06:00:12.406Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第9章 接口与反射">
+<meta name="twitter:description" content="思考并回答以下问题：  侵入式接口的主要表现在于实现类需要明确声明自己实现了某个接口。Go的接口是非侵入式的。怎么理解？ 不像大多数面向对象编程语言，在Go语言中接口可以有值。PHP的接口可以有值吗？Go的接口怎么有值？ 多个类型可以实现同一个接口，一个类型可以实现多个接口。怎么理解？">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2021/09/08/第9章-接口与反射/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>第9章 接口与反射 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/09/08/第9章-接口与反射/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">第9章 接口与反射
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2021-09-08 11:45:00" itemprop="dateCreated datePublished" datetime="2021-09-08T11:45:00+08:00">2021-09-08</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2023-02-07 14:00:12" itemprop="dateModified" datetime="2023-02-07T14:00:12+08:00">2023-02-07</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">22k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">20 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>侵入式接口的主要表现在于实现类需要明确声明自己实现了某个接口。Go的接口是非侵入式的。怎么理解？</li>
+<li>不像大多数面向对象编程语言，在Go语言中接口可以有值。PHP的接口可以有值吗？Go的接口怎么有值？</li>
+<li>多个类型可以实现同一个接口，一个类型可以实现多个接口。怎么理解？</li>
+</ul>
+<a id="more"></a>
+<p>接口在Go语言中有着至关重要的地位，如果说goroutine和channel是支撑起Go语言的并发模型的基石，让Go语言在如今集群化与多核化的时代成为一道极为亮丽的风景，那么接口是Go语言整个类型系统的基石，让Go语言在基础编程哲学的探索上达到前所未有的高度。</p>
+<h1 id="接口"><a href="#接口" class="headerlink" title="接口"></a><span style="color:#339AFF;">接口</span></h1><p>在编程哲学上，Go语言站在了改革的一方，而不是改良的一方。这么说并不是因为Go语言有goroutine和channel，而是因为Go语言的类型系统及Go语言的接口。Go语言接口与传统编程语言的接口概念完全不一样，Go语言的编程哲学因为有接口而趋近完美。</p>
+<p>Go语言的接口不只是接口，本章很大一部分都会介绍Go语言的接口特性，Go语言的接口并不是其他语言（C++、Java、C#等）中所提供的接口概念。</p>
+<p>在Go语言出现之前，接口主要作为不同组件之间的契约存在。对契约的实现是强制的，开发者必须声明实现该接口。为了实现一个接口，你需要从该接口继承。即使另外有一个接口IFoo2实现了与IFoo完全一样的接口方法，甚至名字也叫IFoo，只不过两个接口分别位于不同的名字空间下，编译器也会认为上面的类Foo只实现了IFoo而没有实现IFoo2接口。</p>
+<p>这类接口称为侵入式接口。“侵入式”的主要表现在于实现类需要明确声明自己实现了某个接口，这种强制性的接口继承是面向对象编程思想发展过程中一个遭受相当多置疑的特性。接下来讨论为什么这是个问题，以及为何Go语言的接口设计是一个更合适的选择。</p>
+<h2 id="接口是什么"><a href="#接口是什么" class="headerlink" title="接口是什么"></a><span style="color:#00ACC1;">接口是什么</span></h2><p>Go语言是“非传统”的面向对象编程语言，它没有类和继承的概念，但是Go语言里有非常灵活的接口概念，通过它可以实现很多面向对象的特性。接口提供了一种方式来说明对象的行为：如果谁能搞定这件事，它就可以在这里调用。</p>
+<p>接口定义了一组方法（方法集），但是这些方法不包含（实现）代码——它们没有被实现（它们是抽象的），接口里也不能包含变量。</p>
+<p>通过如下格式定义接口：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Namer <span class="keyword">interface</span> &#123;</span><br><span class="line">    Method1(param_list) return_type</span><br><span class="line">    Method2(param_list) return_type</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的Namer是一个接口类型。按照约定，只包含一个方法的接口的名字由方法名加[e]r后缀组成，例如Printer、Reader、Writer、Logger、Converter等。还有一些不常用的方式（当后缀er不合适时），比如Recoverable，此时接口名以able结尾，或者以I开头。</p>
+<p>Go语言中的接口都很简短，通常它们会包含0～3个方法。不像大多数面向对象编程语言，在Go语言中接口可以有值，一个接口类型的变量或一个接口值，例如<code>var in Namer</code>，其中in是一个多字（multiword）数据结构，它的值为nil，它本质上是一个指针，虽然不完全是一回事。指向接口值的指针是非法的，它们不仅一点用也没有，还会导致代码错误。此处的方法指针表是通过运行时反射能力构建的。</p>
+<p>类型（比如结构体）实现接口方法集中的方法，每一个方法的实现说明了此方法是如何作用于该类型的：即实现接口，同时方法集也构成了该类型的接口。实现了Namer接口类型的变量可以赋值给in（接收者值），此时方法表中的指针会指向被实现的接口方法。当然，如果另一个类型（也实现了该接口）的变量被赋值给ai，对应指针和方法实现也会随之改变。</p>
+<p>类型不需要显式声明它实现了某个接口：接口被隐式实现。多个类型可以实现同一个接口，实现某个接口的类型（除了实现接口方法外）可以有其他的方法。一个类型可以实现多个接口，接口类型可以包含一个实例的引用，该实例的类型实现了此接口（接口是动态类型）。</p>
+<p>即使接口在类型实现之后才定义，二者处于不同的包中，被单独编译，只要类型实现了接口中的方法，它就实现了此接口，所有这些特性使得接口具有很大的灵活性。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Shaper <span class="keyword">interface</span> &#123;</span><br><span class="line">    Area() <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Square <span class="keyword">struct</span> &#123;</span><br><span class="line">    side <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sq *Square)</span> <span class="title">Area</span><span class="params">()</span> <span class="title">float32</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> sq.side * sq.side</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    sq1 := <span class="built_in">new</span>(Square)</span><br><span class="line">    sq1.side = <span class="number">5</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 定义areaIntf</span></span><br><span class="line">    <span class="comment">// areaIntf = sq1</span></span><br><span class="line">    <span class="comment">// 更简洁，不需要分开定义：</span></span><br><span class="line">    <span class="comment">// areaIntf := Shaper(sq1)</span></span><br><span class="line">    <span class="comment">// 甚至这样：</span></span><br><span class="line">    areaIntf := sq1</span><br><span class="line">    fmt.Printf(<span class="string">"面积为：%f\n"</span>, areaIntf.Area())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">返回：</span></span><br><span class="line"><span class="comment">面积为：25.000000</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+<p>上面的程序定义了一个结构体Square和一个接口Shaper，接口有一个方法Area()。在main()方法中创建了一个Square的实例。在主程序外边定义了一个接收者类型是Square方法的Area()，用来计算正方形的面积，结构体Square实现了接口Shaper。</p>
+<p>所以可以将一个Square类型的变量赋值给一个接口类型的变量：areaIntf=sq1。</p>
+<p>现在接口变量包含一个指向Square变量的引用，通过它可以调用Square上的方法Area()。当然也可以直接在Square的实例上调用此方法，但是在接口实例上调用此方法更具通用性。接口变量里包含了接收者实例的值和指向对应方法表的指针。</p>
+<p>这是Go语言版本的“多态”，多态是面向对象编程中一个广为人知的概念：根据当前的类型选择正确的方法，或者说同一种类型在不同的实例上似乎表现出不同的行为。</p>
+<p>如果Square没有实现Area()方法，编译器将会给出清晰的错误信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cannot use sq1 (type *Square) as type Shaper in assignment:</span><br><span class="line">*Square does not implement Shaper (missing Area method)</span><br></pre></td></tr></table></figure></p>
+<p>如果Shaper有另外一个方法Perimeter()，但是Square没有实现它，即使没有人在Square实例上调用这个方法，编译器也会给出上面的错误。</p>
+<p>扩展上面的例子，类型Rectangle也实现了Shaper接口。接着创建一个Shaper类型的数组，迭代它的每一个元素并在上面调用Area()方法，以此来展示多态行为：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Shaper <span class="keyword">interface</span> &#123;</span><br><span class="line">    Area() <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Square <span class="keyword">struct</span> &#123;</span><br><span class="line">    side <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sq *Square)</span> <span class="title">Area</span><span class="params">()</span> <span class="title">float32</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> sq.side * sq.side</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Rectangle <span class="keyword">struct</span> &#123;</span><br><span class="line">    length, width <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r Rectangle)</span> <span class="title">Area</span><span class="params">()</span> <span class="title">float32</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> r.length * r.width</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    r := Rectangle&#123;<span class="number">5</span>, <span class="number">3</span>&#125; <span class="comment">// 需要的是一个值</span></span><br><span class="line">    q := &amp;Square&#123;<span class="number">5</span>&#125;          <span class="comment">// 传入的是指针</span></span><br><span class="line">    <span class="comment">// shapes := []Shaper&#123;Shaper(r), Shaper(q)&#125;</span></span><br><span class="line">    <span class="comment">// 更简洁的写法：</span></span><br><span class="line">    shapes := []Shaper&#123;r, q&#125;</span><br><span class="line">    <span class="comment">// 遍历shapes</span></span><br><span class="line">    <span class="keyword">for</span> n, _ := <span class="keyword">range</span> shapes &#123;</span><br><span class="line">        fmt.Println(<span class="string">"形状参数："</span>, shapes[n])</span><br><span class="line">        fmt.Println(<span class="string">"形状面积是："</span>, shapes[n].Area())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">返回：</span></span><br><span class="line"><span class="comment">形状参数： &#123;5 3&#125;</span></span><br><span class="line"><span class="comment">形状面积是： 15</span></span><br><span class="line"><span class="comment">形状参数： &amp;&#123;5&#125;</span></span><br><span class="line"><span class="comment">形状面积是： 25</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure></p>
+<p>在调用shapes[n].Area()时，只知道shapes[n]是一个Shaper对象，最后它摇身一变成为了一个Square或Rectangle对象，并且表现出了相对应的行为。</p>
+<p>也许从现在开始你将看到通过接口如何产生更干净、更简单及更具扩展性的代码。在后面章节将看到在开发中为类型添加新的接口是多么容易。</p>
+<p>下面是一个更具体的例子：有两个类型stockPosition和car，它们都有一个getValue()方法，可以定义一个具有此方法的接口valuable。接着定义一个使用valuable类型作为参数的函数showValue()，所有实现了valuable接口的类型都可以用这个函数。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> stockPosition <span class="keyword">struct</span> &#123;</span><br><span class="line">    ticker <span class="keyword">string</span></span><br><span class="line">    sharePrice <span class="keyword">float32</span></span><br><span class="line">    count <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 获取stock的值（价格）*/</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s stockPosition)</span> <span class="title">getValue</span><span class="params">()</span> <span class="title">float32</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> s.sharePrice * s.count</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> car <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="built_in">make</span> <span class="keyword">string</span></span><br><span class="line">    model <span class="keyword">string</span></span><br><span class="line">    price <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 获取car的值（价格） */</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c car)</span> <span class="title">getValue</span><span class="params">()</span> <span class="title">float32</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> c.price</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 定义具有价值的不同事物的"合同" */</span></span><br><span class="line"><span class="keyword">type</span> valuable <span class="keyword">interface</span> &#123;</span><br><span class="line">    getValue() <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">showValue</span><span class="params">(asset valuable)</span></span>  &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"资产的价值是：%f\n"</span>, asset.getValue())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>  &#123;</span><br><span class="line">    <span class="keyword">var</span> o valuable = stockPosition&#123;<span class="string">"GOOG"</span>, <span class="number">577.20</span>, <span class="number">4</span>&#125;</span><br><span class="line">    showValue(o)</span><br><span class="line">    o = car&#123;<span class="string">"BMW"</span>, <span class="string">"M3"</span>, <span class="number">66500</span>&#125;</span><br><span class="line">    showValue(o)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">返回：</span></span><br><span class="line"><span class="comment">资产的价值是：2308.800049</span></span><br><span class="line"><span class="comment">资产的价值是：66500.000000</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure></p>
+<p>举一个标准库的例子，io包里有一个接口类型Reader：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Reader <span class="keyword">interface</span> &#123;</span><br><span class="line">    Read(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>定义变量<code>var r io.Reader</code>，那么就可以写如下的代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> r io.Reader</span><br><span class="line">r = os.Stdin</span><br><span class="line">r = bufio.NewReader(r)</span><br><span class="line">r = <span class="built_in">new</span>(bytes.Buffer)</span><br><span class="line">f,_ := os.Open(<span class="string">"test.txt"</span>)</span><br><span class="line">r = bufio.NewReader(f)</span><br></pre></td></tr></table></figure></p>
+<p>上面r右边的类型都实现了Read()方法，并且有相同的方法签名，r的静态类型是io.Reader。</p>
+<p>注意，有的时候，也会以一种稍微不同的方式来使用接口这个词，从某个类型的角度来看，它的接口指的是：它的所有导出方法，只不过没有显式地为这些导出方法额外指定一个接口而已。</p>
+<h2 id="接口类型与约定"><a href="#接口类型与约定" class="headerlink" title="接口类型与约定"></a><span style="color:#00ACC1;">接口类型与约定</span></h2><p>接口类型实际上是描述了一系列方法的集合，一个实现了这些方法的具体类型是这个接口类型的实例。</p>
+<p>io.Writer类型是用得最广泛的接口之一，因为它提供了所有的类型写入bytes（字节）的抽象，包括文件类型、内存缓冲区、网络链接、HTTP客户端、压缩工具、哈希等。io包中定义了很多其他有用的接口类型。io.Reader可以代表任意可读取bytes的类型，io.Closer可以是任意可关闭的值，例如一个文件或网络链接：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Reader <span class="keyword">interface</span> &#123;</span><br><span class="line">    Read(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> Closer <span class="keyword">interface</span> &#123;</span><br><span class="line">    Close() error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>再往下看，我们发现有些新的接口类型通过组合已经有了接口来定义，下面是两个例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ReadWriter <span class="keyword">interface</span> &#123;</span><br><span class="line">    Reader</span><br><span class="line">    Writer</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> ReadWriteCloser <span class="keyword">interface</span> &#123;</span><br><span class="line">    Reader</span><br><span class="line">    Writer</span><br><span class="line">    Closer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面用到的语法和结构内嵌相似，可以用这种方式以一个简写命名另一个接口，而不用声明它所有的方法，这种方式被称为接口内嵌。尽管略失简洁性，可以像下面这样，不使用内嵌来声明io.Writer接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ReadWriter <span class="keyword">interface</span> &#123;</span><br><span class="line">    Read(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">    Write(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>或者可以使用混合的风格：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ReadWriter <span class="keyword">interface</span> &#123;</span><br><span class="line">    Read(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">    Writer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面3种定义方式都是一样的效果。方法的顺序变化也没有影响，唯一重要的就是这个集合里面的方法。</p>
+<p><strong>1，动态类型</strong></p>
+<p>一个接口类型的变量varI中可以包含任何类型的值，必须有一种方式来检测它的动态类型，即运行时在变量中存储的值的实际类型。在执行过程中动态类型可能会有所不同，但是它一定是可以分配给接口变量的类型。通常可以使用类型断言（Go语言内置的一种智能推断类型的功能）来测试在某个时刻varI是否包含类型T的值：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">v := varI.(T) <span class="comment">// 未经检查的类型断言</span></span><br></pre></td></tr></table></figure></p>
+<p>varI必须是一个接口变量，否则编译器会报错：invalid type assertion: varI.(T) (non-interface type (type of varI) on left)。</p>
+<p>类型断言可能是无效的，虽然编译器会尽力检查转换是否有效，但是它不可能预见所有的可能性。如果转换在程序运行时失败，则会导致错误发生。更安全的方式是使用以下形式来进行类型断言：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> v,ok := varI.(T); ok&#123; <span class="comment">// 已检查类型断言</span></span><br><span class="line">    Process(v)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// varI不是类型T</span></span><br></pre></td></tr></table></figure></p>
+<p>如果转换合法，v是varI转换到类型T的值，ok会是true；否则v是类型T的零值，ok是false，也没有运行时错误发生。应该使用这种方式来进行类型断言。</p>
+<p>在多数情况下，可能只是想在if中测试ok的值，此时使用以下的方法会是最方便的：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> _,ok := varI.(T); ok &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>具体示例如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"math"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Square <span class="keyword">struct</span> &#123;</span><br><span class="line">    side <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Circle <span class="keyword">struct</span> &#123;</span><br><span class="line">    radius <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Shaper <span class="keyword">interface</span> &#123;</span><br><span class="line">    Area() <span class="keyword">float32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> areaIntf Shaper</span><br><span class="line">    sq1 := <span class="built_in">new</span>(Square)</span><br><span class="line">    sq1.side = <span class="number">5</span></span><br><span class="line"></span><br><span class="line">    areaIntf = sq1</span><br><span class="line">    <span class="comment">// areaIntf的类型是否是Square</span></span><br><span class="line">    <span class="keyword">if</span> t, ok := areaIntf.(*Square);ok &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"areaIntf的类型是：%T\n"</span>, t)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> u,ok := areaIntf.(*Circle); ok &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"areaIntf的类型是：%T\n"</span>, u)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"areaIntf不含类型为Circle的变量"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sq *Square)</span> <span class="title">Area</span><span class="params">()</span> <span class="title">float32</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> sq.side * sq.side</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ci *Circle)</span> <span class="title">Area</span><span class="params">()</span> <span class="title">float32</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ci.radius * ci.radius * math.Pi</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">返回：</span></span><br><span class="line"><span class="comment">areaIntf的类型是：*main.Square</span></span><br><span class="line"><span class="comment">areaIntf不含类型为Circle的变量</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure></p>
+<p>程序行中定义了一个新类型Circle，它也实现了Shaper接口。</p>
+<p>第一个if语句测试areaIntf里是否包含一个Square类型的变量，返回的ok为true则表示包含该类型；然后第二个if语句测试它是否包含一个Circle类型的变量，返回的OK结果为false，所以不包含该类型。</p>
+<p>如果忽略arealntf.(*Square)中的*号，会导致编译错误：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">impossible type assertion: Square does not implement Shaper (Area method has pointer receiver)</span><br></pre></td></tr></table></figure></p>
+<p>这是因为Go语言编译器无法自动推断类型，Area()方法通过指针接收器传入参数。</p>
+<p><strong>2，类型判断</strong></p>
+<p>接口变量的类型也可以使用type-swtich来检测（部分代码）：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> t := areaIntf.(<span class="keyword">type</span>) &#123;</span><br><span class="line"><span class="keyword">case</span> *Square:</span><br><span class="line">    fmt.Printf(<span class="string">"Square类型的 %T 值为：%v\n"</span>, t, t)</span><br><span class="line"><span class="keyword">case</span> *Circle:</span><br><span class="line">    fmt.Printf(<span class="string">"Circle类型的 %T 值为：%v\n"</span>, t, t)</span><br><span class="line"><span class="keyword">case</span> <span class="literal">nil</span>:</span><br><span class="line">    fmt.Printf(<span class="string">"nil值：发生了意外。\n"</span>)</span><br><span class="line"><span class="keyword">default</span>:</span><br><span class="line">    fmt.Printf(<span class="string">"未知类型 %T\n"</span>, t)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">返回：</span></span><br><span class="line"><span class="comment">Square类型的 *main.Square 值为：&amp;&#123;5&#125;</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure></p>
+<p>变量t得到了areaIntf的值和类型，所有case语句中列举的类型（nil除外）都必须实现对应的接口（在上例中即Shaper），如果被检测类型没有在case语句列举的类型中，就会执行default语句。</p>
+<p>可以用type-switch进行运行时类型分析，但是type-switch不允许有fallthrough。如果仅仅是测试变量的类型，不用它的值，那么就可以不需要赋值语句，比如：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> areaIntf.(<span class="keyword">type</span>)&#123;</span><br><span class="line"><span class="keyword">case</span> *Square:</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line"><span class="keyword">case</span> *Circle:</span><br><span class="line">    <span class="comment">// ... </span></span><br><span class="line">...    </span><br><span class="line"><span class="keyword">default</span>:</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>下面的代码片段展示了一个类型分类函数，它有一个可变长度参数，可以是任意类型的数组，它会根据数组元素的实际类型执行不同的动作：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">classifier</span><span class="params">(items ...<span class="keyword">interface</span>&#123;&#125;)</span></span>  &#123;</span><br><span class="line">    <span class="keyword">for</span> i, x := <span class="keyword">range</span> items &#123;</span><br><span class="line">        <span class="keyword">switch</span> x.(<span class="keyword">type</span>) &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="keyword">bool</span>:</span><br><span class="line">            fmt.Printf(<span class="string">"参数 #%d 类型是 bool\n"</span>, i)</span><br><span class="line">        <span class="keyword">case</span> <span class="keyword">float64</span>:</span><br><span class="line">            fmt.Printf(<span class="string">"参数 #%d 类型是 float64\n"</span>, i)</span><br><span class="line">        <span class="keyword">case</span> <span class="keyword">int</span>, <span class="keyword">int64</span>:</span><br><span class="line">            fmt.Printf(<span class="string">"参数 #%d 类型是 int\n"</span>, i)</span><br><span class="line">        <span class="keyword">case</span> <span class="literal">nil</span>:</span><br><span class="line">            fmt.Printf(<span class="string">"参数 #%d 类型是 nil\n"</span>, i)</span><br><span class="line">        <span class="keyword">case</span> <span class="keyword">string</span>:</span><br><span class="line">            fmt.Printf(<span class="string">"参数 #%d 类型是 string\n"</span>, i)</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            fmt.Printf(<span class="string">"参数 #%d 类型未知\n"</span>, i)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>可以这样调用此方法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">classifer(<span class="number">13</span>, <span class="number">-14.3</span>, <span class="string">"BELGIUM"</span>, <span class="built_in">complex</span>(<span class="number">1</span>,<span class="number">2</span>), <span class="literal">nil</span>, <span class="literal">false</span>)</span><br></pre></td></tr></table></figure></p>
+<p>在处理来自外部的、类型未知的数据时，比如解析诸如JSON或XML编码的数据，类型测试和转换会非常有用。</p>
+<h2 id="接口实现"><a href="#接口实现" class="headerlink" title="接口实现"></a><span style="color:#00ACC1;">接口实现</span></h2><p>一个类型如果拥有一个接口需要的所有方法，那么这个类型就实现了这个接口。例如，*os.File类型实现了io.Reader、Writer、Closer和ReadWriter接口。</p>
+<p>*bytes.Buffer实现了Reader、Writer和ReadWriter这些接口，但是它没有实现Closer接口，所以它不具有Close方法。Go语言的程序员经常会简要地把一个具体的类型描述成一个特定的接口类型。</p>
+<p>举个例子，*bytes.Buffer是io.Writer；*os.Files是io.ReadWriter。接口指定的规则非常简单：表达一个类型属于某个接口只要这个类型实现这个接口就可以，这个规则甚至适用于等式右边本身也是一个接口类型的情况，因为ReadWriter和ReadWriteCloser包含所有Writer的方法，所以任何实现了ReadWriter和ReadWriteCloser的类型必定也实现了Writer接口。</p>
+<p>在进一步学习前，必须先解释表示一个类型持有一个方法当中的细节。对于每一个命名过的具体类型T，它的一些方法的接收者是类型T本身，然而另一些则是一个T的指针。还记得在T类型的参数上调用一个T的方法是合法的，只要这个参数是一个变量。</p>
+<p>编译器隐式地获取了它的地址，但这仅仅是一个语法糖：T类型的值不拥有所有*T指针的方法，那这样它就可能只实现更少的接口。</p>
+<p>举个例子可能会更清晰一点，IntSet类型的String方法的接收者是一个指针类型，所以我们不能在一个不能寻址的IntSet值上调用这个方法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> IntSet <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">/* ... */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*IntSet)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span></span><br><span class="line"><span class="function"><span class="title">var</span> _ = <span class="title">IntSet</span></span>&#123;&#125;.String()</span><br><span class="line"><span class="comment">// 编译错误返回：String requires *Intset receiver</span></span><br></pre></td></tr></table></figure></p>
+<p>但是可以在一个IntSet值上调用这个方法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> s IntSet</span><br><span class="line"><span class="keyword">var</span> _ = s.String()</span><br><span class="line"><span class="comment">// 编译通过：s是一个变量，&amp;s有一个String方法</span></span><br></pre></td></tr></table></figure></p>
+<p>然而，由于只有IntSet类型有String方法，所有也只有IntSet类型实现了fmt.Stringer接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> _ fmt.Stringer = &amp;s <span class="comment">// 编译通过</span></span><br><span class="line"><span class="keyword">var</span> _ fmt.Stringer = s  <span class="comment">// 编译错误返回：IntSet lacks String method</span></span><br></pre></td></tr></table></figure></p>
+<p>下面是接口在runtime中的实现，注意其中包含了接口本身和实际数据类型的类型信息：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// src/runtime/runtime2.go</span></span><br><span class="line"><span class="keyword">type</span> iface <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 包含接口的静态类型信息、数据的动态类型信息和函数表</span></span><br><span class="line">    tab *itab</span><br><span class="line">    <span class="comment">/* 指向具体数据的内存地址，比如slice、map等，或者在接口转换时直接存放小数据（一个指针的长度）*/</span></span><br><span class="line">    data unsafe.Pointer</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> itab <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 接口的类型信息</span></span><br><span class="line">    inter *interfacetype</span><br><span class="line">    <span class="comment">// 具体数据的类型信息</span></span><br><span class="line">    _type *_type</span><br><span class="line">    link *itab</span><br><span class="line">    hash <span class="keyword">uint32</span></span><br><span class="line">    bad <span class="keyword">bool</span></span><br><span class="line">    inhash <span class="keyword">bool</span></span><br><span class="line">    unused [<span class="number">2</span>]<span class="keyword">byte</span></span><br><span class="line">    <span class="comment">/* 函数地址表，这里放置和接口方法对应的具体数据类型的方法地址</span></span><br><span class="line"><span class="comment">      实现接口调用方法的动态分派，一般在每次给接口赋值发生转换时</span></span><br><span class="line"><span class="comment">      会更新此表，或者直接获取缓存的itab */</span></span><br><span class="line">    fun [<span class="number">1</span>]<span class="keyword">uintptr</span> <span class="comment">//变量大小</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>另外，需要注意与接口相关的两点优化，会影响到反射等的实现。</p>
+<p>（1）空接口（interface{}）的itab优化：当将某个类型赋值给空接口时，由于空接口没有方法，所以上面空接口iface的tab字段会直接指向数据的具体类型。在Go语言的reflect包中，reflect.TypeOf和reflect.ValueOf的参数都是空接口，因此所有参数都会先转换为空接口类型，这样反射就实现了对所有参数类型获取实际数据类型的统一，这在后面反射的基本实现中会分析到。</p>
+<p>（2）发生“接口转换”时data字段相关的优化：当被转换为接口的数据的类型长度不超过一个指针的长度时（比如pointer、map、func、chan、[1]int等类型），接口转换时会将数据直接复制到接口的data字段（Directlface）中，而不再额外分配内存并复制。另外，从Go 1.8+的源码来看除Directlface的优化以外，还对长度较小（不超过64B，未初始化数据内存的array、空字符串等）的零值做了优化，也不会重新分配内存，而是直接指向一个包级全局数组变量zeroVal的首地址。注意这里的优化发生在接口转换时生成的临时接口上，而不是被赋值的接口左值上。</p>
+<p>再者，在Go语言中只有值传递（包括接口类型），与具体的类型实现无关，但是某些类型具有引用的属性。典型的9种非基础类型中：</p>
+<ul>
+<li>array传递会复制整块数据内存，传递长度为<code>ln(arr) * Sizeof(elem)</code>。</li>
+<li>string、slice、interface传递的是其runtime的实现，所以长度是固定的，分别为16B、24B、16B（AMD64）。</li>
+<li>map、func、chan、pointer传递的是指针，所以长度固定为8B（AMD64）。</li>
+<li>struct传递的是所有字段的内存副本，所以长度是所有字段的长度之和。</li>
+</ul>
+<h2 id="嵌套接口"><a href="#嵌套接口" class="headerlink" title="嵌套接口"></a><span style="color:#00ACC1;">嵌套接口</span></h2><p>一个接口可以包含一个或多个其他接口，这相当于直接将这些内嵌接口的方法列举在外层接口中。比如接口File包含了ReadWrite和Lock的所有方法，它还额外有一个Close()方法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ReadWrite <span class="keyword">interface</span> &#123;</span><br><span class="line">    Read(b Buffer) <span class="keyword">bool</span></span><br><span class="line">    Write(b Buffer) <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Lock <span class="keyword">interface</span> &#123;</span><br><span class="line">    Lock()</span><br><span class="line">    Unlock()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> File <span class="keyword">interface</span> &#123;</span><br><span class="line">    ReadWrite</span><br><span class="line">    Lock</span><br><span class="line">    Close()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="接口赋值"><a href="#接口赋值" class="headerlink" title="接口赋值"></a><span style="color:#00ACC1;">接口赋值</span></h2><p>接口赋值在Go语言中分为如下两种情况：将对象实例赋值给接口；将一个接口赋值给另一个接口。</p>
+<p>先讨论将某种类型的对象实例赋值给接口，这要求该对象实例实现了接口要求的所有方法，如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Integer <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a Integer)</span> <span class="title">Less</span><span class="params">(b Integer)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> a &lt; b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *Integer)</span> <span class="title">Add</span><span class="params">(b Integer)</span></span> &#123;</span><br><span class="line">    *a += b</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>相应地，定义接口LessAdder：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> LessAdder <span class="keyword">interface</span> &#123;</span><br><span class="line">    Less(b Integer) <span class="keyword">bool</span></span><br><span class="line">    Add(b Integer)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>现在有个问题：假设定义一个Integer类型的对象实例，怎样将其赋值给LessAdder接口呢？应该用下面的语句1，还是语句2呢？<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a Integer = <span class="number">1</span></span><br><span class="line"><span class="keyword">var</span> b LessAdder = &amp;a <span class="comment">// 语句1</span></span><br><span class="line"><span class="keyword">var</span> b LessAdder = a  <span class="comment">// 语句2</span></span><br></pre></td></tr></table></figure></p>
+<p>答案是应该用语句1，原因在于，Go语言可以根据函数<code>func(a Integer)Less(b Integer)bool</code>自动生成一个新的Less()方法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *Integer)</span> <span class="title">Less</span><span class="params">(b Integer)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> (*a).Less(b)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这样，类型*Integer就既包含Less()方法，也包含Add()方法，满足LessAdder接口。而从另一方面来说，根据<code>func(a *Integer)Add(b Integer)</code>函数无法自动生成以下这个成员方法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a Integer)</span> <span class="title">Add</span><span class="params">(b Integer)</span></span> &#123;</span><br><span class="line">    (&amp;a).Add(b)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因为(&amp;a).Add()改变的只是函数参数a，对外部实际要操作的对象并无影响，这不符合用户的预期。所以，Go语言不会自动为其生成该函数。因此，类型Integer只存在Less()方法，缺少Add()方法，不满足LessAdder接口，故上面的语句2不能赋值。</p>
+<p>为了进一步证明以上的推理，不妨再定义一个Lesser接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Lesser <span class="keyword">interface</span> &#123;</span><br><span class="line">    Less(b Integer) <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后定义一个Integer类型的对象实例，将其赋值给Lesser接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a Integer = <span class="number">1</span></span><br><span class="line"><span class="keyword">var</span> b1 Lesser = &amp;a <span class="comment">// 语句1</span></span><br><span class="line"><span class="keyword">var</span> b2 Lesser = a  <span class="comment">// 语句2</span></span><br></pre></td></tr></table></figure></p>
+<p>正如我们所料，语句1和语句2均可以编译通过。我们再来讨论另一种情形：将一个接口赋值给另一个接口。在Go语言中，只要两个接口拥有相同的方法列表（次序不同不要紧），那么它们就是等同的，可以相互赋值。</p>
+<p>下面来看一个示例，这是第一个接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> one</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ReadWriter <span class="keyword">interface</span> &#123;</span><br><span class="line">    Read(buf []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">    Write(buf []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>第二个接口位于另一个包中：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> two</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> IStream <span class="keyword">interface</span> &#123;</span><br><span class="line">    Write(buf []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">    Read(buf []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里定义了两个接口，一个叫one.ReadWriter，另一个叫two.IStream，两者都定义了Read()、Write()方法，只是定义次序相反。one.ReadWriter先定义了Read()再定义了Write()，而two.IStream反之。</p>
+<p>在Go语言中，这两个接口实际上并无区别，因为任何实现了one.ReadWriter接口的类，均实现了two.IStream；任何one.ReadWriter接口对象可赋值给two.Stream，反之亦然；在任何地方使用one.ReadWriter接口与使用two.IStream接口并无差异。</p>
+<p>以下这些代码可编译通过：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> file1 two.IStream = <span class="built_in">new</span>(File)</span><br><span class="line"><span class="keyword">var</span> file2 one.ReadWriter = filel</span><br><span class="line"><span class="keyword">var</span> file3 two.IStream = file2</span><br></pre></td></tr></table></figure></p>
+<p>接口赋值并不要求两个接口必须等价。如果接口A的方法列表是接口B的方法列表的子集，那么接口B可以赋值给接口A。例如，假设有Writer接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Writer <span class="keyword">interface</span> &#123;</span><br><span class="line">    Write(buf []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>就可以将上面的<code>one.ReadWriter</code>和<code>two.IStream</code>接口的实例赋值给Writer接口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> file1 two.IStream = <span class="built_in">new</span>(File)</span><br><span class="line"><span class="keyword">var</span> file4 Writer = file1</span><br></pre></td></tr></table></figure></p>
+<p>但是反过来并不成立；<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> file1 Writer = <span class="built_in">new</span>(File)</span><br><span class="line"><span class="keyword">var</span> file5 two.IStream = file1 <span class="comment">// 编译不能通过</span></span><br></pre></td></tr></table></figure></p>
+<p>这段代码无法编译通过，原因很显然：file1并没有Read()方法。</p>
+<h2 id="接口查询"><a href="#接口查询" class="headerlink" title="接口查询"></a><span style="color:#00ACC1;">接口查询</span></h2><p>有办法让上面的Writer接口转换为<code>two.IStream</code>接口吗？有，那就是即将讨论的接口查询语法，代码如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> file1 Writer = ...</span><br><span class="line"><span class="keyword">if</span> files, ok := file1.(two.IStream); ok &#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个if语句检查file1接口指向的对象实例是否实现了<code>two.IStream</code>接口，如果实现了，则执行特定的代码。</p>
+<p>接口查询是否成功，要在运行期才能确定。它不像接口赋值，编译器只需通过静态类型检查即可判断赋值是否可行。在Go语言中，对象是否满足某个接口，通过某个接口查询其他接口，这一切都是完全自动完成的。</p>
+<p>让语言内置接口查询，这是一件非常了不起的事情。在Go语言中，可以询问接口指向的对象是否是某个类型，比如：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> file1 Writer = ...</span><br><span class="line"><span class="keyword">if</span> file6, ok := file1.(*File); ok &#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个if语句判断file1接口指向的对象实例是否是*File类型，如果是则执行特定代码查询接口所指向的对象是否为某个类型的这种用法可以认为只是接口查询的一个特例。</p>
+<h2 id="接口组合"><a href="#接口组合" class="headerlink" title="接口组合"></a><span style="color:#00ACC1;">接口组合</span></h2><p>像之前介绍的类型组合一样，Go语言同样支持接口组合。我们已经介绍过Go语言包中<code>io.Reader</code>接口和<code>io.Writer</code>接口，接下再介绍同样来自io包的另一个接口<code>io.ReadWriter</code>：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ReadWriter接口将基本的Reader和Writer接口组合起来</span></span><br><span class="line"><span class="keyword">type</span> ReadWriter <span class="keyword">interface</span> &#123;</span><br><span class="line">    Reader</span><br><span class="line">    Writer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个接口组合了Reader和Writer两个接口，它完全等同于如下写法：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ReadWriter <span class="keyword">interface</span> &#123;</span><br><span class="line">    Read(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">    Write(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因为这两种写法的表意完全相同：ReadWriter接口既能做Reader接口的所有事情，又能做Writer接口的所有事情。在Go语言包中，还有众多类似的组合接口，比如ReadWriteCloser、ReadWriteSeeker、ReadSeeker和WriteCloser等。</p>
+<p>可以认为接口组合是类型匿名组合的一个特定场景，只不过接口只包含方法，而不包含任何成员变量。</p>
+<h1 id="反射"><a href="#反射" class="headerlink" title="反射"></a><span style="color:#339AFF;">反射</span></h1><p>反射是用程序检查代码中所拥有的结构尤其是类型的一种能力，这是元编程的一种形式。反射可以在运行时检查类型和变量，例如它的大小、方法和动态调用这些方法。这对于没有源代码的包尤其有用。这是一个强大的工具，但是也存在一定的隐患，除非真的有必要，否则应当避免使用或小心使用。</p>
+<h2 id="方法和类型的反射"><a href="#方法和类型的反射" class="headerlink" title="方法和类型的反射"></a><span style="color:#00ACC1;">方法和类型的反射</span></h2><p>变量的最基本信息就是类型和值：反射包的Type用来表示一个Go语言类型，反射包的Value为Go值提供了反射接口。</p>
+<p>两个简单的函数：<code>reflect.TypeOf</code>和<code>reflect.ValueOf</code>，返回被检查对象的类型和值。例如，x被定义为<code>var x float64 = 3.4</code>，那么<code>reflect.TypeOf(x)</code>返回float64，<code>reflect.ValueOf(x)</code>返回<code>&lt;float64 Value&gt;</code>。</p>
+<p>实际上，反射通过检查一个接口的值，把变量转换成空接口。这从下面两个函数签名（定义了函数或方法的输入与输出的格式）能够很明显看出来：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TypeOf</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">Type</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="title">ValueOf</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">Value</span></span></span><br></pre></td></tr></table></figure></p>
+<p>接口的值包含一个type和value。反射可以从接口值反射到对象，也可以从对象反射回接口值。</p>
+<p>reflect.Type和reflct.Value都有许多方法用于检查和操作它们。一个重要的例子是Value有一个Type方法返回reflct.Value的Type；另一个是Type和Value都有Kind方法返回一个常量来表示类型：Uint、Float64、Slice等。同样Value有叫作Int和Float的方法可以获取存储在内部的值（和int64和float64一样）。</p>
+<p>对于变量x，如果<code>v := reflect.ValueOf(x)</code>，那么v.Kind()返回float64，所以下面的表达式返回的结果是true（即两者全等）：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">v.Kind()==reflect.Float64</span><br></pre></td></tr></table></figure></p>
+<p>Kind()总是返回底层类型：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> MyInt <span class="keyword">int</span></span><br><span class="line"><span class="keyword">var</span> m MyInt = <span class="number">5</span></span><br><span class="line">v := reflect.ValueOf(m)</span><br></pre></td></tr></table></figure></p>
+<p>方法v.Kind()返回reflect.Int。变量v的Interface（方法可以得到还原（接口）值，所以可以这样打印v的值：fimt.Println（v.Interface()）。</p>
+<p>尝试运行下面的代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//示例代码9-5</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"fmt'</span></span><br><span class="line"><span class="string">"</span>reflect<span class="string">"</span></span><br><span class="line"><span class="string">func main()&#123;</span></span><br><span class="line"><span class="string">var x float64=3.4</span></span><br><span class="line"><span class="string">fmt. Println("</span><span class="keyword">type</span>:<span class="string">", reflect.Type0f(x))</span></span><br><span class="line"><span class="string">v := reflect.Value0f(x)</span></span><br><span class="line"><span class="string">fmt. Println("</span>value:<span class="string">",v)</span></span><br><span class="line"><span class="string">fmt.Println("</span><span class="keyword">type</span>:<span class="string">",v.Type())</span></span><br><span class="line"><span class="string">fmt. Println("</span>kind:<span class="string">",v.Kind())</span></span><br><span class="line"><span class="string">fmt. Println("</span>value:<span class="string">", v.Float())</span></span><br><span class="line"><span class="string">fmt.Println(v.Interface())</span></span><br><span class="line"><span class="string">fmt.Printf("</span>value is %<span class="number">5.2</span>e\n<span class="string">", v.Interface())</span></span><br><span class="line"><span class="string">y :=v.Interface().(float64)</span></span><br><span class="line"><span class="string">fmt. Println(y)</span></span><br><span class="line"><span class="string">1</span></span><br><span class="line"><span class="string">/$</span></span><br><span class="line"><span class="string">返回：</span></span><br><span class="line"><span class="string">type:float64</span></span><br><span class="line"><span class="string">value:&lt;float64 Value&gt;</span></span><br><span class="line"><span class="string">type: float64</span></span><br><span class="line"><span class="string">kind:float64</span></span><br><span class="line"><span class="string">value:3.4</span></span><br><span class="line"><span class="string">3.4</span></span><br><span class="line"><span class="string">value is 3.40e+00</span></span><br><span class="line"><span class="string">3.4</span></span><br><span class="line"><span class="string">*/</span></span><br></pre></td></tr></table></figure></p>
+<p>x是一个float64类型的值，reflect.ValueOf（x）.Float()返回这个float64类型的实际值； reflect.ValueOf（x）适用于Int()、Bool()、Complex()、String0等其他类型。</p>
+<h2 id="通过反射修改设置值"><a href="#通过反射修改设置值" class="headerlink" title="通过反射修改设置值"></a><span style="color:#00ACC1;">通过反射修改设置值</span></h2><p>假设要把下面例子中x的值改为3.1415，Value有一些方法可以完成这个任务，但是必须小心使用v.SetFloat(3.1415)，这将产生一个错误：reflect.Value.SetFloat using unaddressable value。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//示例代码9-6 package main</span></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line"><span class="string">"fmt"</span></span><br><span class="line"><span class="string">"reflect"</span></span><br><span class="line">)</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">var</span> x <span class="keyword">float64</span> = <span class="number">3.1415</span></span><br><span class="line">v :=reflect.value0f(x)</span><br><span class="line"><span class="comment">//设置一个值：</span></span><br><span class="line"><span class="comment">// v.SetFloat(3.1415)</span></span><br><span class="line"><span class="comment">//上面代码会产生错误，返回：</span></span><br><span class="line"><span class="comment">// Panic: reflect.value.SetFloat using unaddressable value fmt.Println("v:",v.CanSet())</span></span><br><span class="line">v = reflect.Value0f（&amp;x）<span class="comment">//注意：取x的地址</span></span><br><span class="line">fmt.Println（<span class="string">"v的类型：“，v.Type（））</span></span><br><span class="line"><span class="string">fmt. Println("</span>v:<span class="string">"，v.CanSet())</span></span><br><span class="line"><span class="string">v= v.Elem()</span></span><br><span class="line"><span class="string">fmt. Println（"</span>v的Elem是：“，v）</span><br><span class="line">fmt.Println(<span class="string">"v:"</span>,v.CanSet())</span><br><span class="line">v.SetFloat（<span class="number">3.1415</span>）<span class="comment">//编译通过</span></span><br><span class="line">fmt.Println(v.Interface())</span><br><span class="line">fmt Println(v)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>原因是v不是可设置的（这里并不是说值不可寻址），是否可设置是Value的一个属性，并且不是所有的反射值都有这个属性：可以使用CanSet()方法测试是否可设置。</p>
+<p>在例子中可以看到v.CanSet()返回false:settability of v: false，当v:=reflect.ValueOf(x)函数通过传递一个x副本创建了v时，那么v的改变并不能更改原始的x。要想v的更改能作用到x，那就必须传递x的地址v=reflect.ValueOf(&amp;x)。</p>
+<p>通过Type()可以看到v现在的类型是*float64，并且仍然是不可设置的。要想让其可设置需要使用Elem()函数，这将间接地使用指针v=v.Elem()，现在v.CanSet()返回true，并且v.SetFloat(3.1415)设置成功了！<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="keyword">var</span> x <span class="keyword">float64</span> = <span class="number">3.4</span></span><br><span class="line">v :=reflect.value0f(x)</span><br><span class="line"><span class="comment">//设置一个值：</span></span><br><span class="line"><span class="comment">// v.SetFloat(3.1415)</span></span><br><span class="line"><span class="comment">//同样是错误，Panic：reflect.value.SetFloat using unaddressable value fmt.Println("v:",v.CanSet())</span></span><br><span class="line">v =reflect.Value0f（&amp;x）<span class="comment">//注意：取x的地址</span></span><br><span class="line">fmt. Println（<span class="string">"v的类型："</span>，v.Type（））</span><br><span class="line">fmt.Println(<span class="string">"v:"</span>，v.CanSet())</span><br><span class="line">v= v.Elem()</span><br><span class="line">fmt.Println（<span class="string">"v的Elem是："</span>，v）</span><br><span class="line">fmt.Println(<span class="string">"v:"</span>,v.CanSet())</span><br><span class="line">v.SetFloat（<span class="number">3.1415</span>）<span class="comment">//通过</span></span><br><span class="line">fmt. Println(v.Interface())</span><br><span class="line">fmt.Println(v)</span><br><span class="line"><span class="number">1</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">返回：</span></span><br><span class="line"><span class="comment">v:false</span></span><br><span class="line"><span class="comment">v的类型是：*f1oat64</span></span><br><span class="line"><span class="comment">V:false</span></span><br><span class="line"><span class="comment">v的Elem是：《f1oat64 Value》</span></span><br><span class="line"><span class="comment">v:true</span></span><br><span class="line"><span class="comment">3.1415</span></span><br><span class="line"><span class="comment">&lt;float64 Value&gt;</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure></p>
+<p>反射中有些内容是需要用地址去改变它的状态的。</p>
+<h2 id="反射结构"><a href="#反射结构" class="headerlink" title="反射结构"></a><span style="color:#00ACC1;">反射结构</span></h2><p>有些时候需要反射一个结构类型：NumField()方法返回结构内的字段数量；通过一个for循环用索引取得每个字段的值Field(i)。</p>
+<p>我们同样能够调用已经定义的函数在结构上的方法，例如，使用索引n来调用Method(n).Call(nil)：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"reflect"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> NotknownType <span class="keyword">struct</span> &#123;</span><br><span class="line">    s1,s2,s3 <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n NotknownType)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> n.s1 + <span class="string">" - "</span> + n.s2 + <span class="string">" - "</span> + n.s3</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> secret <span class="keyword">interface</span>&#123;&#125; = NotknownType&#123;<span class="string">"Google"</span>, <span class="string">"Go"</span>, <span class="string">"Code"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    value := reflect.ValueOf(secret)</span><br><span class="line">    typ := reflect.TypeOf(secret)</span><br><span class="line">    <span class="comment">// 也可以这样写：</span></span><br><span class="line">    <span class="comment">// typ := value.Type() // main.NotknownType</span></span><br><span class="line">    fmt.Println(typ)</span><br><span class="line">    knd := value.Kind()</span><br><span class="line">    fmt.Println(knd)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 迭代结构的字段</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; value.NumField(); i++ &#123;</span><br><span class="line">        fmt.Printf(<span class="string">"Field %d: %v\n"</span>, i, value.Field(i))</span><br><span class="line">        <span class="comment">// 返回错误：</span></span><br><span class="line">        <span class="comment">// panic: reflect.Value.SetString using value obtained using unexported field</span></span><br><span class="line">        <span class="comment">// value.Field(i).SetString("C#")</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 调用第一个方法，即string()</span></span><br><span class="line">    results := value.Method(<span class="number">0</span>).Call(<span class="literal">nil</span>)</span><br><span class="line">    fmt.Println(results) <span class="comment">// [Google - Go - Code]</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">返回：</span></span><br><span class="line"><span class="comment">main.NotknownType</span></span><br><span class="line"><span class="comment">struct</span></span><br><span class="line"><span class="comment">Field 0: Google</span></span><br><span class="line"><span class="comment">Field 1: Go</span></span><br><span class="line"><span class="comment">Field 2: Code</span></span><br><span class="line"><span class="comment">[Google - Go - Code]</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure></p>
+<p>但是如果尝试更改一个值，会得到一个错误：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">panic: reflect.Value.SetString using value obtained using unexported field</span><br></pre></td></tr></table></figure></p>
+<p>这是因为结构中只有被导出字段（首字母大写）才是可设置的，来看下面的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"reflect"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> T <span class="keyword">struct</span> &#123;</span><br><span class="line">    A <span class="keyword">int</span></span><br><span class="line">    B <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>  &#123;</span><br><span class="line">    t := T&#123;<span class="number">23</span>, <span class="string">"Hello"</span>&#125;</span><br><span class="line">    s := reflect.ValueOf(&amp;t).Elem()</span><br><span class="line">    typeOfT := s.Type()</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; s.NumField(); i++ &#123;</span><br><span class="line">        f := s.Field(i)</span><br><span class="line">        fmt.Printf(<span class="string">"%d: %s %s = %v\n"</span>, i, typeOfT.Field(i).Name, f.Type(), f.Interface())</span><br><span class="line">    &#125;</span><br><span class="line">    s.Field(<span class="number">0</span>).SetInt(<span class="number">77</span>)</span><br><span class="line">    s.Field(<span class="number">1</span>).SetString(<span class="string">"The World"</span>)</span><br><span class="line">    fmt.Println(<span class="string">"t现在的值是："</span>, t)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">返回：</span></span><br><span class="line"><span class="comment">0: A int = 23</span></span><br><span class="line"><span class="comment">1: B string = Hello</span></span><br><span class="line"><span class="comment">t现在的值是： &#123;77 The World&#125;</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="Printf和反射"><a href="#Printf和反射" class="headerlink" title="Printf和反射"></a><span style="color:#00ACC1;">Printf和反射</span></h2><p>在Go语言的标准库中，前面所述的反射的功能被大量地使用。举个例子，fmt包中的Printf（以及其他格式化输出函数）都会使用反射来分析它的…参数。Printf的函数声明为：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Printf</span><span class="params">(format <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(n <span class="keyword">int</span>, err error)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>Printf中的…参数为空接口类型，Printf使用反射包来解析这个参数列表，所以，Printf能够知道它每个参数的类型。格式化字符串中只有%d而没有%u和%ld，因为它知道这个参数是unsigned还是long，这也是为什么Print和Println在没有格式字符串的情况下还能如此准确地输出。</p>
+<p>为了让大家更加具体地了解Printf中的反射，下面实现一个简单的通用输出函数，其中使用了type-switch来推导参数类型，并根据类型来输出每个参数的值：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line">    <span class="string">"strconv"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Stringer <span class="keyword">interface</span> &#123;</span><br><span class="line">    String() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Celsius <span class="keyword">float64</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c Celsius)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> strconv.FormatFloat(<span class="keyword">float64</span>(c), <span class="string">'f'</span>, <span class="number">1</span>, <span class="number">64</span>) + <span class="string">" °C"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Day <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> dayName = []<span class="keyword">string</span>&#123;<span class="string">"星期一"</span>,<span class="string">"星期二"</span>,<span class="string">"星期三"</span>,<span class="string">"星期四"</span>,<span class="string">"星期五"</span>,<span class="string">"星期六"</span>,<span class="string">"星期天"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(day Day)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> dayName[day]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">print</span><span class="params">(args ...<span class="keyword">interface</span>&#123;&#125;)</span></span>  &#123;</span><br><span class="line">    <span class="keyword">for</span> i, arg := <span class="keyword">range</span> args &#123;</span><br><span class="line">        <span class="keyword">if</span> i &gt; <span class="number">0</span> &#123;os.Stdout.WriteString(<span class="string">" "</span>)&#125;</span><br><span class="line">        <span class="keyword">switch</span> a := arg.(<span class="keyword">type</span>) &#123; <span class="comment">// 类型转换</span></span><br><span class="line">        <span class="keyword">case</span> Stringer: os.Stdout.WriteString(a.String())</span><br><span class="line">        <span class="keyword">case</span> <span class="keyword">int</span>: os.Stdout.WriteString(strconv.Itoa(a))</span><br><span class="line">        <span class="keyword">case</span> <span class="keyword">string</span>: os.Stdout.WriteString(a)</span><br><span class="line">        <span class="comment">// 更多类型</span></span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            os.Stdout.WriteString(<span class="string">"???"</span>)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="built_in">print</span>(Day(<span class="number">1</span>), <span class="string">"温度是："</span>, Celsius(<span class="number">18.36</span>)) <span class="comment">// 星期二 温度是： 18.4 °C</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在标准库的章节还会阐释fmt.Fprintf()是怎样运用这种反射机制的。</p>
+<h1 id="本章小结"><a href="#本章小结" class="headerlink" title="本章小结"></a><span style="color:#339AFF;">本章小结</span></h1><p>本章需要注意设计类型时确认类型的本质是原始的还是非原始的。接口是声明了一组行为并支持多态的类型，嵌入类型提供了扩展类型的能力，而无须使用继承。</p>
+<p>结束本章的学习，意味着我们已经把Go语言所有的基础内容都认识了一遍，其中本章的接口和反射实际上灵活运用了很多以前的知识，换句话来说，Go语言很多上层的数据结构与类型都是依靠接口与反射来实现的，所以本章的内容不容忽视。从下一章开始，将接触Go语言的另一大特性——并发编程。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Go语言编程入门与实战技巧/" rel="tag"># Go语言编程入门与实战技巧</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/09/08/第8章-结构体与方法/" rel="next" title="第8章 结构体与方法">
+                <i class="fa fa-chevron-left"></i> 第8章 结构体与方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2021/09/08/第8章-goroutine和通道/" rel="prev" title="第8章 goroutine和通道">
+                第8章 goroutine和通道 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#接口"><span class="nav-number">1.</span> <span class="nav-text">接口</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#接口是什么"><span class="nav-number">1.1.</span> <span class="nav-text">接口是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#接口类型与约定"><span class="nav-number">1.2.</span> <span class="nav-text">接口类型与约定</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#接口实现"><span class="nav-number">1.3.</span> <span class="nav-text">接口实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#嵌套接口"><span class="nav-number">1.4.</span> <span class="nav-text">嵌套接口</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#接口赋值"><span class="nav-number">1.5.</span> <span class="nav-text">接口赋值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#接口查询"><span class="nav-number">1.6.</span> <span class="nav-text">接口查询</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#接口组合"><span class="nav-number">1.7.</span> <span class="nav-text">接口组合</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#反射"><span class="nav-number">2.</span> <span class="nav-text">反射</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#方法和类型的反射"><span class="nav-number">2.1.</span> <span class="nav-text">方法和类型的反射</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#通过反射修改设置值"><span class="nav-number">2.2.</span> <span class="nav-text">通过反射修改设置值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#反射结构"><span class="nav-number">2.3.</span> <span class="nav-text">反射结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Printf和反射"><span class="nav-number">2.4.</span> <span class="nav-text">Printf和反射</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#本章小结"><span class="nav-number">3.</span> <span class="nav-text">本章小结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

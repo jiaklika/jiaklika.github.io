@@ -1,0 +1,2093 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  Go语言里声明用户定义的类型有两种方法。是哪两种？ 方法能给用户定义的类型添加新的行为。方法实际上也是函数，只是在声明时，在关键字func和方法名之间增加了一个参数。怎么理解？">
+<meta name="keywords" content="Go语言实战">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第5章 Go语言的类型系统">
+<meta property="og:url" content="http://yoursite.com/2021/08/19/第5章-Go语言的类型系统/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  Go语言里声明用户定义的类型有两种方法。是哪两种？ 方法能给用户定义的类型添加新的行为。方法实际上也是函数，只是在声明时，在关键字func和方法名之间增加了一个参数。怎么理解？">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2021/08/19/第5章-Go语言的类型系统/1.jpg">
+<meta property="og:image" content="http://yoursite.com/2021/08/19/第5章-Go语言的类型系统/2.jpg">
+<meta property="og:updated_time" content="2022-02-11T12:19:22.451Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第5章 Go语言的类型系统">
+<meta name="twitter:description" content="思考并回答以下问题：  Go语言里声明用户定义的类型有两种方法。是哪两种？ 方法能给用户定义的类型添加新的行为。方法实际上也是函数，只是在声明时，在关键字func和方法名之间增加了一个参数。怎么理解？">
+<meta name="twitter:image" content="http://yoursite.com/2021/08/19/第5章-Go语言的类型系统/1.jpg">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2021/08/19/第5章-Go语言的类型系统/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>第5章 Go语言的类型系统 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/08/19/第5章-Go语言的类型系统/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">第5章 Go语言的类型系统
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2021-08-19 17:41:39" itemprop="dateCreated datePublished" datetime="2021-08-19T17:41:39+08:00">2021-08-19</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-02-11 20:19:22" itemprop="dateModified" datetime="2022-02-11T20:19:22+08:00">2022-02-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">39k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">36 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>Go语言里声明用户定义的类型有两种方法。是哪两种？</li>
+<li>方法能给用户定义的类型添加新的行为。方法实际上也是函数，只是在声明时，在关键字func和方法名之间增加了一个参数。怎么理解？</li>
+</ul>
+<a id="more"></a>
+<p>【本章主要内容】</p>
+<ul>
+<li>声明新的用户定义的类型</li>
+<li>使用方法，为类型增加新的行为</li>
+<li>了解何时使用指针，何时使用值</li>
+<li>通过接口实现多态</li>
+<li>通过组合来扩展或改变类型</li>
+<li>公开或者未公开的标识符</li>
+</ul>
+<p>Go语言是一种静态类型的编程语言。这意味着，编译器需要在编译时知晓程序里每个值的类型。如果提前知道类型信息，编译器就可以确保程序合理地使用值。这有助于减少潜在的内存异常和bug，并且使编译器有机会对代码进行一些性能优化，提高执行效率。</p>
+<p>值的类型给编译器提供两部分信息：第一部分，需要分配多少内存给这个值（即值的规模）；第二部分，这段内存表示什么。对于许多内置类型的情况来说，规模和表示是类型名的一部分。int64类型的值需要8字节（64位），表示一个整数值；float32类型的值需要4字节（32位），表示一个IEEE-754定义的二进制浮点数；bool类型的值需要1字节（8位），表示布尔值true和false。</p>
+<p>有些类型的内部表示与编译代码的机器的体系结构有关。例如，根据编译所在的机器的体系结构，一个int值的大小可能是8字节（64位），也可能是4字节（32位）。还有一些与体系结构相关的类型，如Go语言里的所有引用类型。好在创建和使用这些类型的值的时候，不需要了解这些与体系结构相关的信息。但是，如果编译器不知道这些信息，就无法阻止用户做一些导致程序受损甚至机器故障的事情。</p>
+<h1 id="用户定义的类型"><a href="#用户定义的类型" class="headerlink" title="用户定义的类型"></a><span style="color:#339AFF;">用户定义的类型</span></h1><p>Go语言允许用户定义类型。当用户声明一个新类型时，这个声明就给编译器提供了一个框架，告知必要的内存大小和表示信息。声明后的类型与内置类型的运作方式类似。Go语言里声明用户定义的类型有两种方法。<span style="color:red">最常用的方法是使用关键字struct，它可以让用户创建一个结构类型。</span></p>
+<p>结构类型通过组合一系列固定且唯一的字段来声明，如代码清单5-1所示。结构里每个字段都会用一个已知类型声明。这个已知类型可以是内置类型，也可以是其他用户定义的类型。</p>
+<blockquote>
+<p>代码清单5-1 声明一个结构类型</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// user 在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name       <span class="keyword">string</span></span><br><span class="line">    email      <span class="keyword">string</span></span><br><span class="line">    ext        <span class="keyword">int</span></span><br><span class="line">    privileged <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-1中，可以看到一个结构类型的声明。这个声明以关键字type开始，之后是新类型的名字，最后是关键字struct。这个结构类型有4个字段，每个字段都基于一个内置类型。读者可以看到这些字段是如何组合成一个数据的结构的。一旦声明了类型，就可以使用这个类型创建值，如代码清单5-2所示。</p>
+<blockquote>
+<p>代码清单5-2 使用结构类型声明变量，并初始化为其零值</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 声明user类型的变量</span></span><br><span class="line"><span class="keyword">var</span> bill user</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-2的第2行，关键字var创建了类型为user且名为bill的变量。<span style="color:red">当声明变量时，这个变量对应的值总是会被初始化。</span>这个值要么用指定的值初始化，要么用零值（即变量类型的默认值）做初始化。对数值类型来说，零值是0；对字符串来说，零值是空字符串；对布尔类型，零值是false。对这个例子里的结构，结构里每个字段都会用零值初始化。</p>
+<p>任何时候，创建一个变量并初始化为其零值，习惯是使用关键字var。这种用法是为了更明确地表示一个变量被设置为零值。如果变量被初始化为某个非零值，就配合结构字面量和短变量声明操作符来创建变量。</p>
+<p>代码清单5-3展示了如何声明一个user类型的变量，并使用某个非零值作为初始值。在第2行，我们首先给出了一个变量名，之后是短变量声明操作符。这个操作符是冒号加一个等号（<code>:=</code>）。一个短变量声明操作符在一次操作中完成两件事情：声明一个变量，并初始化。短变量声明操作符会使用右侧给出的类型信息作为声明变量的类型。</p>
+<blockquote>
+<p>代码清单5-3 使用结构字面量来声明一个结构类型的变量</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 声明user类型的变量，并初始化所有字段</span></span><br><span class="line">lisa := user&#123;</span><br><span class="line">    name: <span class="string">"lisa"</span>,</span><br><span class="line">    email: <span class="string">"lisa@email.com"</span>,</span><br><span class="line">    ext: <span class="number">123</span>,</span><br><span class="line">    privileged: <span class="literal">true</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>既然要创建并初始化一个结构类型，我们就使用结构字面量来完成这个初始化，如代码清单5-4所示。结构字面量使用一对大括号括住内部字段的初始值。</p>
+<blockquote>
+<p>代码清单5-4 使用结构字面量创建结构类型的值</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">user&#123;</span><br><span class="line">    name: <span class="string">"lisa"</span>,</span><br><span class="line">    email: <span class="string">"lisa@email.com"</span>,</span><br><span class="line">    ext: <span class="number">123</span>,</span><br><span class="line">    privileged: <span class="literal">true</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>结构字面量可以对结构类型采用两种形式。代码清单5-4中使用了第一种形式，这种形式在不同行声明每个字段的名字以及对应的值。字段名与值用冒号分隔，每一行以逗号结尾。这种形式对字段的声明顺序没有要求。第二种形式没有字段名，只声明对应的值，如代码清单5-5所示。</p>
+<blockquote>
+<p>代码清单5-5 不使用字段名，创建结构类型的值</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 声明user类型的变量</span></span><br><span class="line">lisa := user&#123;<span class="string">"Lisa"</span>,<span class="string">"lisa@email.com"</span>,<span class="number">123</span>,<span class="literal">true</span>&#125;</span><br></pre></td></tr></table></figure>
+<p>每个值也可以分别占一行，不过习惯上这种形式会写在一行里，结尾不需要逗号。这种形式下，值的顺序很重要，必须要和结构声明中字段的顺序一致。当声明结构类型时，字段的类型并不限制在内置类型，也可以使用其他用户定义的类型，如代码清单5-6所示。</p>
+<blockquote>
+<p>代码清单5-6 使用其他结构类型声明字段</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// admin需要一个user类型作为管理者，并附加权限</span></span><br><span class="line"><span class="keyword">type</span> admin <span class="keyword">struct</span>&#123;</span><br><span class="line">    person user</span><br><span class="line">    level <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-6展示了一个名为admin的新结构类型。这个结构类型有一个名为person的user类型的字段，还声明了一个名为level的string字段。当创建具有person这种字段的结构类型的变量时，初始化用的结构字面量会有一些变化，如代码清单5-7所示。</p>
+<blockquote>
+<p>代码清单5-7 使用结构字面量来创建字段的值</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 声明admin类型的变量</span></span><br><span class="line">fred := admin&#123;</span><br><span class="line">    person: user&#123;</span><br><span class="line">        name: <span class="string">"Lisa"</span>,</span><br><span class="line">        email: <span class="string">"lisa@email.com"</span>,</span><br><span class="line">        ext: <span class="number">123</span>,</span><br><span class="line">        privileged: <span class="literal">true</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">    level: <span class="string">"super"</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为了初始化person字段，我们需要创建一个user类型的值。代码清单5-7的第3行就是在创建这个值。这行代码使用结构字面量的形式创建了一个user类型的值，并赋给了person字段。</p>
+<p><span style="color:red">另一种声明用户定义的类型的方法是，基于一个已有的类型，将其作为新类型的类型说明。</span>当需要一个可以用已有类型表示的新类型的时候，这种方法会非常好用，如代码清单5-8所示。标准库使用这种声明类型的方法，从内置类型创建出很多更加明确的类型，并赋予更高级的功能。</p>
+<blockquote>
+<p>代码清单5-8 基于int64声明一个新类型</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Duration <span class="keyword">int64</span></span><br></pre></td></tr></table></figure>
+<p>代码清单5-8展示的是标准库的time包里的一个类型的声明。Duration是一种描述时间间隔的类型，单位是纳秒（ns）。这个类型使用内置的int64类型作为其表示。在Duration类型的声明中，我们把int64类型叫作Duration的基础类型。不过，虽然int64是基础类型，Go并不认为Duration和int64是同一种类型。这两个类型是完全不同的有区别的类型。</p>
+<p>为了更好地展示这种区别，来看一下代码清单5-9所示的小程序。这个程序本身无法通过编译。</p>
+<blockquote>
+<p>代码清单5-9 给不同类型的变量赋值会产生编译错误</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Duration <span class="keyword">int64</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> dur Duration</span><br><span class="line">    dur = <span class="keyword">int64</span>(<span class="number">1000</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-9所示的程序在第3行声明了Duration类型。之后在第6行声明了一个类型为Duration的变量dur，并使用零值作为初值。之后，第7行的代码会在编译的时候产生编译错误，如代码清单5-10所示。</p>
+<blockquote>
+<p>代码清单5-10 实际产生的编译错误</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">prog.go:7: cannot use int64(1000) (type int64) as type Duration in assignment</span><br></pre></td></tr></table></figure>
+<p>编译器很清楚这个程序的问题：类型int64的值不能作为类型Duration的值来用。换句话说，虽然int64类型是基础类型，Duration类型依然是一个独立的类型。两种不同类型的值即便互相兼容，也不能互相赋值。编译器不会对不同类型的值做隐式转换。</p>
+<h1 id="方法"><a href="#方法" class="headerlink" title="方法"></a><span style="color:#339AFF;">方法</span></h1><p>方法能给用户定义的类型添加新的行为。方法实际上也是函数，只是在声明时，在关键字func和方法名之间增加了一个参数，如代码清单5-11所示。</p>
+<blockquote>
+<p>代码清单5-11 listing11.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序用来展示如何声明</span></span><br><span class="line"><span class="comment">// 并使用方法</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// user在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify使用值接收者实现了一个方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending User Email To %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// changeEmail使用指针接收者实现了一个方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">changeEmail</span><span class="params">(email <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    u.email = email</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// user类型的值可以用来调用</span></span><br><span class="line">    <span class="comment">// 使用值接收者声明的方法</span></span><br><span class="line">    bill := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line">    bill.notify()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 指向user类型值的指针也可以用来调用</span></span><br><span class="line">    <span class="comment">// 使用值接收者声明的方法</span></span><br><span class="line">    lisa := &amp;user&#123;<span class="string">"Lisa"</span>, <span class="string">"lisa@email.com"</span>&#125;</span><br><span class="line">    lisa.notify()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// user类型的值可以用来调用</span></span><br><span class="line">    <span class="comment">// 使用指针接收者声明的方法</span></span><br><span class="line">    bill.changeEmail(<span class="string">"bill@newdomain.com"</span>)</span><br><span class="line">    bill.notify()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 指向user类型值的指针可以用来调用</span></span><br><span class="line">    <span class="comment">// 使用指针接收者声明的方法</span></span><br><span class="line">    lisa.changeEmail(<span class="string">"lisa@newdomain.com"</span>)</span><br><span class="line">    lisa.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-11的第16行和第23行展示了两种类型的方法。关键字func和函数名之间的参数被称作接收者，将函数与接收者的类型绑在一起。如果一个函数有接收者，这个函数就被称为方法。当运行这段程序时，会得到代码清单5-12所示的输出。</p>
+<blockquote>
+<p>代码清单5-12 listing11.go的输出</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Sending User Email To Bill&lt;bill@email.com&gt;</span><br><span class="line">Sending User Email To Lisa&lt;lisa@email.com&gt;</span><br><span class="line">Sending User Email To Bill&lt;bill@newdomain.com&gt;</span><br><span class="line">Sending User Email To Lisa&lt;lisa@newdomain.com&gt;</span><br></pre></td></tr></table></figure>
+<p>让我们来解释一下代码清单5-13所示的程序都做了什么。在第10行，该程序声明了名为user的结构类型，并声明了名为notify的方法。</p>
+<blockquote>
+<p>代码清单5-13 listing11.go：第09行到第20行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// user在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify使用值接收者实现了一个方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending User Email To %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Go语言里有两种类型的接收者：值接收者和指针接收者。在代码清单5-13的第8行，使用值接收者声明了notify方法，如代码清单5-14所示。</p>
+<blockquote>
+<p>代码清单5-14 使用值接收者声明一个方法</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br></pre></td></tr></table></figure>
+<p>notify方法的接收者被声明为user类型的值。如果使用值接收者声明方法，调用时会使用这个值的一个副本来执行。让我们跳到代码清单5-11的第32行来看一下如何调用notify方法，如代码清单5-15所示。</p>
+<blockquote>
+<p>代码清单5-15 listing11.go：第29行到第32行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// user类型的值可以用来调用</span></span><br><span class="line"><span class="comment">// 使用值接收者声明的方法</span></span><br><span class="line">bill := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line">bill.notify()</span><br></pre></td></tr></table></figure>
+<p>代码清单5-15展示了如何使用user类型的值来调用方法。第31行声明了一个user类型的变量bill，并使用给定的名字和电子邮件地址做初始化。之后在第32行，使用变量bill来调用notify方法，如代码清单5-16所示。</p>
+<blockquote>
+<p>代码清单5-16 使用变量来调用方法</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bill.notify()</span><br></pre></td></tr></table></figure>
+<p>这个语法与调用一个包里的函数看起来很类似。但在这个例子里，bill不是包名，而是变量名。这段程序在调用notify方法时，使用bill的值作为接收者进行调用，方法notify会接收到bill的值的一个副本。</p>
+<p>也可以使用指针来调用使用值接收者声明的方法，如代码清单5-17所示。</p>
+<blockquote>
+<p>代码清单5-17 listing11.go：第34行到第37行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 指向user类型值的指针也可以用来调用</span></span><br><span class="line"><span class="comment">// 使用值接收者声明的方法</span></span><br><span class="line">lisa := &amp;user&#123;<span class="string">"Lisa"</span>, <span class="string">"lisa@email.com"</span>&#125;</span><br><span class="line">lisa.notify()</span><br></pre></td></tr></table></figure>
+<p>代码清单5-17展示了如何使用指向user类型值的指针来调用notify方法。在第36行，声明了一个名为lisa的指针变量，并使用给定的名字和电子邮件地址做初始化。之后在第37行，使用这个指针变量来调用notify方法。为了支持这种方法调用，Go语言调整了指针的值，来符合方法接收者的定义。可以认为Go语言执行了代码清单5-18所示的操作。</p>
+<blockquote>
+<p>代码清单5-18 Go在代码背后的执行动作</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(*lisa).notify()</span><br></pre></td></tr></table></figure>
+<p>代码清单5-18展示了Go编译器为了支持这种方法调用背后做的事情。指针被解引用为值，这样就符合了值接收者的要求。再强调一次，notify操作的是一个副本，只不过这次操作的是从lisa指针指向的值的副本。</p>
+<p>也可以使用指针接收者声明方法，如代码清单5-19所示。</p>
+<blockquote>
+<p>代码清单5-19 listing11.go：第22行到第25行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// changeEmail使用指针接收者实现了一个方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">changeEmail</span><span class="params">(email <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    u.email = email</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-19展示了changeEmail方法的声明。这个方法使用指针接收者声明。这个接收者的类型是指向user类型值的指针，而不是user类型的值。当调用使用指针接收者声明的方法时，这个方法会共享调用方法时接收者所指向的值，如代码清单5-20所示。</p>
+<blockquote>
+<p>代码清单5-20 listing11.go：第36行和第44行到第46行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">lisa := &amp;user&#123;<span class="string">"Lisa"</span>, <span class="string">"lisa@email.com"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 指向user类型值的指针可以用来调用</span></span><br><span class="line"><span class="comment">// 使用指针接收者声明的方法</span></span><br><span class="line">lisa.changeEmail(<span class="string">"lisa@newdomain.com"</span>)</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-20中，可以看到声明了lisa指针变量，还有第46行使用这个变量调用了changeEmail方法。一旦changeEmail调用返回，这个调用对值做的修改也会反映在lisa指针所指向的值上。这是因为changeEmail方法使用了指针接收者。总结一下，值接收者使用值的副本来调用方法，而指针接受者使用实际值来调用方法。</p>
+<p>也可以使用一个值来调用使用指针接收者声明的方法，如代码清单5-21所示。</p>
+<blockquote>
+<p>代码清单5-21 listing11.go：第31行和第39行到第41行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">bill := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// user类型的值可以用来调用</span></span><br><span class="line"><span class="comment">// 使用指针接收者声明的方法</span></span><br><span class="line">bill.changeEmail(<span class="string">"bill@newdomain.com"</span>)</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-21中可以看到声明的变量bill，以及之后使用这个变量调用使用指针接收者声明的changeEmail方法。Go语言再一次对值做了调整，使之符合函数的接收者，进行调用，如代码清单5-22所示。</p>
+<blockquote>
+<p>代码清单 5-22Go在代码背后的执行动作</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(&amp;bill).changeEmail(<span class="string">"bill@newdomain.com"</span>)</span><br></pre></td></tr></table></figure>
+<p>代码清单5-22展示了Go编译器为了支持这种方法调用在背后做的事情。在这个例子里，首先引用bill值得到一个指针，这样这个指针就能够匹配方法的接收者类型，再进行调用。Go语言既允许使用值，也允许使用指针来调用方法，不必严格符合接收者的类型。这个支持非常方便开发者编写程序。</p>
+<p>应该使用值接收者，还是应该使用指针接收者，这个问题有时会比较迷惑人。可以遵从标准库里一些基本的指导方针来做决定。后面会进一步介绍这些指导方针。</p>
+<h1 id="类型的本质"><a href="#类型的本质" class="headerlink" title="类型的本质"></a><span style="color:#339AFF;">类型的本质</span></h1><p>在声明一个新类型之后，声明一个该类型的方法之前，需要先回答一个问题：这个类型的本质是什么。如果给这个类型增加或者删除某个值，是要创建一个新值，还是要更改当前的值？如果是要创建一个新值，该类型的方法就使用值接收者。如果是要修改当前值，就使用指针接收者。这个答案也会影响程序内部传递这个类型的值的方式：是按值做传递，还是按指针做传递。保持传递的一致性很重要。这个背后的原则是，不要只关注某个方法是如何处理这个值，而是要关注这个值的本质是什么。</p>
+<h2 id="内置类型"><a href="#内置类型" class="headerlink" title="内置类型"></a><span style="color:#00ACC1;">内置类型</span></h2><p>内置类型是由语言提供的一组类型。我们已经见过这些类型，分别是数值类型、字符串类型和布尔类型。这些类型本质上是原始的类型。因此，当对这些值进行增加或者删除的时候，会创建一个新值。基于这个结论，当把这些类型的值传递给方法或者函数时，应该传递一个对应值的副本。让我们看一下标准库里使用这些内置类型的值的函数，如代码清单5-23所示。</p>
+<blockquote>
+<p>代码清单5-23 golang.org/src/strings/strings.go：第620行到第625行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Trim</span><span class="params">(s <span class="keyword">string</span>, cutset <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> s == <span class="string">""</span> || cutset == <span class="string">""</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> s</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> TrimFunc(s, makeCutsetFunc(cutset))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-23中，可以看到标准库里strings包的Trim函数。Trim函数传入一个string类型的值作操作，再传入一个string类型的值用于查找。之后函数会返回一个新的string值作为操作结果。这个函数对调用者原始的string值的一个副本做操作，并返回一个新的string值的副本。字符串（string）就像整数、浮点数和布尔值一样，本质上是一种很原始的数据值，所以在函数或方法内外传递时，要传递字符串的一份副本。</p>
+<p>让我们看一下体现内置类型具有的原始本质的第二个例子，如代码清单5-24所示。</p>
+<blockquote>
+<p>代码清单5-24 golang.org/src/os/env.go：第38行到第44行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">isShellSpecialVar</span><span class="params">(c <span class="keyword">uint8</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> c &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">'*'</span>,<span class="string">'#'</span>,<span class="string">'$'</span>,<span class="string">'@'</span>,<span class="string">'!'</span>,<span class="string">'?'</span>,<span class="string">'0'</span>,<span class="string">'1'</span>,<span class="string">'2'</span>,<span class="string">'3'</span>,<span class="string">'4'</span>,<span class="string">'5'</span>,<span class="string">'6'</span>,<span class="string">'7'</span>,<span class="string">'8'</span>,<span class="string">'9'</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-24展示了env包里的isShellSpecialVar函数。这个函数传入了一个int8类型的值，并返回一个bool类型的值。注意，这里的参数没有使用指针来共享参数的值或者返回值。调用者传入了一个uint8值的副本，并接受一个返回值true或者false。</p>
+<h2 id="引用类型"><a href="#引用类型" class="headerlink" title="引用类型"></a><span style="color:#00ACC1;">引用类型</span></h2><p>Go语言里的引用类型有如下几个：切片、映射、通道、接口和函数类型。当声明上述类型的变量时，创建的变量被称作标头（header）值。从技术细节上说，字符串也是一种引用类型。每个引用类型创建的标头值是包含一个指向底层数据结构的指针。每个引用类型还包含一组独特的字段，用于管理底层数据结构。因为标头值是为复制而设计的，所以永远不需要共享一个引用类型的值。标头值里包含一个指针，因此通过复制来传递一个引用类型的值的副本，本质上就是在共享底层数据结构。</p>
+<p>让我们看一下net包里的类型，如代码清单5-25所示。</p>
+<blockquote>
+<p>代码清单5-25 golang.org/src/net/ip.go：第32行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> IP []<span class="keyword">byte</span></span><br></pre></td></tr></table></figure>
+<p>代码清单5-25展示了一个名为IP的类型，这个类型被声明为字节切片。当要围绕相关的内置类型或者引用类型来声明用户定义的行为时，直接基于已有类型来声明用户定义的类型会很好用。编译器只允许为命名的用户定义的类型声明方法，如代码清单5-26所示。</p>
+<blockquote>
+<p>代码清单5-26 golang.org/src/net/ip.go：第329行到第337行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ip IP)</span> <span class="title">MarshalText</span><span class="params">()</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">len</span>(ip) == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> []<span class="keyword">byte</span>(<span class="string">""</span>), <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(ip) != IPv4len &amp;&amp; <span class="built_in">len</span>(ip) != IPv6len &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>,errors.New(<span class="string">"invalid IP address"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> []<span class="keyword">byte</span>(ip.String()), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-26里定义的MarshalText方法是用IP类型的值接收者声明的。一个值接收者，正像预期的那样通过复制来传递引用，从而不需要通过指针来共享引用类型的值。这种传递方法也可以应用到函数或者方法的参数传递，如代码清单5-27所示。</p>
+<blockquote>
+<p>代码清单5-27 golang.org/src/net/ip.go：第318行到第325行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ipEmptyString像ip.String一样，</span></span><br><span class="line"><span class="comment">// 只不过在没有设置ip时会返回一个空字符串</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ipEmptyString</span><span class="params">(ip IP)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(ip) == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">""</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ip.String()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-27里，有一个ipEmptyString函数。这个函数需要传入一个IP类型的值。再一次，你可以看到调用者传入的是这个引用类型的值，而不是通过引用共享给这个函数。调用者将引用类型的值的副本传入这个函数。这种方法也适用于函数的返回值。最后要说的是，引用类型的值在其他方面像原始的数据类型的值一样对待。</p>
+<h2 id="结构类型"><a href="#结构类型" class="headerlink" title="结构类型"></a><span style="color:#00ACC1;">结构类型</span></h2><p>结构类型可以用来描述一组数据值，这组值的本质即可以是原始的，也可以是非原始的。如果决定在某些东西需要删除或者添加某个结构类型的值时该结构类型的值不应该被更改，那么需要遵守之前提到的内置类型和引用类型的规范。让我们从标准库里的一个原始本质的类型的结构实现开始，如代码清单5-28所示。</p>
+<blockquote>
+<p>代码清单5-28 golang.org/src/time/time.go：第39行到第55行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Time <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// sec给出自公元1年1月1日00:00:00</span></span><br><span class="line">    <span class="comment">// 开始的秒数</span></span><br><span class="line">    sec <span class="keyword">int64</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// nsec指定了一秒内的纳秒偏移，</span></span><br><span class="line">    <span class="comment">// 这个值是非零值，</span></span><br><span class="line">    <span class="comment">// 必须在[0, 999999999]范围内</span></span><br><span class="line">    nsec <span class="keyword">int32</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// loc指定了一个Location，</span></span><br><span class="line">    <span class="comment">// 用于决定该时间对应的当地的分、小时、</span></span><br><span class="line">    <span class="comment">// 天和年的值</span></span><br><span class="line">    <span class="comment">// 只有Time的零值，其loc的值是nil</span></span><br><span class="line">    <span class="comment">// 这种情况下，认为处于UTC时区</span></span><br><span class="line">    loc *Location</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-28中的Time结构选自time包。当思考时间的值时，你应该意识到给定的一个时间点的时间是不能修改的。所以标准库里也是这样实现Time类型的。让我们看一下Now函数是如何创建Time类型的值的，如代码清单5-29所示。</p>
+<blockquote>
+<p>代码清单5-29 golang.org/src/time/time.go：第781行到第784行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Now</span><span class="params">()</span> <span class="title">Time</span></span> &#123;</span><br><span class="line">    sec, nsec := now()</span><br><span class="line">    <span class="keyword">return</span> Time&#123;sec + unixToInternal, nsec, Local&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-29中的代码展示了Now函数的实现。这个函数创建了一个Time类型的值，并给调用者返回了Time值的副本。这个函数没有使用指针来共享Time值。之后，让我们来看一个Time类型的方法，如代码清单5-30所示。</p>
+<blockquote>
+<p>代码清单5-30 golang.org/src/time/time.go：第610行到第622行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t Time)</span> <span class="title">Add</span><span class="params">(d Duration)</span> <span class="title">Time</span></span> &#123;</span><br><span class="line">    t.sec += <span class="keyword">int64</span>(d / <span class="number">1e9</span>)</span><br><span class="line">    nsec := <span class="keyword">int32</span>(t.nsec) + <span class="keyword">int32</span>(d%<span class="number">1e9</span>)</span><br><span class="line">    <span class="keyword">if</span> nsec &gt;= <span class="number">1e9</span> &#123;</span><br><span class="line">        t.sec++</span><br><span class="line">        nsec -= <span class="number">1e9</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> nsec &lt; <span class="number">0</span> &#123;</span><br><span class="line">        t.sec--</span><br><span class="line">        nsec += <span class="number">1e9</span></span><br><span class="line">    &#125;</span><br><span class="line">    t.nsec = nsec</span><br><span class="line">    <span class="keyword">return</span> t</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-30中的Add方法是展示标准库如何将Time类型作为本质是原始的类型的绝佳例子。这个方法使用值接收者，并返回了一个新的Time值。该方法操作的是调用者传入的Time值的副本，并且给调用者返回了一个方法内的Time值的副本。至于是使用返回的值替换原来的Time值，还是创建一个新的Time变量来保存结果，是由调用者决定的事情。</p>
+<p>大多数情况下，结构类型的本质并不是原始的，而是非原始的。这种情况下，对这个类型的值做增加或者删除的操作应该更改值本身。当需要修改值本身时，在程序中其他地方，需要使用指针来共享这个值。让我们看一个由标准库中实现的具有非原始本质的结构类型的例子，如代码清单5-31所示。</p>
+<blockquote>
+<p>代码清单5-31 golang.org/src/os/file_unix.go：第15行到第29行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// File 表示一个打开的文件描述符</span></span><br><span class="line"><span class="keyword">type</span> File <span class="keyword">struct</span> &#123;</span><br><span class="line">    *file</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// file是*File的实际表示</span></span><br><span class="line"><span class="comment">// 额外的一层结构保证没有哪个os的客户端</span></span><br><span class="line"><span class="comment">// 能够覆盖这些数据。如果覆盖这些数据，</span></span><br><span class="line"><span class="comment">// 可能在变量终结时关闭错误的文件描述符</span></span><br><span class="line"><span class="keyword">type</span> file <span class="keyword">struct</span> &#123;</span><br><span class="line">    fd <span class="keyword">int</span></span><br><span class="line">    name <span class="keyword">string</span></span><br><span class="line">    dirinfo *dirInfo <span class="comment">// 除了目录结构，此字段为nil</span></span><br><span class="line">    nepipe <span class="keyword">int32</span> <span class="comment">// Write操作时遇到连续EPIPE的次数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以在代码清单5-31里看到标准库中声明的File类型。这个类型的本质是非原始的。这个类型的值实际上不能安全复制。对内部未公开的类型的注释，解释了不安全的原因。因为没有方法阻止程序员进行复制，所以File类型的实现使用了一个嵌入的指针，指向一个未公开的类型。本章后面会继续探讨内嵌类型。正是这层额外的内嵌类型阻止了复制。不是所有的结构类型都需要或者应该实现类似的额外保护。程序员需要能识别出每个类型的本质，并使用这个本质来决定如何组织类型。</p>
+<p>让我们看一下Open函数的实现，如代码清单5-32所示。</p>
+<blockquote>
+<p>代码清单5-32 golang.org/src/os/file.go：第238行到第240行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Open</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="params">(file *File, err error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> OpenFile(name, O_RDONLY, <span class="number">0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-32展示了Open函数的实现，调用者得到的是一个指向File类型值的指针。Open创建了File类型的值，并返回指向这个值的指针。如果一个创建用的工厂函数返回了一个指针，就表示这个被返回的值的本质是非原始的。</p>
+<p>即便函数或者方法没有直接改变非原始的值的状态，依旧应该使用共享的方式传递，如代码清单5-33所示。</p>
+<blockquote>
+<p>代码清单5-33 golang.org/src/os/file.go：第224行到第232行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *File)</span> <span class="title">Chdir</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> f == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> ErrInvalid</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> e := syscall.Fchdir(f.fd); e != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> &amp;PathError&#123;<span class="string">"chdir"</span>, f.name, e&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-33中的Chdir方法展示了，即使没有修改接收者的值，依然是用指针接收者来声明的。因为File类型的值具备非原始的本质，所以总是应该被共享，而不是被复制。</p>
+<p>是使用值接收者还是指针接收者，不应该由该方法是否修改了接收到的值来决定。这个决策应该基于该类型的本质。这条规则的一个例外是，需要让类型值符合某个接口的时候，即便类型的本质是非原始本质的，也可以选择使用值接收者声明方法。这样做完全符合接口值调用方法的机制。5.4节会讲解什么是接口值，以及使用接口值调用方法的机制。</p>
+<h1 id="接口"><a href="#接口" class="headerlink" title="接口"></a><span style="color:#339AFF;">接口</span></h1><ul>
+<li>多态是指代码可以根据类型的具体实现采取不同行为的能力。怎么理解？</li>
+</ul>
+<p><span style="color:red">多态是指代码可以根据类型的具体实现采取不同行为的能力。</span>如果一个类型实现了某个接口，所有使用这个接口的地方，都可以支持这种类型的值。标准库里有很好的例子，如io包里实现的流式处理接口。io包提供了一组构造得非常好的接口和函数，来让代码轻松支持流式数据处理。只要实现两个接口，就能利用整个io包背后的所有强大能力。</p>
+<p>不过，我们的程序在声明和实现接口时会涉及很多细节。即便实现的是已有接口，也需要了解这些接口是如何工作的。在探究接口如何工作以及实现的细节之前，我们先来看一下使用标准库里的接口的例子。</p>
+<h2 id="标准库"><a href="#标准库" class="headerlink" title="标准库"></a><span style="color:#00ACC1;">标准库</span></h2><p>我们先来看一个示例程序，这个程序实现了流行程序curl的功能，如代码清单5-34所示。</p>
+<blockquote>
+<p>代码清单5-34 listing34.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序展示如何使用io.Reader和io.Writer接口</span></span><br><span class="line"><span class="comment">// 写一个简单版本的curl程序</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"io"</span></span><br><span class="line">    <span class="string">"net/http"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// init在main函数之前调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(os.Args) != <span class="number">2</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"Usage: ./example2 &lt;url&gt;"</span>)</span><br><span class="line">        os.Exit(<span class="number">-1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 从Web服务器得到响应</span></span><br><span class="line">    r, err := http.Get(os.Args[<span class="number">1</span>])</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从Body复制到Stdout</span></span><br><span class="line">    io.Copy(os.Stdout, r.Body)</span><br><span class="line">    <span class="keyword">if</span> err := r.Body.Close(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(err)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-34展示了接口的能力以及在标准库里的应用。只用了几行代码我们就通过两个函数以及配套的接口，完成了curl程序。在第23行，调用了http包的Get函数。在与服务器成功通信后，<code>http.Get</code>函数会返回一个<code>http.Response</code>类型的指针。<code>http.Response</code>类型包含一个名为Body的字段，这个字段是一个<code>io.ReadCloser</code>接口类型的值。</p>
+<p>在第30行，Body字段作为第二个参数传给<code>io.Copy</code>函数。<code>io.Copy</code>函数的第二个参数，接受一个<code>io.Reader</code>接口类型的值，这个值表示数据流入的源。Body字段实现了<code>io.Reader</code>接口，因此我们可以将Body字段传入<code>io.Copy</code>，使用Web服务器的返回内容作为源。</p>
+<p><code>io.Copy</code>的第一个参数是复制到的目标，这个参数必须是一个实现了<code>io.Writer</code>接口的值。对于这个目标，我们传入了os包里的一个特殊值Stdout。这个接口值表示标准输出设备，并且已经实现了<code>io.Writer</code>接口。当我们将Body和Stdout这两个值传给<code>io.Copy</code>函数后，这个函数会把服务器的数据分成小段，源源不断地传给终端窗口，直到最后一个片段读取并写入终端，<code>io.Copy</code>函数才返回。</p>
+<p><code>io.Copy</code>函数可以以这种工作流的方式处理很多标准库里已有的类型，如代码清单5-35所示。</p>
+<blockquote>
+<p>代码清单5-35 listing35.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序展示bytes.Buffer也可以 </span></span><br><span class="line"><span class="comment">// 用于io.Copy函数</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"bytes"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"io"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// main是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> b bytes.Buffer</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将字符串写入buffer</span></span><br><span class="line">    b.Write([]<span class="keyword">byte</span>(<span class="string">"Hello"</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用Fprintf将字符串拼接到Buffer</span></span><br><span class="line">    fmt.Fprintf(&amp;b, <span class="string">" World!"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将Buffer的内容写到Stdout</span></span><br><span class="line">    io.Copy(os.Stdout, &amp;b)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-35展示了一个程序，这个程序使用接口来拼接字符串，并将数据以流的方式输出到标准输出设备。在第14行，创建了一个bytes包里的Buffer类型的变量b，用于缓冲数据。之后在第17行使用Write方法将字符串Hello写入这个缓冲区b。第20行，调用fmt包里的Fprintf函数，将第二个字符串追加到缓冲区b里。</p>
+<p><code>fmt.Fprintf</code>函数接受一个<code>io.Writer</code>类型的接口值作为其第一个参数。由于<code>bytes.Buffer</code>类型的指针实现了<code>io.Writer</code>接口，所以可以将缓存b传入<code>fmt.Fprintf</code>函数，并执行追加操作。最后，在第23行，再次使用<code>io.Copy</code>函数，将字符写到终端窗口。由于<code>bytes.Buffer</code>类型的指针也实现了<code>io.Reader</code>接口，<code>io.Copy</code>函数可以用于在终端窗口显示缓冲区b的内容。</p>
+<p>希望这两个小程序展示出接口的好处，以及标准库内部是如何使用接口的。下一步，让我们看一下实现接口的细节。</p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a><span style="color:#00ACC1;">实现</span></h2><p>接口是用来定义行为的类型。这些被定义的行为不由接口直接实现，而是通过方法由用户定义的类型实现。如果用户定义的类型实现了某个接口类型声明的一组方法，那么这个用户定义的类型的值就可以赋给这个接口类型的值。这个赋值会把用户定义的类型的值存入接口类型的值。</p>
+<p>对接口值方法的调用会执行接口值里存储的用户定义的类型的值对应的方法。因为任何用户定义的类型都可以实现任何接口，所以对接口值方法的调用自然就是一种多态。在这个关系里，用户定义的类型通常叫作实体类型，原因是如果离开内部存储的用户定义的类型的值的实现，接口值并没有具体的行为。</p>
+<p>并不是所有值都完全等同，用户定义的类型的值或者指针要满足接口的实现，需要遵守一些规则。这些规则在5.4.3节介绍方法集时有详细说明。探寻方法集的细节之前，了解接口类型值大概的形式以及用户定义的类型的值是如何存入接口的，会有很多帮助。</p>
+<p>图5-1展示了在user类型值赋值后接口变量的值的内部布局。接口值是一个两个字长度的数据结构，第一个字包含一个指向内部表的指针。这个内部表叫作iTable，包含了所存储的值的类型信息。iTable包含了已存储的值的类型信息以及与这个值相关联的一组方法。第二个字是一个指向所存储值的指针。将类型信息和指针组合在一起，就将这两个值组成了一种特殊的关系。</p>
+<blockquote>
+<p>图5-1 实体值赋值后接口值的简图</p>
+</blockquote>
+<img src="/2021/08/19/第5章-Go语言的类型系统/1.jpg">
+<p>图5-2展示了一个指针赋值给接口之后发生的变化。在这种情况里，类型信息会存储一个指向保存的类型的指针，而接口值第二个字依旧保存指向实体值的指针。</p>
+<blockquote>
+<p>图5-2 实体指针赋值后接口值的简图</p>
+</blockquote>
+<img src="/2021/08/19/第5章-Go语言的类型系统/2.jpg">
+<h2 id="方法集"><a href="#方法集" class="headerlink" title="方法集"></a><span style="color:#00ACC1;">方法集</span></h2><p>方法集定义了接口的接受规则。看一下代码清单5-36所示的代码，有助于理解方法集在接口中的重要角色。</p>
+<blockquote>
+<p>代码清单5-36 listing36.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序展示Go语言里如何使用接口</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// notifier是一个定义了</span></span><br><span class="line"><span class="comment">// 通知类行为的接口</span></span><br><span class="line"><span class="keyword">type</span> notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">    notify()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// user在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify是使用指针接收者实现的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个user类型的值，并发送通知</span></span><br><span class="line">    u := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line"></span><br><span class="line">    sendNotification(u)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ./listing36.go:32: </span></span><br><span class="line">    <span class="comment">// 无法将'u'(类型user)用作类型notifier</span></span><br><span class="line">    <span class="comment">// user类型未实现'notifier'，</span></span><br><span class="line">    <span class="comment">// 因为'notify'方法有指针接收器</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// sendNotification接受一个实现了notifier接口的值</span></span><br><span class="line"><span class="comment">// 并发送通知</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendNotification</span><span class="params">(n notifier)</span></span> &#123;</span><br><span class="line">    n.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-36中的程序虽然看起来没问题，但实际上却无法通过编译。在第10行中，声明了一个名为notifier的接口，包含一个名为notify的方法。第15行中，声明了名为user的实体类型，并通过第21行中的方法声明实现了notifier接口。这个方法是使用user类型的指针接收者实现的。</p>
+<blockquote>
+<p>代码清单5-37 listing36.go：第40行到第44行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// sendNotification接受一个实现了notifier接口的值</span></span><br><span class="line"><span class="comment">// 并发送通知</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendNotification</span><span class="params">(n notifier)</span></span> &#123;</span><br><span class="line">    n.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-37的第42行，声明了一个名为sendNotification的函数。这个函数接收一个notifier接口类型的值。之后，使用这个接口值来调用notify方法。任何一个实现了notifier接口的值都可以传入sendNotification函数。现在让我们来看一下main函数，如代码清单5-38所示。</p>
+<blockquote>
+<p>代码清单5-38 listing36.go：第28行到第38行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个user类型的值，并发送通知</span></span><br><span class="line">    u := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line"></span><br><span class="line">    sendNotification(u)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ./listing36.go:32: </span></span><br><span class="line">    <span class="comment">// 无法将'u'(类型user)用作类型notifier</span></span><br><span class="line">    <span class="comment">// user类型未实现'notifier'，</span></span><br><span class="line">    <span class="comment">// 因为'notify'方法有指针接收器</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在main函数里，代码清单5-38的第30行，创建了一个user实体类型的值，并将其赋值给变量u。之后在第32行将u的值传入sendNotification函数。不过，调用sendNotification的结果是产生了一个编译错误，如代码清单5-39所示。</p>
+<blockquote>
+<p>代码清单5-39 将user类型的值存入接口值时产生的编译错误</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./listing36.go：32：不能将u（类型是user）作为sendNotification的参数类型notifier：</span><br><span class="line">user类型并没有实现notifier（notify方法使用指针接收者声明）</span><br></pre></td></tr></table></figure>
+<p>既然user类型已经在第21行实现了notify方法，为什么这里还是产生了编译错误呢？让我们再来看一下那段代码，如代码清单5-40所示。</p>
+<blockquote>
+<p>代码清单5-40 listing36.go：第08行到第12行，第21行到第25行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// notifier是一个定义了</span></span><br><span class="line"><span class="comment">// 通知类行为的接口</span></span><br><span class="line"><span class="keyword">type</span> notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">    notify()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify是使用指针接收者实现的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-40展示了接口是如何实现的，而编译器告诉我们user类型的值并没有实现这个接口。如果仔细看一下编译器输出的消息，其实编译器已经说明了原因，如代码清单5-41所示。</p>
+<blockquote>
+<p>代码清单5-41 进一步查看编译器错误</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(notify method has pointer receiver)</span><br></pre></td></tr></table></figure>
+<p>要了解用指针接收者来实现接口时为什么user类型的值无法实现该接口，需要先了解方法集。方法集定义了一组关联到给定类型的值或者指针的方法。定义方法时使用的接收者的类型决定了这个方法是关联到值，还是关联到指针，还是两个都关联。</p>
+<p>让我们先解释一下Go语言规范里定义的方法集的规则，如代码清单5-42所示。</p>
+<blockquote>
+<p>代码清单5-42 规范里描述的方法集</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Values      Methods Receivers</span><br><span class="line">------------------------------</span><br><span class="line">T               (t T)</span><br><span class="line">*T              (t T) and (t *T)</span><br></pre></td></tr></table></figure>
+<p>代码清单5-42展示了规范里对方法集的描述。描述中说到，T类型的值的方法集只包含值接收者声明的方法。而指向T类型的指针的方法集既包含值接收者声明的方法，也包含指针接收者声明的方法。从值的角度看这些规则，会显得很复杂。让我们从接收者的角度来看一下这些规则，如代码清单5-43所示。</p>
+<blockquote>
+<p>代码清单5-43 从接收者类型的角度来看方法集</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Methods Receivers   Values      </span><br><span class="line">------------------------------</span><br><span class="line">(t T)                 T and *T               </span><br><span class="line">(t *T)                *T</span><br></pre></td></tr></table></figure>
+<p>代码清单5-43展示了同样的规则，只不过换成了接收者的视角。这个规则说，如果使用指针接收者来实现一个接口，那么只有指向那个类型的指针才能够实现对应的接口。如果使用值接收者来实现一个接口，那么那个类型的值和指针都能够实现对应的接口。现在再看一下代码清单5-36所示的代码，就能理解出现编译错误的原因了，如代码清单5-44所示。</p>
+<blockquote>
+<p>代码清单5-44 listing36.go：第28行到第38行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 使用user类型创建一个值，并发送通知</span></span><br><span class="line">    u := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line"></span><br><span class="line">    sendNotification(u)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ./listing36.go:32: 不能将u（类型是user）作为sendNotification的参数类型notifier：</span></span><br><span class="line">    <span class="comment">// user类型并没有实现notifier（notify方法使用指针接收者声明）</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们使用指针接收者实现了接口，但是试图将user类型的值传给sendNotification方法。代码清单5-44的第30行和第32行清晰地展示了这个问题。但是，如果传递的是user值的地址，整个程序就能通过编译，并且能够工作了，如代码清单5-45所示。</p>
+<blockquote>
+<p>代码清单5-45 listing36.go：第28行到第35行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 使用user类型创建一个值，并发送通知</span></span><br><span class="line">    u := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line"></span><br><span class="line">    sendNotification(&amp;u)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 传入地址，不再有错误</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-45里，这个程序终于可以编译并且运行。因为使用指针接收者实现的接口，只有user类型的指针可以传给sendNotification函数。</p>
+<p>现在的问题是，为什么会有这种限制？事实上，编译器并不是总能自动获得一个值的地址，如代码清单5-46所示。</p>
+<blockquote>
+<p>代码清单5-46 listing46.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序不是总能</span></span><br><span class="line"><span class="comment">// 获取值的地址</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// duration 是一个基于int类型的类型</span></span><br><span class="line"><span class="keyword">type</span> duration <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用更可读的方法格式化duration值</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *duration)</span> <span class="title">pretty</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> fmt.Sprintf(<span class="string">"Duration: %d"</span>, *d)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main 是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    duration(<span class="number">42</span>).pretty()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ./listing46.go:17: 不能通过指针调用duration(42)的方法</span></span><br><span class="line">    <span class="comment">// ./listing46.go:17: 不能获取duration(42)的地址</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-46所示的代码试图获取duration类型的值的地址，但是获取不到。这展示了不能总是获得值的地址的一种情况。让我们再看一下方法集的规则，如代码清单5-47所示。</p>
+<blockquote>
+<p>代码清单5-47 再看一下方法集的规则</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Values              Methods Receivers</span><br><span class="line">--------------------------------------------</span><br><span class="line">T                       (t T)</span><br><span class="line">*T                      (t T) and (t *T)</span><br><span class="line"></span><br><span class="line">Methods Receivers   Values      </span><br><span class="line">--------------------------------------------</span><br><span class="line">(t T)                 T and *T               </span><br><span class="line">(t *T)                *T</span><br></pre></td></tr></table></figure>
+<p>因为不是总能获取一个值的地址，所以值的方法集只包括了使用值接收者实现的方法。</p>
+<h2 id="多态"><a href="#多态" class="headerlink" title="多态"></a><span style="color:#00ACC1;">多态</span></h2><p>现在了解了接口和方法集背后的机制，最后来看一个展示接口的多态行为的例子，如代码清单5-48所示。</p>
+<blockquote>
+<p>代码清单5-48 listing48.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Sample program to show how polymorphic behavior with interfaces.</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// notifier is an interface that defines notification</span></span><br><span class="line"><span class="comment">// type behavior.</span></span><br><span class="line"><span class="keyword">type</span> notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">    notify()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// user defines a user in the program.</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify implements the notifier interface with a pointer receiver.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// admin defines a admin in the program.</span></span><br><span class="line"><span class="keyword">type</span> admin <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify implements the notifier interface with a pointer receiver.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *admin)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending admin email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        a.name,</span><br><span class="line">        a.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main is the entry point for the application.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Create a user value and pass it to sendNotification.</span></span><br><span class="line">    bill := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line">    sendNotification(&amp;bill)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Create an admin value and pass it to sendNotification.</span></span><br><span class="line">    lisa := admin&#123;<span class="string">"Lisa"</span>, <span class="string">"lisa@email.com"</span>&#125;</span><br><span class="line">    sendNotification(&amp;lisa)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// sendNotification accepts values that implement the notifier</span></span><br><span class="line"><span class="comment">// interface and sends notifications.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendNotification</span><span class="params">(n notifier)</span></span> &#123;</span><br><span class="line">    n.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-48中，我们有了一个展示接口的多态行为的例子。在第10行，我们声明了和之前代码清单中一样的notifier接口。之后第15行到第25行，我们声明了一个名为user的结构，并使用指针接收者实现了notifier接口。在第28行到第38行，我们声明了一个名为admin的结构，用同样的形式实现了notifier接口。现在，有两个实体类型实现了notifier接口。</p>
+<p>在第53行中，我们再次声明了多态函数sendNotification，这个函数接受一个实现了notifier接口的值作为参数。既然任意一个实体类型都能实现该接口，那么这个函数可以针对任意实体类型的值来执行notifier方法。因此，这个函数就能提供多态的行为，如代码清单5-49所示。</p>
+<blockquote>
+<p>代码清单5-49 listing48.go：第40行到第49行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Sample program to show how polymorphic behavior with interfaces.</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// notifier is an interface that defines notification</span></span><br><span class="line"><span class="comment">// type behavior.</span></span><br><span class="line"><span class="keyword">type</span> notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">    notify()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// user defines a user in the program.</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify implements the notifier interface with a pointer receiver.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// admin defines a admin in the program.</span></span><br><span class="line"><span class="keyword">type</span> admin <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify implements the notifier interface with a pointer receiver.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *admin)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending admin email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        a.name,</span><br><span class="line">        a.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main is the entry point for the application.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Create a user value and pass it to sendNotification.</span></span><br><span class="line">    bill := user&#123;<span class="string">"Bill"</span>, <span class="string">"bill@email.com"</span>&#125;</span><br><span class="line">    sendNotification(&amp;bill)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Create an admin value and pass it to sendNotification.</span></span><br><span class="line">    lisa := admin&#123;<span class="string">"Lisa"</span>, <span class="string">"lisa@email.com"</span>&#125;</span><br><span class="line">    sendNotification(&amp;lisa)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// sendNotification accepts values that implement the notifier</span></span><br><span class="line"><span class="comment">// interface and sends notifications.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendNotification</span><span class="params">(n notifier)</span></span> &#123;</span><br><span class="line">    n.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最后，可以在代码清单5-49中看到这种多态的行为。main函数的第43行创建了一个user类型的值，并在第44行将该值的地址传给了sendNotification函数。这最终会导致执行user类型声明的notify方法。之后，在第47行和第48行，我们对admin类型的值做了同样的事情。最终，因为sendNotification接受notifier类型的接口值，所以这个函数可以同时执行user和admin实现的行为。</p>
+<h1 id="嵌入类型"><a href="#嵌入类型" class="headerlink" title="嵌入类型"></a><span style="color:#339AFF;">嵌入类型</span></h1><p>Go语言允许用户扩展或者修改已有类型的行为。这个功能对代码复用很重要，在修改已有类型以符合新类型的时候也很重要。这个功能是通过<code>嵌入类型（type embedding）</code>完成的。嵌入类型是将已有的类型直接声明在新的结构类型里。被嵌入的类型被称为新的外部类型的内部类型。</p>
+<p>通过嵌入类型，与内部类型相关的标识符会提升到外部类型上。这些被提升的标识符就像直接声明在外部类型里的标识符一样，也是外部类型的一部分。这样外部类型就组合了内部类型包含的所有属性，并且可以添加新的字段和方法。外部类型也可以通过声明与内部类型标识符同名的标识符来覆盖内部标识符的字段或者方法。这就是扩展或者修改已有类型的方法。</p>
+<p>让我们通过一个示例程序来演示嵌入类型的基本用法，如代码清单5-50所示。</p>
+<blockquote>
+<p>代码清单5-50 listing50.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序展示如何将一个类型嵌入另一个类型，以及</span></span><br><span class="line"><span class="comment">// 内部类型和外部类型之间的关系</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// user 在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// notify 实现了一个可以通过user类型的指针</span></span><br><span class="line"><span class="comment">// 调用的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// admin 代表一个拥有权限的管理员用户</span></span><br><span class="line"><span class="keyword">type</span> admin <span class="keyword">struct</span> &#123;</span><br><span class="line">    user  <span class="comment">// 嵌入类型</span></span><br><span class="line">    level <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main 是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个admin用户</span></span><br><span class="line">    ad := admin&#123;</span><br><span class="line">        user: user&#123;</span><br><span class="line">            name:  <span class="string">"john smith"</span>,</span><br><span class="line">            email: <span class="string">"john@yahoo.com"</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        level: <span class="string">"super"</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 我们可以直接访问内部类型的方法</span></span><br><span class="line">    ad.user.notify()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 内部类型的方法也被提升到外部类型</span></span><br><span class="line">    ad.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-50中，我们的程序演示了如何嵌入一个类型，并访问嵌入类型的标识符。我们从第10行和第24行中的两个结构类型的声明开始，如代码清单5-51所示。</p>
+<blockquote>
+<p>代码清单5-51 listing50.go：第09行到第13行，第23行到第27行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// user 在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// admin 代表一个拥有权限的管理员用户</span></span><br><span class="line"><span class="keyword">type</span> admin <span class="keyword">struct</span> &#123;</span><br><span class="line">    user  <span class="comment">// 嵌入类型</span></span><br><span class="line">    level <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-51的第10行，我们声明了一个名为user的结构类型。在第24行，我们声明了另一个名为admin的结构类型。在声明admin类型的第25行，我们将user类型嵌入admin类型里。要嵌入一个类型，只需要声明这个类型的名字就可以了。在第26行，我们声明了一个名为level的字段。注意声明字段和嵌入类型在语法上的不同。</p>
+<p>一旦我们将user类型嵌入admin，我们就可以说user是外部类型admin的内部类型。有了内部类型和外部类型这两个概念，就能更容易地理解这两种类型之间的关系。</p>
+<p>代码清单5-52展示了使用user类型的指针接收者声明名为notify的方法。这个方法只是显示一行友好的信息，表示将邮件发给了特定的用户以及邮件地址。</p>
+<blockquote>
+<p>代码清单5-52 listing50.go：第15行到第21行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// notify 实现了一个可以通过user类型的指针</span></span><br><span class="line"><span class="comment">// 调用的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在，让我们来看一下main函数，如代码清单5-53所示。</p>
+<blockquote>
+<p>代码清单5-53listing50.go：第30行到第45行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个admin用户</span></span><br><span class="line">    ad := admin&#123;</span><br><span class="line">        user: user&#123;</span><br><span class="line">            name:  <span class="string">"john smith"</span>,</span><br><span class="line">            email: <span class="string">"john@yahoo.com"</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        level: <span class="string">"super"</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 我们可以直接访问内部类型的方法</span></span><br><span class="line">    ad.user.notify()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 内部类型的方法也被提升到外部类型</span></span><br><span class="line">    ad.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-53中的main函数展示了嵌入类型背后的机制。在第32行，创建了一个admin类型的值。内部类型的初始化是用结构字面量完成的。通过内部类型的名字可以访问内部类型，如代码清单5-54所示。对外部类型来说，内部类型总是存在的。这就意味着，虽然没有指定内部类型对应的字段名，还是可以使用内部类型的类型名，来访问到内部类型的值。</p>
+<blockquote>
+<p>代码清单5-54 listing50.go：第40行到第41行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 我们可以直接访问内部类型的方法</span></span><br><span class="line">ad.user.notify()</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-54中第41行，可以看到对notify方法的调用。这个调用是通过直接访问内部类型user来完成的。这展示了内部类型是如何存在于外部类型内，并且总是可访问的。不过，借助内部类型提升，notify方法也可以直接通过ad变量来访问，如代码清单5-55所示。</p>
+<blockquote>
+<p>代码清单5-55 listing50.go：第43行到第45行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 内部类型的方法也被提升到外部类型</span></span><br><span class="line">ad.notify()</span><br></pre></td></tr></table></figure>
+<p>代码清单5-55的第44行中展示了直接通过外部类型的变量来调用notify方法。由于内部类型的标识符提升到了外部类型，我们可以直接通过外部类型的值来访问内部类型的标识符。让我们修改一下这个例子，加入一个接口，如代码清单5-56所示。</p>
+<blockquote>
+<p>代码清单5-56 listing56.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序展示如何将嵌入类型应用于接口</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// notifier 是一个定义了</span></span><br><span class="line"><span class="comment">// 通知类行为的接口</span></span><br><span class="line"><span class="keyword">type</span> notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">    notify()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// user 在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过user类型值的指针</span></span><br><span class="line"><span class="comment">// 调用的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// admin 代表一个拥有权限的管理员用户</span></span><br><span class="line"><span class="keyword">type</span> admin <span class="keyword">struct</span> &#123;</span><br><span class="line">    user</span><br><span class="line">    level <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main 是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个admin用户</span></span><br><span class="line">    ad := admin&#123;</span><br><span class="line">        user: user&#123;</span><br><span class="line">            name:  <span class="string">"john smith"</span>,</span><br><span class="line">            email: <span class="string">"john@yahoo.com"</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        level: <span class="string">"super"</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 给admin用户发送一个通知</span></span><br><span class="line">    <span class="comment">// 用户实现接口的内部类型的方法，被提升到</span></span><br><span class="line">    <span class="comment">// 外部类型</span></span><br><span class="line">    sendNotification(&amp;ad)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// sendNotification 接受一个实现了notifier接口的值</span></span><br><span class="line"><span class="comment">// 并发送通知</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendNotification</span><span class="params">(n notifier)</span></span> &#123;</span><br><span class="line">    n.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-56所示的示例程序的大部分和之前的程序相同，只有一些小变化，如代码清单5-57所示。</p>
+<blockquote>
+<p>代码清单5-57第08行到第12行，第51行到第55行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// notifier 是一个定义了</span></span><br><span class="line"><span class="comment">// 通知类行为的接口</span></span><br><span class="line"><span class="keyword">type</span> notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">    notify()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// sendNotification 接受一个实现了notifier接口的值</span></span><br><span class="line"><span class="comment">// 并发送通知</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendNotification</span><span class="params">(n notifier)</span></span> &#123;</span><br><span class="line">    n.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-57的第08行，声明了一个notifier接口。之后在第53行，有一个sendNotification函数，接受notifier类型的接口的值。从代码可以知道，user类型之前声明了名为notify的方法，该方法使用指针接收者实现了notifier接口。之后，让我们看一下main函数的改动，如代码清单5-58所示。</p>
+<blockquote>
+<p>代码清单5-58 listing56.go：第35行到第49行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个admin用户</span></span><br><span class="line">    ad := admin&#123;</span><br><span class="line">        user: user&#123;</span><br><span class="line">            name:  <span class="string">"john smith"</span>,</span><br><span class="line">            email: <span class="string">"john@yahoo.com"</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        level: <span class="string">"super"</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 给admin用户发送一个通知</span></span><br><span class="line">    <span class="comment">// 用户实现接口的内部类型的方法，被提升到</span></span><br><span class="line">    <span class="comment">// 外部类型</span></span><br><span class="line">    sendNotification(&amp;ad)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里才是事情变得有趣的地方。在代码清单5-58的第37行，我们创建了一个名为ad的变量，其类型是外部类型admin。这个类型内部嵌入了user类型。之后第48行，我们将这个外部类型变量的地址传给sendNotification函数。编译器认为这个指针实现了notifier接口，并接受了这个值的传递。不过如果看一下整个示例程序，就会发现admin类型并没有实现这个接口。</p>
+<p>由于内部类型的提升，内部类型实现的接口会自动提升到外部类型。这意味着由于内部类型的实现，外部类型也同样实现了这个接口。运行这个示例程序，会得到代码清单5-59所示的输出。</p>
+<blockquote>
+<p>代码清单5-59 listing56.go的输出</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 通过user类型值的指针</span></span><br><span class="line"><span class="comment">// 调用的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Output:</span></span><br><span class="line"><span class="comment">// Sending user email to join smith&lt;john@yahoo.com&gt;</span></span><br></pre></td></tr></table></figure>
+<p>可以在代码清单5-59中看到内部类型的实现被调用。</p>
+<p>如果外部类型并不需要使用内部类型的实现，而想使用自己的一套实现，该怎么办？让我们看另一个示例程序是如何解决这个问题的，如代码清单5-60所示。</p>
+<blockquote>
+<p>代码清单5-60 listing60.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序展示当内部类型和外部类型要</span></span><br><span class="line"><span class="comment">// 实现同一个接口时的做法</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// notifier 是一个定义了</span></span><br><span class="line"><span class="comment">// 通知类行为的接口</span></span><br><span class="line"><span class="keyword">type</span> notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">    notify()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// user 在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    name  <span class="keyword">string</span></span><br><span class="line">    email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过user类型的指针</span></span><br><span class="line"><span class="comment">// 调用的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *user)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending user email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        u.name,</span><br><span class="line">        u.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// admin 代表一个拥有权限的管理员用户</span></span><br><span class="line"><span class="keyword">type</span> admin <span class="keyword">struct</span> &#123;</span><br><span class="line">    user</span><br><span class="line">    level <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过admin类型值得指针</span></span><br><span class="line"><span class="comment">// 调用的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *admin)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending admin email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        a.name,</span><br><span class="line">        a.email)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// main 是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个admin用户</span></span><br><span class="line">    ad := admin&#123;</span><br><span class="line">        user: user&#123;</span><br><span class="line">            name:  <span class="string">"john smith"</span>,</span><br><span class="line">            email: <span class="string">"john@yahoo.com"</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        level: <span class="string">"super"</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 给admin用户发送一个通知</span></span><br><span class="line">    <span class="comment">// 接口的嵌入的内部类型实现并没有提升到</span></span><br><span class="line">    <span class="comment">// 外部类型</span></span><br><span class="line">    sendNotification(&amp;ad)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 我们可以直接访问内部类型的方法</span></span><br><span class="line">    ad.user.notify()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 内部类型的方法没有被提升</span></span><br><span class="line">    ad.notify()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// sendNotification 接受一个实现了notifier接口的值</span></span><br><span class="line"><span class="comment">// 并发送通知</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendNotification</span><span class="params">(n notifier)</span></span> &#123;</span><br><span class="line">    n.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-60所示的示例程序的大部分和之前的程序相同，只有一些小变化，如代码清单5-61所示。</p>
+<blockquote>
+<p>代码清单5-61 listing60.go：第35行到第41行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 通过admin类型值得指针</span></span><br><span class="line"><span class="comment">// 调用的方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *admin)</span> <span class="title">notify</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"Sending admin email to %s&lt;%s&gt;\n"</span>,</span><br><span class="line">        a.name,</span><br><span class="line">        a.email)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个示例程序为admin类型增加了notifier接口的实现。当admin类型的实现被调用时，会显示“Sending admin email”。作为对比，user类型的实现被调用时，会显示“Sending user email”。</p>
+<p>main函数里也有一些变化，如代码清单5-62所示。</p>
+<blockquote>
+<p>代码清单5-62 listing60.go：第43行到第64行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main 是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个admin用户</span></span><br><span class="line">    ad := admin&#123;</span><br><span class="line">        user: user&#123;</span><br><span class="line">            name:  <span class="string">"john smith"</span>,</span><br><span class="line">            email: <span class="string">"john@yahoo.com"</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        level: <span class="string">"super"</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 给admin用户发送一个通知</span></span><br><span class="line">    <span class="comment">// 接口的嵌入的内部类型实现并没有提升到</span></span><br><span class="line">    <span class="comment">// 外部类型</span></span><br><span class="line">    sendNotification(&amp;ad)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 我们可以直接访问内部类型的方法</span></span><br><span class="line">    ad.user.notify()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 内部类型的方法没有被提升</span></span><br><span class="line">    ad.notify()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-62的第46行，我们再次创建了外部类型的变量ad。在第57行，将ad变量的地址传给sendNotification函数，这个指针实现了接口所需要的方法集。在第60行，代码直接访问user内部类型，并调用notify方法。最后，在第63行，使用外部类型变量ad来调用notify方法。当查看这个示例程序的输出（如代码清单5-63所示）时，就会看到区别。</p>
+<blockquote>
+<p>代码清单5-63 listing60.go的输出</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Sending admin email to john smith&lt;john@yahoo.com&gt;</span><br><span class="line">Sending user email to john smith&lt;john@yahoo.com&gt;</span><br><span class="line">Sending admin email to john smith&lt;john@yahoo.com&gt;</span><br></pre></td></tr></table></figure>
+<p>这次我们看到了admin类型是如何实现notifier接口的，以及如何由sendNotification函数以及直接使用外部类型的变量ad来执行admin类型实现的方法。这表明，如果外部类型实现了notify方法，内部类型的实现就不会被提升。不过内部类型的值一直存在，因此还可以通过直接访问内部类型的值，来调用没有被提升的内部类型实现的方法。</p>
+<h1 id="公开或未公开的标识符"><a href="#公开或未公开的标识符" class="headerlink" title="公开或未公开的标识符"></a><span style="color:#339AFF;">公开或未公开的标识符</span></h1><p>要想设计出好的API，需要使用某种规则来控制声明后的标识符的可见性。Go语言支持从包里公开或者隐藏标识符。通过这个功能，让用户能按照自己的规则控制标识符的可见性。在第3章讨论包的时候，谈到了如何从一个包引入标识符到另一个包。有时候，你可能不希望公开包里的某个类型、函数或者方法这样的标识符。在这种情况，需要一种方法，将这些标识符声明为包外不可见，这时需要将这些标识符声明为未公开的。</p>
+<p>让我们用一个示例程序来演示如何隐藏包里未公开的标识符，如代码清单5-64所示。</p>
+<blockquote>
+<p>代码清单5-64 listing64/counters/counters.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// counters包提供告警计数器的功能</span></span><br><span class="line"><span class="keyword">package</span> counters</span><br><span class="line"></span><br><span class="line"><span class="comment">// alertCounter是一个未公开的类型</span></span><br><span class="line"><span class="comment">// 这个类型用于保存告警计数</span></span><br><span class="line"><span class="keyword">type</span> alertCounter <span class="keyword">int</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>listing64/listing64.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Sample program to show how the program can't access an</span></span><br><span class="line"><span class="comment">// unexported identifier from another package.</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"github.com/goinaction/code/chapter5/listing64/counters"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// main is the entry point for the application.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Create a variable of the unexported type and initialize</span></span><br><span class="line">    <span class="comment">// the value to 10.</span></span><br><span class="line">    counter := counters.alertCounter(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ./listing64.go:15: cannot refer to unexported name</span></span><br><span class="line">    <span class="comment">//                                         counters.alertCounter</span></span><br><span class="line">    <span class="comment">// ./listing64.go:15: undefined: counters.alertCounter</span></span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"Counter: %d\n"</span>, counter)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个示例程序有两个代码文件。一个代码文件名字为counters.go，保存在counters包里；另一个代码文件名字为listing64.go，导入了counters包。让我们先从counters包里的代码开始，如代码清单5-65所示。</p>
+<blockquote>
+<p>代码清单5-65 counters/counters.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// counters包提供告警计数器的功能</span></span><br><span class="line"><span class="keyword">package</span> counters</span><br><span class="line"></span><br><span class="line"><span class="comment">// alertCounter是一个未公开的类型</span></span><br><span class="line"><span class="comment">// 这个类型用于保存告警计数</span></span><br><span class="line"><span class="keyword">type</span> alertCounter <span class="keyword">int</span></span><br></pre></td></tr></table></figure>
+<p>代码清单5-65展示了只属于counters包的代码。你可能会首先注意到第02行。直到现在，之前所有的示例程序都使用了packagemain，而这里用到的是packagecounters。当要写的代码属于某个包时，好的实践是使用与代码所在文件夹一样的名字作为包名。所有的Go工具都会利用这个习惯，所以最好遵守这个好的实践。</p>
+<p>在counters包里，我们在第06行声明了唯一一个名为alertCounter的标识符。这个标识符是一个使用int作为基础类型的类型。需要注意的是，这是一个未公开的标识符。</p>
+<p>当一个标识符的名字以小写字母开头时，这个标识符就是未公开的，即包外的代码不可见。如果一个标识符以大写字母开头，这个标识符就是公开的，即被包外的代码可见。让我们看一下导入这个包的代码，如代码清单5-66所示。</p>
+<blockquote>
+<p>代码清单5-66 listing64.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个示例程序展示无法从另一个包里</span></span><br><span class="line"><span class="comment">// 访问未公开的标识符</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"github.com/goinaction/code/chapter5/listing64/counters"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// main 是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建一个未公开的类型的变量</span></span><br><span class="line">    <span class="comment">// 并将其初始化为10</span></span><br><span class="line">    counter := counters.alertCounter(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ./listing64.go:15: 不能引用未公开的名字</span></span><br><span class="line">    <span class="comment">//                                         counters.alertCounter</span></span><br><span class="line">    <span class="comment">// ./listing64.go:15: 未定义: counters.alertCounter</span></span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"Counter: %d\n"</span>, counter)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-66中的listing64.go的代码在第03行声明了main包，之后在第08行导入了counters包。在这之后，我们跳到main函数里的第15行，如代码清单5-67所示。</p>
+<blockquote>
+<p>代码清单5-67 listing64.go：第13到19行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个未公开的类型的变量</span></span><br><span class="line"><span class="comment">// 并将其初始化为10</span></span><br><span class="line">counter := counters.alertCounter(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// ./listing64.go:15: 不能引用未公开的名字</span></span><br><span class="line"><span class="comment">//                                         counters.alertCounter</span></span><br><span class="line"><span class="comment">// ./listing64.go:15: 未定义: counters.alertCounter</span></span><br></pre></td></tr></table></figure>
+<p>在代码清单5-67的第15行，代码试图创建未公开的alertCounter类型的值。不过这段代码会造成第15行展示的编译错误，这个编译错误表明第15行的代码无法引用counters.alertCounter这个未公开的标识符。这个标识符是未定义的。</p>
+<p>由于counters包里的alertCounter类型是使用小写字母声明的，所以这个标识符是未公开的，无法被listing64.go的代码访问。如果我们把这个类型改为用大写字母开头，那么就不会产生编译器错误。让我们看一下新的示例程序，如代码清单5-68所示，这个程序在counters包里实现了工厂函数。</p>
+<blockquote>
+<p>代码清单5-68 listing68/counters/counters.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>这个例子已经修改为使用工厂函数来创建一个未公开的alertCounter类型的值。让我们先看一下counters包的代码，如代码清单5-69所示。</p>
+<blockquote>
+<p>代码清单5-69 counters/counters.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>代码清单5-69展示了我们对counters包的改动。alertCounter类型依旧是未公开的，不过现在在第10行增加了一个名为New的新函数。将工厂函数命名为New是Go语言的一个习惯。这个New函数做了些有意思的事情：它创建了一个未公开的类型的值，并将这个值返回给调用者。让我们看一下listing68.go的main函数，如代码清单5-70所示。</p>
+<blockquote>
+<p>代码清单5-70 listing68.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Sample program to show how the program can access a value</span></span><br><span class="line"><span class="comment">// of an unexported identifier from another package.</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"github.com/goinaction/code/chapter5/listing68/counters"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// main is the entry point for the application.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Create a variable of the unexported type using the exported</span></span><br><span class="line">    <span class="comment">// New function from the package counters.</span></span><br><span class="line">    counter := counters.New(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"Counter: %d\n"</span>, counter)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-70的第15行，可以看到对counters包里New函数的调用。这个New函数返回的值被赋给一个名为counter的变量。这个程序可以编译并且运行，但为什么呢？New函数返回的是一个未公开的alertCounter类型的值，而main函数能够接受这个值并创建一个未公开的类型的变量。</p>
+<p>要让这个行为可行，需要两个理由。第一，公开或者未公开的标识符，不是一个值。第二，短变量声明操作符，有能力捕获引用的类型，并创建一个未公开的类型的变量。永远不能显式创建一个未公开的类型的变量，不过短变量声明操作符可以这么做。</p>
+<p>让我们看一个新例子，这个例子展示了这些可见的规则是如何影响到结构里的字段，如代码清单5-71所示。</p>
+<blockquote>
+<p>代码清单5-71 listing71/entities/entities.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>代码清单5-71中的代码有一些微妙的变化。现在我们有一个名为entities的包，声明了名为User的结构类型，如代码清单5-72所示。</p>
+<blockquote>
+<p>代码清单5-72 entities/entities.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>代码清单5-72的第06行中的User类型被声明为公开的类型。User类型里声明了两个字段，一个名为Name的公开的字段，一个名为email的未公开的字段。让我们看一下listing71.go的代码，如代码清单5-73所示。</p>
+<blockquote>
+<p>代码清单5-73 listing71.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Sample program to show how unexported fields from an exported</span></span><br><span class="line"><span class="comment">// struct type can't be accessed directly.</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"github.com/goinaction/code/chapter5/listing71/entities"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// main is the entry point for the application.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Create a value of type User from the entities package.</span></span><br><span class="line">    u := entities.User&#123;</span><br><span class="line">        Name:  <span class="string">"Bill"</span>,</span><br><span class="line">        email: <span class="string">"bill@email.com"</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ./example71.go:16: unknown entities.User field 'email' in</span></span><br><span class="line">    <span class="comment">//                    struct literal</span></span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"User: %v\n"</span>, u)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码清单5-73的第08行导入了entities包。在第14行声明了entities包中的公开的类型User的名为u的变量，并对该字段做了初始化。不过这里有一个问题。第16行的代码试图初始化未公开的字段email，所以编译器抱怨这是个未知的字段。因为email这个标识符未公开，所以它不能在entities包外被访问。</p>
+<p>让我们看最后一个例子，这个例子展示了公开和未公开的内嵌类型是如何工作的，如代码清单5-74所示。</p>
+<blockquote>
+<p>代码清单5-74 listing74/entities/entities.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Package entities contains support for types of</span></span><br><span class="line"><span class="comment">// people in the system.</span></span><br><span class="line"><span class="keyword">package</span> entities</span><br><span class="line"></span><br><span class="line"><span class="comment">// user defines a user in the program.</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name  <span class="keyword">string</span></span><br><span class="line">    Email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Admin defines an admin in the program.</span></span><br><span class="line"><span class="keyword">type</span> Admin <span class="keyword">struct</span> &#123;</span><br><span class="line">    user   <span class="comment">// The embedded type is unexported.</span></span><br><span class="line">    Rights <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在，在代码清单5-74里，entities包包含两个结构类型，如代码清单5-75所示。</p>
+<blockquote>
+<p>代码清单5-75 entities/entities.go</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// entities包包含系统中</span></span><br><span class="line"><span class="comment">// 与人有关的类型</span></span><br><span class="line"><span class="keyword">package</span> entities</span><br><span class="line"></span><br><span class="line"><span class="comment">// user在程序里定义一个用户类型</span></span><br><span class="line"><span class="keyword">type</span> user <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name <span class="keyword">string</span></span><br><span class="line">    Email <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Admin 在程序里定义了管理员</span></span><br><span class="line"><span class="keyword">type</span> Admin <span class="keyword">struct</span> &#123;</span><br><span class="line">    user <span class="comment">// 嵌入的类型是未公开的</span></span><br><span class="line">    Rights <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在代码清单5-75的第06行，声明了一个未公开的结构类型user。这个类型包括两个公开的字段Name和Email。在第12行，声明了一个公开的结构类型Admin。Admin有一个名为Rights的公开的字段，而且嵌入一个未公开的user类型。让我们看一下listing74.go的main函数，如代码清单5-76所示。</p>
+<blockquote>
+<p>代码清单5-76 listing74.go：第11到24行</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main 是应用程序的入口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建entities包中的Admin类型的值</span></span><br><span class="line">    a := entities.Admin&#123;</span><br><span class="line">        Rights: <span class="number">10</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置未公开的内部类型的</span></span><br><span class="line">    <span class="comment">// 公开字段的值</span></span><br><span class="line">    a.Name = <span class="string">"Bill"</span></span><br><span class="line">    a.Email = <span class="string">"bill@email.com"</span></span><br><span class="line"></span><br><span class="line">    fmt.Printf(<span class="string">"User: %v\n"</span>, a)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>让我们从代码清单5-76的第14行的main函数开始。这个函数创建了entities包中的Admin类型的值。由于内部类型user是未公开的，这段代码无法直接通过结构字面量的方式初始化该内部类型。不过，即便内部类型是未公开的，内部类型里声明的字段依旧是公开的。既然内部类型的标识符提升到了外部类型，这些公开的字段也可以通过外部类型的字段的值来访问。</p>
+<p>因此，在第20行和第21行，来自未公开的内部类型的字段Name和Email可以通过外部类型的变量a被访问并被初始化。因为user类型是未公开的，所以这里没有直接访问内部类型。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><ul>
+<li>使用关键字struct或者通过指定已经存在的类型，可以声明用户定义的类型。</li>
+<li>方法提供了一种给用户定义的类型增加行为的方式。</li>
+<li>设计类型时需要确认类型的本质是原始的，还是非原始的。</li>
+<li>接口是声明了一组行为并支持多态的类型。</li>
+<li>嵌入类型提供了扩展类型的能力，而无需使用继承。</li>
+<li>标识符要么是从包里公开的，要么是在包里未公开的。</li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Go语言实战/" rel="tag"># Go语言实战</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/08/19/第4章-数组、切片和映射/" rel="next" title="第4章 数组、切片和映射">
+                <i class="fa fa-chevron-left"></i> 第4章 数组、切片和映射
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2021/08/19/第6章-并发/" rel="prev" title="第6章 并发">
+                第6章 并发 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#用户定义的类型"><span class="nav-number">1.</span> <span class="nav-text">用户定义的类型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#方法"><span class="nav-number">2.</span> <span class="nav-text">方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#类型的本质"><span class="nav-number">3.</span> <span class="nav-text">类型的本质</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#内置类型"><span class="nav-number">3.1.</span> <span class="nav-text">内置类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#引用类型"><span class="nav-number">3.2.</span> <span class="nav-text">引用类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结构类型"><span class="nav-number">3.3.</span> <span class="nav-text">结构类型</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#接口"><span class="nav-number">4.</span> <span class="nav-text">接口</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#标准库"><span class="nav-number">4.1.</span> <span class="nav-text">标准库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实现"><span class="nav-number">4.2.</span> <span class="nav-text">实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#方法集"><span class="nav-number">4.3.</span> <span class="nav-text">方法集</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多态"><span class="nav-number">4.4.</span> <span class="nav-text">多态</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#嵌入类型"><span class="nav-number">5.</span> <span class="nav-text">嵌入类型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#公开或未公开的标识符"><span class="nav-number">6.</span> <span class="nav-text">公开或未公开的标识符</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">7.</span> <span class="nav-text">小结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

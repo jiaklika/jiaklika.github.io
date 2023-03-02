@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="手把手带你写一个Web框架">
+<meta property="og:type" content="article">
+<meta property="og:title" content="17 ｜ 日志：如何设计多输出的日志服务？">
+<meta property="og:url" content="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/1.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/2.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/3.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/4.webp">
+<meta property="og:image" content="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/5.webp">
+<meta property="og:updated_time" content="2023-03-02T02:48:16.093Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="17 ｜ 日志：如何设计多输出的日志服务？">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/1.webp">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>17 ｜ 日志：如何设计多输出的日志服务？ | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/12/20/17｜日志：如何设计多输出的日志服务？/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">17 ｜ 日志：如何设计多输出的日志服务？
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2021-12-20 11:07:33" itemprop="dateCreated datePublished" datetime="2021-12-20T11:07:33+08:00">2021-12-20</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2023-03-02 10:48:16" itemprop="dateModified" datetime="2023-03-02T10:48:16+08:00">2023-03-02</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">17k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">15 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<p>上面两节课，我们将环境变量和配置服务作为一个服务注册到容器中了。这样，在业务中就能很方便获取环境变量和配置了。不知道你有没有逐渐体会到这种“一切皆服务”思想的好处。</p>
+<p>就像堆积积木，只要想好了一个服务的接口，我们逐步实现服务之后，这一个服务就是一块积木，之后可以用相同的思路实现各种服务的积木块，用它们来拼出我们需要的业务逻辑。这节课，我们就来实现另一个框架最核心的积木：日志服务。</p>
+<p>实现一个框架的服务，我们习惯了要创建三个文件：接口协议文件framework/contract/log.go、服务提供者framework/provider/log/provider.go、接口实例framework/provider/log/service.go。</p>
+<h1 id="日志接口协议"><a href="#日志接口协议" class="headerlink" title="日志接口协议"></a><span style="color:#339AFF;">日志接口协议</span></h1><p>说到日志服务，最先冒出来的一定是三个问题：什么样的日志需要输出？日志输出哪些内容？日志输出到哪里？一个个来分析。</p>
+<h2 id="日志级别"><a href="#日志级别" class="headerlink" title="日志级别"></a><span style="color:#00ACC1;">日志级别</span></h2><p>什么样的日志需要输出，这是个关于日志级别的问题。我们想要把日志分为几个级别？每个级别代表什么？这个日志级别其实在不同系统中有不同划分，比如Linux的syslog中将系统划分为以下八种日志级别：</p>
+<img src="/2021/12/20/17｜日志：如何设计多输出的日志服务？/1.webp">
+<p>而Java的log4j将日志分为以下七种日志级别：</p>
+<img src="/2021/12/20/17｜日志：如何设计多输出的日志服务？/2.webp">
+<p>其实仔细看，它们的日志级别差别都不大。比如都同意用Error级别代表运行时的错误情况，而Warn级别代表运行时可以弥补的错误、Info级别代表运行时信息、debug代表调试的时候需要打印的信息。</p>
+<p>不同点就在是否有trace级别以及Error级别往上的级别定义。syslog没有trace级别，而在Error级别往上分别定义了Emergency级别、Alert级别、Critical级别。而log4j在ERROR上定义了两个级别FATAL和OFF，也同时保留了Trace级别。</p>
+<p>在我看来，syslog和log4j的日志区分主要是由于场景不同。syslog比较偏向于操作系统的使用场景，它的分级语义更多是告诉我们系统的情况，比如Alert这个级别表示“系统有问题，需要立即采取行动”；而log4j的日志级别定义是从一个应用出发的，它的影响范围理论上会小一些，所以它很难定义比如像“需要立即采取行动”这样的级别。</p>
+<p>所以，这里我们主要参考log4j的日志级别方法，并做了一些小调整，归并为下列七种日志级别：</p>
+<ul>
+<li>panic，表示会导致整个程序出现崩溃的日志信息</li>
+<li>fatal，表示会导致当前这个请求出现提前终止的错误信息</li>
+<li>error，表示出现错误，但是不一定影响后续请求逻辑的错误信息</li>
+<li>warn，表示出现错误，但是一定不影响后续请求逻辑的报警信息</li>
+<li>info，表示正常的日志信息输出</li>
+<li>debug，表示在调试状态下打印出来的日志信息</li>
+<li>trace，表示最详细的信息，一般信息量比较大，可能包含调用堆栈等信息</li>
+</ul>
+<p>在error级别之上，我们把导致程序崩溃和导致请求结束的错误拆分出来，分为panic和fatal两个类型来定义级别。而其他的error、warn、info、debug都和其他的日志系统一致。另外也增加一个trace级别，当需要打印调用堆栈等这些比较详细的信息的时候，可以使用这种日志级别。</p>
+<p>日志级别是按照严重顺序从下往上排列的。也就是说，如果我们设置了日志输出级别为info，那么info级别的日志及info级别往上，日志级别更高的warn、error、fatal、panic的日志，也需要被打印出来。</p>
+<p>按照这个思路，我们在framework/contract/log.go中定义的接口协议如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> contract</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"context"</span></span><br><span class="line">    <span class="string">"io"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 协议关键字</span></span><br><span class="line"><span class="keyword">const</span> LogKey = <span class="string">"hade:log"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> LogLevel <span class="keyword">uint32</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    <span class="comment">// UnknownLevel 表示未知的日志级别</span></span><br><span class="line">    UnknownLevel LogLevel = <span class="literal">iota</span></span><br><span class="line">    <span class="comment">// PanicLevel level, panic 表示会导致整个程序出现崩溃的日志信息</span></span><br><span class="line">    PanicLevel</span><br><span class="line">    <span class="comment">// FatalLevel level. fatal 表示会导致当前这个请求出现提前终止的错误信息</span></span><br><span class="line">    FatalLevel</span><br><span class="line">    <span class="comment">// ErrorLevel level. error 表示出现错误，但是不一定影响后续请求逻辑的错误信息</span></span><br><span class="line">    ErrorLevel</span><br><span class="line">    <span class="comment">// WarnLevel level. warn 表示出现错误，但是一定不影响后续请求逻辑的报警信息</span></span><br><span class="line">    WarnLevel</span><br><span class="line">    <span class="comment">// InfoLevel level. info 表示正常的日志信息输出</span></span><br><span class="line">    InfoLevel</span><br><span class="line">    <span class="comment">// DebugLevel level. debug 表示在调试状态下打印出来的日志信息</span></span><br><span class="line">    DebugLevel</span><br><span class="line">    <span class="comment">// TraceLevel level. trace 表示最详细的信息，一般信息量比较大，可能包含调用堆栈等信息</span></span><br><span class="line">    TraceLevel</span><br><span class="line">)</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment">// Log define interface for log</span></span><br><span class="line"><span class="keyword">type</span> Log <span class="keyword">interface</span> &#123;</span><br><span class="line">    <span class="comment">// Panic 表示会导致整个程序出现崩溃的日志信息</span></span><br><span class="line">    Panic(ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    <span class="comment">// Fatal 表示会导致当前这个请求出现提前终止的错误信息</span></span><br><span class="line">    Fatal(ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    <span class="comment">// Error 表示出现错误，但是不一定影响后续请求逻辑的错误信息</span></span><br><span class="line">    Error(ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    <span class="comment">// Warn 表示出现错误，但是一定不影响后续请求逻辑的报警信息</span></span><br><span class="line">    Warn(ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    <span class="comment">// Info 表示正常的日志信息输出</span></span><br><span class="line">    Info(ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    <span class="comment">// Debug 表示在调试状态下打印出来的日志信息</span></span><br><span class="line">    Debug(ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    <span class="comment">// Trace 表示最详细的信息，一般信息量比较大，可能包含调用堆栈等信息</span></span><br><span class="line">    Trace(ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    <span class="comment">// SetLevel 设置日志级别</span></span><br><span class="line">    SetLevel(level LogLevel)</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在接口中，我们针对七种日志级别设置了七个不同的方法，并且提供SetLevel方法，来设置当前这个日志服务需要输出的日志级别。</p>
+<h2 id="日志格式"><a href="#日志格式" class="headerlink" title="日志格式"></a><span style="color:#00ACC1;">日志格式</span></h2><p>定义好了日志级别，下面该定义日志格式了。日志格式包括输出哪些内容、如何输出？</p>
+<p>首先明确下需要输出的日志信息，不外乎有下面四个部分：</p>
+<ul>
+<li>日志级别，输出当前日志的级别信息。</li>
+<li>日志时间，输出当前日志的打印时间。</li>
+<li>日志简要信息，输出当前日志的简要描述信息，一句话说明日志错误。</li>
+<li>日志上下文字段，输出当前日志的附带信息。这些字段代表日志打印的上下文。</li>
+</ul>
+<p>比如这就是一个完整的日志信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[Info]  2021-09-22T00:04:21+08:00       &quot;demo test error&quot;       map[api:demo/demo cspan_id: parent_id: span_id:c55051d94815vbl56i2g trace_id:c55051d94815vbl56i20 user:jianfengye]</span><br></pre></td></tr></table></figure></p>
+<p>上面那条日志，日志级别为Info，时间为2021-09-21年15:40:03，时区为+08:00。简要信息demotesterror表示这个日志希望打印的信息，剩下的map表示的key、value为补充的日志上下文字段。</p>
+<p>它对应的调用函数如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">logger.Info(c, <span class="string">"demo test error"</span>, <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">    <span class="string">"api"</span>:  <span class="string">"demo/demo"</span>,</span><br><span class="line">    <span class="string">"user"</span>: <span class="string">"jianfengye"</span>,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>这里我额外说一下日志上下文字段。它是一个map值，来源可能有两个：一个是用户在打印日志的时候传递的map，比如上面代码中的api和user；而另外一部分数据是可能来自context，因为在具体业务开发中，我们很有可能把一些通用信息，比如trace_id等放在context里，这一部分信息也会希望取出放在日志的上下文字段中。</p>
+<p>所以这里有一个从context中获取日志上下文字段的方法。在framework/contract/log.go中定义其为CtxFielder。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// CtxFielder 定义了从context中获取信息的方法</span></span><br><span class="line"><span class="keyword">type</span> CtxFielder <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span> <span class="title">map</span>[<span class="title">string</span>]<span class="title">interface</span></span>&#123;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>明确了打印哪些信息，更要明确这些信息按照什么输出格式输出。这个输出格式也是一个通用方法Fomatter，它的传入参数就是刚才的四个日志信息。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Formatter 定义了将日志信息组织成字符串的通用方法</span></span><br><span class="line"><span class="keyword">type</span> Formatter <span class="function"><span class="keyword">func</span><span class="params">(level LogLevel, t time.Time, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>同时在log服务协议中增加了SetFormatter和SetCtxFielder的方法。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Log 定义了日志服务协议</span></span><br><span class="line"><span class="keyword">type</span> Log <span class="keyword">interface</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// SetCtxFielder 从context中获取上下文字段field</span></span><br><span class="line">    SetCtxFielder(handler CtxFielder)</span><br><span class="line">    <span class="comment">// SetFormatter 设置输出格式</span></span><br><span class="line">    SetFormatter(formatter Formatter)</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="日志输出"><a href="#日志输出" class="headerlink" title="日志输出"></a><span style="color:#00ACC1;">日志输出</span></h2><p>已经解决了前两个问题，明确了日志的级别和输出格式，那日志可以输出在哪些地方？</p>
+<p>其实我们在定义接口的时候，并不知道它会输出到哪里。但是只需要知道一定会输出到某个输出管道就可以了，之后在每个应用中使用的时候，我们再根据每个应用的配置，来确认具体的输出管道实现。</p>
+<p>目前这个输出管道我们使用io.Writer来进行设置：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Log 定义了日志服务协议</span></span><br><span class="line"><span class="keyword">type</span> Log <span class="keyword">interface</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// SetOutput 设置输出管道</span></span><br><span class="line">    SetOutput(out io.Writer)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="日志服务提供者"><a href="#日志服务提供者" class="headerlink" title="日志服务提供者"></a><span style="color:#339AFF;">日志服务提供者</span></h1><p>日志接口协议文件就完成了，下面来实现日志的服务提供者，在framework/provider/log/provider.go中。在编写服务提供者的时候，我们需要先明确最终会提供哪些服务。对于日志服务，按照我们平时的使用情况，可以分为四类：</p>
+<ul>
+<li>控制台输出</li>
+<li>本地单个日志文件输出</li>
+<li>本地单个日志文件，自动进行切割输出</li>
+<li>自定义输出</li>
+</ul>
+<p>这四种输出我们都各自定义一个服务，分别放在framework/provider/log/service/目录下的四个文件里：</p>
+<ul>
+<li>console.go表示控制台输出，定义初始化实例方法NewHadeConsoleLog；</li>
+<li>single.go表述单个日志文件输出，定义初始化实例方法NewHadeSingleLog；</li>
+<li>rotate.go表示单个文件输出，但是自动进行切割，定义初始化实例方法NewHadeRotateLog；</li>
+<li>custom.go表示自定义输出，定义实例化方法NewHadeCustomLog。</li>
+</ul>
+<p>那在服务提供者的Register注册服务实例方法中，我们设计成根据配置项“log.driver”，来选择不同的实例化方法，默认为NewHadeConsoleLog方法。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Register 注册一个服务实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *HadeLogServiceProvider)</span> <span class="title">Register</span><span class="params">(c framework.Container)</span> <span class="title">framework</span>.<span class="title">NewInstance</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> l.Driver == <span class="string">""</span> &#123;</span><br><span class="line">        tcs, err := c.Make(contract.ConfigKey)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="comment">// 默认使用console</span></span><br><span class="line">            <span class="keyword">return</span> services.NewHadeConsoleLog</span><br><span class="line">        &#125;</span><br><span class="line">        cs := tcs.(contract.Config)</span><br><span class="line">        l.Driver = strings.ToLower(cs.GetString(<span class="string">"log.Driver"</span>))</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 根据driver的配置项确定</span></span><br><span class="line">    <span class="keyword">switch</span> l.Driver &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"single"</span>:</span><br><span class="line">        <span class="keyword">return</span> services.NewHadeSingleLog</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"rotate"</span>:</span><br><span class="line">        <span class="keyword">return</span> services.NewHadeRotateLog</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"console"</span>:</span><br><span class="line">        <span class="keyword">return</span> services.NewHadeConsoleLog</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"custom"</span>:</span><br><span class="line">        <span class="keyword">return</span> services.NewHadeCustomLog</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        <span class="keyword">return</span> services.NewHadeConsoleLog</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而上一节里面分析的，日志的几个配置：日志级别、输出格式方法、context内容获取方法、输出方法，都以服务提供者provider.go中参数的方式提供。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HadeLogServiceProvider 服务提供者</span></span><br><span class="line"><span class="keyword">type</span> HadeLogServiceProvider <span class="keyword">struct</span> &#123;</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 日志级别</span></span><br><span class="line">    Level contract.LogLevel</span><br><span class="line">    <span class="comment">// 日志输出格式方法</span></span><br><span class="line">    Formatter contract.Formatter</span><br><span class="line">    <span class="comment">// 日志context上下文信息获取函数</span></span><br><span class="line">    CtxFielder contract.CtxFielder</span><br><span class="line">    <span class="comment">// 日志输出信息</span></span><br><span class="line">    Output io.Writer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>默认提供两种输出格式，一种是文本输出形式，比如上面举的那个例子，<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[Info]  2021-09-22T00:04:21+08:00       &quot;demo test error&quot;       map[api:demo/demo cspan_id: parent_id: span_id:c55051d94815vbl56i2g trace_id:c55051d94815vbl56i20 user:jianfengye]</span><br></pre></td></tr></table></figure></p>
+<p>另外一种是JSON输出形式，如下：<br><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"api"</span>:<span class="string">"demo/demo"</span>,<span class="attr">"cspan_id"</span>:<span class="string">""</span>,<span class="attr">"level"</span>:<span class="number">5</span>,<span class="attr">"msg"</span>:<span class="string">"demo1"</span>,<span class="attr">"parent_id"</span>:<span class="string">""</span>,<span class="attr">"span_id"</span>:<span class="string">"c54v0tt9481537jasreg"</span>,<span class="attr">"timestamp"</span>:<span class="string">"2021-09-21T22:47:19+08:00"</span>,<span class="attr">"trace_id"</span>:<span class="string">"c54v0tt9481537jasre0"</span>,<span class="attr">"user"</span>:<span class="string">"jianfengye"</span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这两种输出除了格式不同，其中的内容应该是相同的。具体使用起来，文本输出更便于我们阅读，而JSON输出更便于机器或者程序阅读。</p>
+<p>在实现文件夹framework/provider/log/formatter/里，我们增加两个文件json.go和text.go表示两种格式输出，对应的TextFormatter和JsonFormatter是对应的文本格式输出方法，这里就贴出text.go的具体实现，很简单，其他的差别不大，可以参考GitHub。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// TextFormatter 表示文本格式输出</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TextFormatter</span><span class="params">(level contract.LogLevel, t time.Time, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">    bf := bytes.NewBuffer([]<span class="keyword">byte</span>&#123;&#125;)</span><br><span class="line">    Separator := <span class="string">"\t"</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 先输出日志级别</span></span><br><span class="line">    prefix := Prefix(level)</span><br><span class="line"></span><br><span class="line">    bf.WriteString(prefix)</span><br><span class="line">    bf.WriteString(Separator)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 输出时间</span></span><br><span class="line">    ts := t.Format(time.RFC3339)</span><br><span class="line">    bf.WriteString(ts)</span><br><span class="line">    bf.WriteString(Separator)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 输出msg</span></span><br><span class="line">    bf.WriteString(<span class="string">"\""</span>)</span><br><span class="line">    bf.WriteString(msg)</span><br><span class="line">    bf.WriteString(<span class="string">"\""</span>)</span><br><span class="line">    bf.WriteString(Separator)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 输出map</span></span><br><span class="line">    bf.WriteString(fmt.Sprint(fields))</span><br><span class="line">    <span class="keyword">return</span> bf.Bytes(), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>再回到framework/provider/log/provider.go，定义服务提供者的Params方法。比如获取格式化方法Formatter，我们就设定成，先判断在初始化的时候，是否定义了服务提供者；如果没有，再判断配置项log.formatter是否指定了格式化方法json/text，设置最终的Formatter，并且传递实例化的方法。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Params 定义要传递给实例化方法的参数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *HadeLogServiceProvider)</span> <span class="title">Params</span><span class="params">(c framework.Container)</span> []<span class="title">interface</span></span>&#123;&#125; &#123;</span><br><span class="line">    <span class="comment">// 获取configService</span></span><br><span class="line">    configService := c.MustMake(contract.ConfigKey).(contract.Config)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置参数formatter</span></span><br><span class="line">    <span class="keyword">if</span> l.Formatter == <span class="literal">nil</span> &#123;</span><br><span class="line">        l.Formatter = formatter.TextFormatter</span><br><span class="line">        <span class="keyword">if</span> configService.IsExist(<span class="string">"log.formatter"</span>) &#123;</span><br><span class="line">            v := configService.GetString(<span class="string">"log.formatter"</span>)</span><br><span class="line">            <span class="keyword">if</span> v == <span class="string">"json"</span> &#123;</span><br><span class="line">                l.Formatter = formatter.JsonFormatter</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> v == <span class="string">"text"</span> &#123;</span><br><span class="line">                l.Formatter = formatter.TextFormatter</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> l.Level == contract.UnknownLevel &#123;</span><br><span class="line">        l.Level = contract.InfoLevel</span><br><span class="line">        <span class="keyword">if</span> configService.IsExist(<span class="string">"log.level"</span>) &#123;</span><br><span class="line">            l.Level = logLevel(configService.GetString(<span class="string">"log.level"</span>))</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 定义5个参数</span></span><br><span class="line">    <span class="keyword">return</span> []<span class="keyword">interface</span>&#123;&#125;&#123;c, l.Level, l.CtxFielder, l.Formatter, l.Output&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>至于日志服务提供者的其他几个方法（Register、Boot、IsDefer、Name），就不在这里说明了，可以参考GitHub上的代码。</p>
+<h1 id="日志服务的具体实现"><a href="#日志服务的具体实现" class="headerlink" title="日志服务的具体实现"></a><span style="color:#339AFF;">日志服务的具体实现</span></h1><p>最后就到具体的日志服务的实现了。上面我们说，针对四种不同的输出方式，定义了四个不同的服务实例，这四个不同的服务实例都需要实现前面定义的日志服务协议。如果每个实例都实现一遍，还是非常麻烦的。这里可以使用一个技巧：类型嵌套。</p>
+<p>我们先创建一个通用的服务实例HadeLog，在HadeLog中存放通用的字段，比如上述日志服务提供者传递的五个参数：container、level、ctxFielder、formatter、output。</p>
+<p>在provider/log/services/log.go中定义这个结构：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HadeLog 的通用实例</span></span><br><span class="line"><span class="keyword">type</span> HadeLog <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 五个必要参数</span></span><br><span class="line">    level      contract.LogLevel   <span class="comment">// 日志级别</span></span><br><span class="line">    formatter  contract.Formatter  <span class="comment">// 日志格式化方法</span></span><br><span class="line">    ctxFielder contract.CtxFielder <span class="comment">// ctx获取上下文字段</span></span><br><span class="line">    output     io.Writer           <span class="comment">// 输出</span></span><br><span class="line">    c          framework.Container <span class="comment">// 容器</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>接着在通用实例中，使用这几个必要的参数，就能实现日志协议的所有接口了，这里展示了Info方法是怎么打印信息的：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Info 会打印出普通的日志信息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(log *HadeLog)</span> <span class="title">Info</span><span class="params">(ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">    log.logf(contract.InfoLevel, ctx, msg, fields)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// logf 为打印日志的核心函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(log *HadeLog)</span> <span class="title">logf</span><span class="params">(level contract.LogLevel, ctx context.Context, msg <span class="keyword">string</span>, fields <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="comment">// 先判断日志级别</span></span><br><span class="line">    <span class="keyword">if</span> !log.IsLevelEnable(level) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用ctxFielder 获取context中的信息</span></span><br><span class="line">    fs := fields</span><br><span class="line">    <span class="keyword">if</span> log.ctxFielder != <span class="literal">nil</span> &#123;</span><br><span class="line">        t := log.ctxFielder(ctx)</span><br><span class="line">        <span class="keyword">if</span> t != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">for</span> k, v := <span class="keyword">range</span> t &#123;</span><br><span class="line">                fs[k] = v</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将日志信息按照formatter序列化为字符串</span></span><br><span class="line">    <span class="keyword">if</span> log.formatter == <span class="literal">nil</span> &#123;</span><br><span class="line">        log.formatter = formatter.TextFormatter</span><br><span class="line">    &#125;</span><br><span class="line">    ct, err := log.formatter(level, time.Now(), msg, fs)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果是panic级别，则使用log进行panic</span></span><br><span class="line">    <span class="keyword">if</span> level == contract.PanicLevel &#123;</span><br><span class="line">        pkgLog.Panicln(<span class="keyword">string</span>(ct))</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 通过output进行输出</span></span><br><span class="line">    log.output.Write(ct)</span><br><span class="line">    log.output.Write([]<span class="keyword">byte</span>(<span class="string">"\r\n"</span>))</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>可以看到，Info打印最终调用logf方法，而logf方法的实现步骤也很清晰，简单梳理一下：</p>
+<ul>
+<li>先判断日志级别是否符合要求，如果不符合要求，则直接返回，不进行打印；</li>
+<li>再使用ctxFielder，从context中获取信息放在上下文字段中；</li>
+<li>接着将日志信息按照formatter序列化为字符串；</li>
+<li>最后通过output进行输出。</li>
+</ul>
+<p>HadeLog其他方法的实现和Info大同小异，这里就不展示所有代码了。实现了基础的HadeLog实例，接下来，就实现对应的四个不同输出类型的实例HadeConsoleLog、HadeSingleLog、HadeRotateLog、HadeCustomLog。</p>
+<img src="/2021/12/20/17｜日志：如何设计多输出的日志服务？/3.webp">
+<p>这里四个具体实例使用类型嵌套的方式，就能自动拥有HadeLog已经实现了的那些方法。</p>
+<p>比如在framework/provider/log/service/console.log中，使用类型嵌套实现HadeConsoleLog：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HadeConsoleLog 代表控制台输出</span></span><br><span class="line"><span class="keyword">type</span> HadeConsoleLog <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 类型嵌套HadeLog</span></span><br><span class="line">    HadeLog</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>相当于HadeConsoleLog就已经实现了日志服务协议了。我们唯一要做的就是在实例化HadeConosoleLog的时候，将基础HadeLog中的通用字段进行填充。比如HadeConsoleLog最重要就是将输出类型output设置为控制台os.stdout：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewHadeConsoleLog 实例化HadeConsoleLog</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewHadeConsoleLog</span><span class="params">(params ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    c := params[<span class="number">0</span>].(framework.Container)</span><br><span class="line">    level := params[<span class="number">1</span>].(contract.LogLevel)</span><br><span class="line">    ctxFielder := params[<span class="number">2</span>].(contract.CtxFielder)</span><br><span class="line">    formatter := params[<span class="number">3</span>].(contract.Formatter)</span><br><span class="line"></span><br><span class="line">    log := &amp;HadeConsoleLog&#123;&#125;</span><br><span class="line"></span><br><span class="line">    log.SetLevel(level)</span><br><span class="line">    log.SetCtxFielder(ctxFielder)</span><br><span class="line">    log.SetFormatter(formatter)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 最重要的将内容输出到控制台</span></span><br><span class="line">    log.SetOutput(os.Stdout)</span><br><span class="line">    log.c = c</span><br><span class="line">    <span class="keyword">return</span> log, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>四种输出文件其实都大同小异，这里就挑选一个最复杂的带有日志切割的HadeRotateLog来讲解。</p>
+<p>Golang中日志切割有个非常好用的file-rotatelogs，这个库的使用方法也不复杂，最核心的就是一个初始化操作New：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(p <span class="keyword">string</span>, options ...Option)</span> <span class="params">(*RotateLogs, error)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>它有两个参数，第一个参数p是带目录的日志地址，可以允许有通配符代表日期的日志文件名。这里的通配符符合Linux的strftime的定义，具体哪个通配符代表日期、小时、分钟等可以参考strftime的文档说明。而第二个参数是Option数组，表示这个切割日志的一些配置，比如多久切割一次日志文件、切割后的日志文件保存多少天等。</p>
+<p>使用很简单，直接看我们对HadeRotateLog的具体实现。大致思路就是先定义结构，再实现初始化方法，在初始化方法中，我们实例化file-rotatelogs的初始化操作New。</p>
+<p>首先定义了HadeRotateLog的结构，其中嵌套了基础实例结构HadeLog，同时有这个结构特定的字段folder和file：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HadeRotateLog 代表会进行切割的日志文件存储</span></span><br><span class="line"><span class="keyword">type</span> HadeRotateLog <span class="keyword">struct</span> &#123;</span><br><span class="line">    HadeLog</span><br><span class="line">    <span class="comment">// 日志文件存储目录</span></span><br><span class="line">    folder <span class="keyword">string</span></span><br><span class="line">    <span class="comment">// 日志文件名</span></span><br><span class="line">    file <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>实例化的NewHadeRotateLog先获取参数，然后从配置文件中获取参数属性folder、file、date_format、rotate_count、rotate_size、max_age、rotate_time，这些属性都和file-rotatelogs库实例化的Option参数一一对应。</p>
+<p>所以这里也展示一下我们的log.yaml配置文件可配置的rotate：<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">driver:</span> <span class="string">rotate</span> <span class="comment"># &lt;span style="color:#339AFF;"&gt;切割日志</span></span><br><span class="line"><span class="attr">level:</span> <span class="string">trace</span> <span class="comment"># &lt;span style="color:#339AFF;"&gt;日志级别</span></span><br><span class="line"><span class="attr">file:</span> <span class="string">coredemo.log</span> <span class="comment"># &lt;span style="color:#339AFF;"&gt;保存的日志文件</span></span><br><span class="line"><span class="attr">rotate_count:</span> <span class="number">10</span>  <span class="comment"># &lt;span style="color:#339AFF;"&gt;最多日志文件个数</span></span><br><span class="line"><span class="attr">rotate_size:</span> <span class="number">120000</span> <span class="comment"># &lt;span style="color:#339AFF;"&gt;每个日志大小</span></span><br><span class="line"><span class="attr">rotate_time:</span> <span class="string">"1m"</span> <span class="comment"># &lt;span style="color:#339AFF;"&gt;切割时间</span></span><br><span class="line"><span class="attr">max_age:</span> <span class="string">"10d"</span> <span class="comment"># &lt;span style="color:#339AFF;"&gt;文件保存时间</span></span><br><span class="line"><span class="attr">date_format:</span> <span class="string">"%Y-%m-%d-%H-%M"</span> <span class="comment"># &lt;span style="color:#339AFF;"&gt;文件后缀格式</span></span><br></pre></td></tr></table></figure></p>
+<p>再回到NewHadeRotateLog，设置了这些配置属性之后，我们实例化file-rotatelogs，得到了一个符合io.Writer的输出，将这个输出使用SetOutput设置到嵌套的HadeLog中即可。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewHadeRotateLog 实例化HadeRotateLog</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewHadeRotateLog</span><span class="params">(params ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 参数解析</span></span><br><span class="line">    c := params[<span class="number">0</span>].(framework.Container)</span><br><span class="line">    level := params[<span class="number">1</span>].(contract.LogLevel)</span><br><span class="line">    ctxFielder := params[<span class="number">2</span>].(contract.CtxFielder)</span><br><span class="line">    formatter := params[<span class="number">3</span>].(contract.Formatter)</span><br><span class="line"></span><br><span class="line">    appService := c.MustMake(contract.AppKey).(contract.App)</span><br><span class="line">    configService := c.MustMake(contract.ConfigKey).(contract.Config)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从配置文件中获取folder信息，否则使用默认的LogFolder文件夹</span></span><br><span class="line">    folder := appService.LogFolder()</span><br><span class="line">    <span class="keyword">if</span> configService.IsExist(<span class="string">"log.folder"</span>) &#123;</span><br><span class="line">        folder = configService.GetString(<span class="string">"log.folder"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 如果folder不存在，则创建</span></span><br><span class="line">    <span class="keyword">if</span> !util.Exists(folder) &#123;</span><br><span class="line">        os.MkdirAll(folder, os.ModePerm)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从配置文件中获取file信息，否则使用默认的hade.log</span></span><br><span class="line">    file := <span class="string">"hade.log"</span></span><br><span class="line">    <span class="keyword">if</span> configService.IsExist(<span class="string">"log.file"</span>) &#123;</span><br><span class="line">        file = configService.GetString(<span class="string">"log.file"</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从配置文件获取date_format信息</span></span><br><span class="line">    dateFormat := <span class="string">"%Y%m%d%H"</span></span><br><span class="line">    <span class="keyword">if</span> configService.IsExist(<span class="string">"log.date_format"</span>) &#123;</span><br><span class="line">        dateFormat = configService.GetString(<span class="string">"log.date_format"</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    linkName := rotatelogs.WithLinkName(filepath.Join(folder, file))</span><br><span class="line">    options := []rotatelogs.Option&#123;linkName&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从配置文件获取rotate_count信息</span></span><br><span class="line">    <span class="keyword">if</span> configService.IsExist(<span class="string">"log.rotate_count"</span>) &#123;</span><br><span class="line">        rotateCount := configService.GetInt(<span class="string">"log.rotate_count"</span>)</span><br><span class="line">        options = <span class="built_in">append</span>(options, rotatelogs.WithRotationCount(<span class="keyword">uint</span>(rotateCount)))</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从配置文件获取rotate_size信息</span></span><br><span class="line">    <span class="keyword">if</span> configService.IsExist(<span class="string">"log.rotate_size"</span>) &#123;</span><br><span class="line">        rotateSize := configService.GetInt(<span class="string">"log.rotate_size"</span>)</span><br><span class="line">        options = <span class="built_in">append</span>(options, rotatelogs.WithRotationSize(<span class="keyword">int64</span>(rotateSize)))</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从配置文件获取max_age信息</span></span><br><span class="line">    <span class="keyword">if</span> configService.IsExist(<span class="string">"log.max_age"</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> maxAgeParse, err := time.ParseDuration(configService.GetString(<span class="string">"log.max_age"</span>)); err == <span class="literal">nil</span> &#123;</span><br><span class="line">            options = <span class="built_in">append</span>(options, rotatelogs.WithMaxAge(maxAgeParse))</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从配置文件获取rotate_time信息</span></span><br><span class="line">    <span class="keyword">if</span> configService.IsExist(<span class="string">"log.rotate_time"</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> rotateTimeParse, err := time.ParseDuration(configService.GetString(<span class="string">"log.rotate_time"</span>)); err == <span class="literal">nil</span> &#123;</span><br><span class="line">            options = <span class="built_in">append</span>(options, rotatelogs.WithRotationTime(rotateTimeParse))</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置基础信息</span></span><br><span class="line">    log := &amp;HadeRotateLog&#123;&#125;</span><br><span class="line">    log.SetLevel(level)</span><br><span class="line">    log.SetCtxFielder(ctxFielder)</span><br><span class="line">    log.SetFormatter(formatter)</span><br><span class="line">    log.folder = folder</span><br><span class="line">    log.file = file</span><br><span class="line"></span><br><span class="line">    w, err := rotatelogs.New(fmt.Sprintf(<span class="string">"%s.%s"</span>, filepath.Join(log.folder, log.file), dateFormat), options...)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, errors.Wrap(err, <span class="string">"new rotatelogs error"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    log.SetOutput(w)</span><br><span class="line">    log.c = c</span><br><span class="line">    <span class="keyword">return</span> log, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>本节课我们只是修改了框架目录中的日志服务相关的文件。文件目录：</p>
+<img src="/2021/12/20/17｜日志：如何设计多输出的日志服务？/4.webp">
+<img src="/2021/12/20/17｜日志：如何设计多输出的日志服务？/5.webp">
+<p>所有代码都放在GitHub上的geekbang/17分支，欢迎比对查看。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>我们这节课通过定义了日志级别、日志格式、日志输出，来实现了日志的级别，并且使用类型嵌套方法实现了四种本地日志输出方式。</p>
+<p>回顾今天实现的日志服务，你会发现和其他服务的实现思路是差不多的。我们在一个服务中，实现了多个实现类，但是所有的实现类都实现了同样的服务接口，最后能让我们根据配置来决定这个服务使用哪个实现类，其中还使用了嵌套方式，能节省大量重复性的代码。</p>
+<p>希望你能熟练掌握这种实现方式，因为我们的服务会越来越多，越上层的服务，比如数据库、缓存，它的具体实现就越是多种多样，到时候我们都可以用同样的套路来进行。</p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>在微服务盛行的今天，全链路日志是非常重要的一个需求。全链路日志的需求本质就是在日志中增加trace_id、span_id这样的链路字段。具体实现有三点：</p>
+<ul>
+<li>在接收请求的时候，从请求request中解析全链路字段，存放进入context中</li>
+<li>在打印日志的时候从context中获取全链路字段序列化进入日志</li>
+<li>在发送请求的时候将全链路字段加入到request中</li>
+</ul>
+<p>你可以思考下这个功能应该怎么实现？</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/手把手带你写一个Web框架/" rel="tag"># 手把手带你写一个Web框架</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/12/20/16｜配置和环境（下）：配置服务中的设计思路/" rel="next" title="16｜配置和环境（下）：配置服务中的设计思路">
+                <i class="fa fa-chevron-left"></i> 16｜配置和环境（下）：配置服务中的设计思路
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2021/12/20/18｜一体化：前端和后端一定要项目分开吗/" rel="prev" title="18 ｜ 一体化：前端和后端一定要项目分开吗?">
+                18 ｜ 一体化：前端和后端一定要项目分开吗? <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#日志接口协议"><span class="nav-number">1.</span> <span class="nav-text">日志接口协议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#日志级别"><span class="nav-number">1.1.</span> <span class="nav-text">日志级别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#日志格式"><span class="nav-number">1.2.</span> <span class="nav-text">日志格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#日志输出"><span class="nav-number">1.3.</span> <span class="nav-text">日志输出</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#日志服务提供者"><span class="nav-number">2.</span> <span class="nav-text">日志服务提供者</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#日志服务的具体实现"><span class="nav-number">3.</span> <span class="nav-text">日志服务的具体实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">4.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#思考题"><span class="nav-number">5.</span> <span class="nav-text">思考题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

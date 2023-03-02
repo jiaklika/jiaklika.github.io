@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：  binlog属于server层，redo、undo属于存储引擎层。怎么理解？ 先更新记录的聚簇索引记录，再更新记录的二级索引记录。怎么理解？ 将记录所在的页面加载到buffer pool，先将undo日志写入Undo页面，然后再记录修改该页面对应的redo日志。在一条更新语句执行完成后（也就是将所有待更新记录都更新完了），就需要该语句对应的binlog日志了。怎么理解？ 先">
+<meta name="keywords" content="MySQL是怎样运行的：从根儿上理解MySQL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redo、undo、buffer pool、binlog，谁先谁后，有点儿乱">
+<meta property="og:url" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：  binlog属于server层，redo、undo属于存储引擎层。怎么理解？ 先更新记录的聚簇索引记录，再更新记录的二级索引记录。怎么理解？ 将记录所在的页面加载到buffer pool，先将undo日志写入Undo页面，然后再记录修改该页面对应的redo日志。在一条更新语句执行完成后（也就是将所有待更新记录都更新完了），就需要该语句对应的binlog日志了。怎么理解？ 先">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/1.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/2.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/3.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/4.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/5.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/6.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/7.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/8.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/9.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/10.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/11.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/12.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/13.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/14.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/15.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/16.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/17.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/18.awebp">
+<meta property="og:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/19.awebp">
+<meta property="og:updated_time" content="2022-11-08T00:30:21.733Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redo、undo、buffer pool、binlog，谁先谁后，有点儿乱">
+<meta name="twitter:description" content="思考并回答以下问题：  binlog属于server层，redo、undo属于存储引擎层。怎么理解？ 先更新记录的聚簇索引记录，再更新记录的二级索引记录。怎么理解？ 将记录所在的页面加载到buffer pool，先将undo日志写入Undo页面，然后再记录修改该页面对应的redo日志。在一条更新语句执行完成后（也就是将所有待更新记录都更新完了），就需要该语句对应的binlog日志了。怎么理解？ 先">
+<meta name="twitter:image" content="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/1.awebp">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>redo、undo、buffer pool、binlog，谁先谁后，有点儿乱 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">redo、undo、buffer pool、binlog，谁先谁后，有点儿乱
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2022-09-06 11:53:44" itemprop="dateCreated datePublished" datetime="2022-09-06T11:53:44+08:00">2022-09-06</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-11-08 08:30:21" itemprop="dateModified" datetime="2022-11-08T08:30:21+08:00">2022-11-08</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/MySQL/" itemprop="url" rel="index"><span itemprop="name">MySQL</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">7.3k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">7 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<ul>
+<li>binlog属于server层，redo、undo属于存储引擎层。怎么理解？</li>
+<li>先更新记录的聚簇索引记录，再更新记录的二级索引记录。怎么理解？</li>
+<li>将记录所在的页面加载到buffer pool，先将undo日志写入Undo页面，然后再记录修改该页面对应的redo日志。在一条更新语句执行完成后（也就是将所有待更新记录都更新完了），就需要该语句对应的binlog日志了。怎么理解？</li>
+<li>先在B+树中定位到该记录（这个过程也被称作加锁读）。怎么理解？</li>
+</ul>
+<a id="more"></a>
+<p>这篇文章我们来讨论一下一条DML语句从客户端发出后，服务器都做了哪些处理。</p>
+<blockquote>
+<p>小贴士：虽然SELECT语句的处理也很复杂，但SELECT语句并不会修改数据库中的数据，也就不会记录诸如redo、undo、binlog这些日志，本文主要是想讨论redo、undo、binlog这些日志是在什么时候生成的，啥时候写到磁盘的。</p>
+</blockquote>
+<p>为了增强文章的真实性，我们会列举一些关键步骤的代码，本文用到的源码版本为MySQL 5.7.22。</p>
+<p>另外，我们假设屏幕前的小伙伴已经知道什么是buffer pool，什么是redo日志，什么是undo日志，什么是binlog，以及MySQL为什么需要它们。我们不会再展开各种日志的格式、写入方式等细节问题。</p>
+<h1 id="预备知识"><a href="#预备知识" class="headerlink" title="预备知识"></a><span style="color:#339AFF;">预备知识</span></h1><p>我们讨论的是基于InnoDB存储引擎的表，数据会被保存在硬盘上的表空间（文件系统中的一个或多个文件）中。</p>
+<p>InnoDB会将磁盘中的数据看成是若干个页的集合，页的大小默认是16KB。其中某些页面用于存储关于系统的一些属性，某些页面用于存储undo日志，某些页面用于存储B+树的节点（也就是包含记录的页面），反正总共有十来种不同类型的页面。</p>
+<p>不过不论是什么类型的页面，每当我们从页面中读取或写入数据时，都必须先将其从硬盘上加载到内存中的buffer pool中（也就是说内存中的页面其实就是硬盘中页面的一个副本），然后才能对内存中页面进行读取或写入。如果要修改内存中的页面，为了减少磁盘I/O，修改后的页面并不立即同步到磁盘，而是作为脏页继续呆在内存中，等待后续合适时机将其刷新到硬盘（一般是有后台线程异步刷新）。</p>
+<h1 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a><span style="color:#339AFF;">准备工作</span></h1><p>为了故事的顺利发展，我们先建立一个表：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> hero (</span><br><span class="line">    <span class="built_in">number</span> <span class="built_in">INT</span>,</span><br><span class="line">    <span class="keyword">name</span> <span class="built_in">VARCHAR</span>(<span class="number">100</span>),</span><br><span class="line">    country <span class="built_in">varchar</span>(<span class="number">100</span>),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> (<span class="built_in">number</span>),</span><br><span class="line">    <span class="keyword">KEY</span> idx_name (<span class="keyword">name</span>)</span><br><span class="line">) <span class="keyword">Engine</span>=<span class="keyword">InnoDB</span> <span class="keyword">CHARSET</span>=utf8;</span><br></pre></td></tr></table></figure></p>
+<p>然后向这个表里插入几条记录：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> hero <span class="keyword">VALUES</span></span><br><span class="line">    (<span class="number">1</span>, <span class="string">'l刘备'</span>, <span class="string">'蜀'</span>),</span><br><span class="line">    (<span class="number">3</span>, <span class="string">'z诸葛亮'</span>, <span class="string">'蜀'</span>),</span><br><span class="line">    (<span class="number">8</span>, <span class="string">'c曹操'</span>, <span class="string">'魏'</span>),</span><br><span class="line">    (<span class="number">15</span>, <span class="string">'x荀彧'</span>, <span class="string">'魏'</span>),</span><br><span class="line">    (<span class="number">20</span>, <span class="string">'s孙权'</span>, <span class="string">'吴'</span>);</span><br></pre></td></tr></table></figure></p>
+<p>然后现在hero表就有了两个索引（一个二级索引，一个聚簇索引），示意图如下： </p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/1.awebp">
+<h1 id="执行计划的生成"><a href="#执行计划的生成" class="headerlink" title="执行计划的生成"></a><span style="color:#339AFF;">执行计划的生成</span></h1><p>假设我们想执行下边这条UPDATE语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">UPDATE</span> hero <span class="keyword">SET</span> country = <span class="string">'汉'</span> <span class="keyword">WHERE</span> <span class="keyword">name</span> &gt;= <span class="string">'x荀彧'</span>;</span><br></pre></td></tr></table></figure></p>
+<p>MySQL优化器首先会分析一下使用不同索引执行查询的成本，然后选取成本最低的那个索引去执行查询。</p>
+<p>对于上述语句来说，可选的执行方案有2种：</p>
+<ul>
+<li>方案一：使用全表扫描执行查询，即扫描全部聚簇索引记录，我们可以认为此时的扫描区间就是<code>(-∞, +∞)</code>。</li>
+<li>方案二：使用二级索引idx_name执行查询，此时的扫描区间就是<code>[&#39;x荀彧&#39;, +∞)</code>。</li>
+</ul>
+<p>优化器会计算上述两种方案的成本，选取成本最低的方案作为最终的执行计划。</p>
+<p>我们作为用户，可以通过EXPLAIN语句来看一下这个语句的执行计划（当然也可以通过MySQL提供的optimizer trace功能查看具体执行计划分析流程）：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; explain UPDATE hero SET country = <span class="string">'汉'</span> WHERE name &gt;= <span class="string">'x荀彧'</span>;</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+-------+------+----------+-------------+</span><br><span class="line">| id | select_type | table | partitions | <span class="built_in">type</span>  | possible_keys | key      | key_len | ref   | rows | filtered | Extra       |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+-------+------+----------+-------------+</span><br><span class="line">|  1 | UPDATE      | hero  | NULL       | range | idx_name      | idx_name | 303     | const |    2 |   100.00 | Using <span class="built_in">where</span> |</span><br><span class="line">+----+-------------+-------+------------+-------+---------------+----------+---------+-------+------+----------+-------------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span>, 1 warning (0.01 sec)</span><br></pre></td></tr></table></figure></p>
+<p>可以看到，MySQL优化器决定采用方案二，即扫描二级索引idx_name在<code>[&#39;x荀彧&#39;, +∞)</code>这个扫描区间中的记录。</p>
+<h1 id="真正开始执行"><a href="#真正开始执行" class="headerlink" title="真正开始执行"></a><span style="color:#339AFF;">真正开始执行</span></h1><p>MySQL分为server层和存储引擎层，我们前边的多篇文章有唠叨这两层之间的关系。考虑到没有看过前边文章的小伙伴，我们再不厌其烦的唠叨一下在执行上述UPDATE语句时server层和InnoDB层之间是如何沟通的。优化器的执行计划中得到了若干个扫描区间（本例中只有1个扫描区间<code>[&#39;x荀彧&#39;, +∞)</code>），针对每个扫描区间，都会执行下边的步骤：</p>
+<p><strong>处理扫描区间的第一条记录</strong></p>
+<ul>
+<li>步骤1：首先server层根据执行计划，向InnoDB层索要二级索引idx_name的扫描区间<code>[&#39;x荀彧&#39;, +∞)</code>的第一条记录。</li>
+<li>步骤2：Innodb存储引擎便会通过二级索引idx_name对应的B+树，从B+树根页面一层一层向下查找（在页面中查找是通过页目录的槽进行二分查找的，这个过程很快），快速在叶子节点中定位到扫描区间<code>[&#39;x荀彧&#39;, +∞)</code>的第一条二级索引记录。接着根据这条二级索引记录中的主键值执行回表操作（即通过聚簇索引的B+树根节点一层一层向下找，直到在叶子节点中找到相应记录），将获取到的聚簇索引记录返回给server层。</li>
+<li>步骤3：server层得到聚簇索引记录后，会看一下更新前的记录和更新后的记录是否一样，如果一样的话就不更新了，如果不一样的话就把更新前的记录和更新后的记录都当作参数传给InnoDB层，让InnoDB真正的执行更新记录的操作。</li>
+<li>步骤4：InnoDB收到更新请求后，<span style="color:red">先更新记录的聚簇索引记录，再更新记录的二级索引记录</span>。最后将更新结果返回给server层。</li>
+</ul>
+<p><strong>处理扫描区间的第二条记录</strong></p>
+<ul>
+<li>步骤1：server层继续向InnoDB索要下一条记录。</li>
+<li>步骤2：此时由于已经通过B+树定位到二级索引扫描区间<code>[&#39;x荀彧&#39;, +∞)</code>的第一条二级索引记录，而记录又是被串联成单向链表，所以InnoDB直接通过记录头信息的next_record的属性即可获取到下一条二级索引记录。然后通过该二级索引的主键值进行回表操作，获取到完整的聚簇索引记录再返回给server层。</li>
+<li>步骤3：server层得到聚簇索引记录后，会看一下更新前的记录和更新后的记录是否一样，如果一样的话就不更新了，如果不一样的话就把更新前的记录和更新后的记录都当作参数传给InnoDB层，让InnoDB真正的执行更新记录的操作。</li>
+<li>步骤4：InnoDB收到更新请求后，先更新记录的聚簇索引记录，再更新记录的二级索引记录。最后将更新结果返回给server层。</li>
+</ul>
+<p><strong>处理扫描区间的剩余记录</strong></p>
+<p>该扫描区间中的其他记录的处理就和第2条记录的处理过程是一样一样的了，这里就不赘述了。</p>
+<h1 id="详细的更新过程"><a href="#详细的更新过程" class="headerlink" title="详细的更新过程"></a><span style="color:#339AFF;">详细的更新过程</span></h1><p>MySQL使用mysql_update函数处理我们上述的更新语句：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/2.awebp">
+<p>最主要的处理流程写在了一个循环里：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/3.awebp">
+<p>上图所示的while循环就是依次处理各条记录的过程。</p>
+<p>其中<code>info.read_record</code>是用于获取扫描区间的一条记录，读取到该记录后随后展开详细的更新操作。处理完了之后再回到这个while循环的起点，通过<code>info.read_record</code>获取下一条记录，然后进行详细的更新操作。</p>
+<p>也就是说，其实处理每一条记录的过程都是类似的，只不过定位扫描区间的第一条记录会有点儿麻烦（需要从B+树根页面一层一层向下找）。</p>
+<p>我们下边聚焦于一条记录的更新过程，看看这个过程都发生了什么。</p>
+<h2 id="将记录所在的页面加载到buffer-pool"><a href="#将记录所在的页面加载到buffer-pool" class="headerlink" title="将记录所在的页面加载到buffer pool"></a><span style="color:#00ACC1;">将记录所在的页面加载到buffer pool</span></h2><p>我们想更新一条记录，首先就得在B+树中定位这条记录——即进行一次加锁读（上图中的<code>info.read_record</code>函数用于调用Innodb读取记录的接口，关于对一条记录加锁的过程我们在之前的文章中分析过，这里就不赘述了）。</p>
+<p>如果该记录所在的页面已经在内存的buffer pool中，那就可以直接读取，否则还需要将该记录所在的页面读取到内存中的buffer pool中。</p>
+<blockquote>
+<p>小贴士：再一次强调，不论我们想读写任何页面，都需要先将该页面从硬盘加载到buffer pool中。在定位扫描区间的第一条记录时，我们首先要读取B+树根页面中的记录，所以首先需要先把B+树根页面加载到buffer pool中，然后再读取下一层的页面，然后再读取下下层的页面，直到叶子节点。每当要读取的页面不在buffer pool中，都得将其先加载到buffer pool后才能使用。</p>
+</blockquote>
+<p>Innodb使用row_search_mvcc处理读取一条记录的过程（不论是加锁读还是一致性读都调用这个函数），在该函数内btr_pcur_open_with_no_init用于从B+树定位记录：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/4.awebp">
+<p>在定位记录时就需要将记录所在的页面加载到buffer pool，完成这个过程的函数是：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/5.awebp">
+<h2 id="检测更新前后记录是否一样"><a href="#检测更新前后记录是否一样" class="headerlink" title="检测更新前后记录是否一样"></a><span style="color:#00ACC1;">检测更新前后记录是否一样</span></h2><p>在mysql_update函数中，当通过<code>info.read_record</code>读取到一条记录之后，就要分析一下这条记录更新前后是否发生变化：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/6.awebp">
+<p>上图中的compare_records用于比较记录更新前后是否一样。</p>
+<p>如果更新前和更新后的记录是一样的，那就直接跳过该记录，否则继续向下处理。</p>
+<h2 id="调用存储引擎接口进行更新"><a href="#调用存储引擎接口进行更新" class="headerlink" title="调用存储引擎接口进行更新"></a><span style="color:#00ACC1;">调用存储引擎接口进行更新</span></h2><img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/7.awebp">
+<p>上图中的ha_update_row就是要存储引擎去更新记录，其中的<code>table-&gt;record[1]</code>代表旧记录，<code>table-&gt;record[0]</code>代表新记录。</p>
+<h2 id="更新聚簇索引记录"><a href="#更新聚簇索引记录" class="headerlink" title="更新聚簇索引记录"></a><span style="color:#00ACC1;">更新聚簇索引记录</span></h2><p>InnoDB会首先更新聚簇索引记录，然后再更新二级索引记录。</p>
+<p>我们先看更新聚簇索引记录时都发生了什么。更新聚簇索引的函数如下所示：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/8.awebp">
+<p>下边首先会尝试在同一个页面中更新记录，这被称作乐观更新，调用btr_cur_optimistic_update函数：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/9.awebp">
+<p>如果不能在本页面中完成更新（比方说更新后的记录非常大啊，本页面容纳不下），就会尝试悲观更新：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/10.awebp">
+<p>本例中使用乐观更新即可。</p>
+<h2 id="记录undo日志"><a href="#记录undo日志" class="headerlink" title="记录undo日志"></a><span style="color:#00ACC1;">记录undo日志</span></h2><p>更新记录前，首先要记录相应的undo日志，调用trx_undo_report_row_operation来记录undo日志：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/11.awebp">
+<p>首先我们要知道，MySQL的undo日志是要写到一种专门存储undo日志的页面中的。如果一个事务写入的undo日志非常多，需要占用多个Undo页面，那这些页面会被串联成一个链表，称作Undo页面链表。</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/12.awebp">
+<p>trx_undo_page_report_modify函数用于真正的向Undo页面中写入undo日志。另外，由于我们这里是在修改页面，一个事务执行过程中凡是修改页面的地方，都需要记录相应的redo日志，所以在这个函数的末尾，有一个记录修改这个Undo页面的redo日志的函数trx_undof_page_add_undo_rec_log：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/13.awebp">
+<p>有同学在这里肯定会疑惑：是先将undo日志写入Undo页面，然后再记录修改该页面对应的redo日志吗？</p>
+<p>先说答案：是的。</p>
+<p>不过这里修改后的页面并没有加入buffer pool的flush链表，记录的redo日志也没有加入到redo log buffer。当这个函数执行完后，才会：</p>
+<ul>
+<li>先将这个过程产生的redo日志写入到redo log buffer。</li>
+<li>再将这个过程修改的页面加入到buffer pool的flush链表中。</li>
+</ul>
+<p>上述过程是在mtr_commit中完成的：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/14.awebp">
+<blockquote>
+<p>小贴士：设计MySQL的大叔把对底层页面的一次原子修改称作一个Mini Trasaction，即MTR。一个MTR中包含若干条redo日志，在崩溃恢复时，要么全部恢复该MTR对应的redo日志，要么全部不恢复。</p>
+</blockquote>
+<p>也就是说实际上虽然先修改Undo页面，后写redo日志，但是此时InnoDB并不认为Undo页面是脏页，就不会将其刷新到硬盘，redo日志也没有写入到redo log buffer，这些redo日志也不会被刷新到redo日志文件。只有当MTR提交时，才先将redo日志复制到redo log buffer，再将修改的Undo页面加入到flush链表。</p>
+<p>所以我们可以粗略的认为修改Undo页面的redo日志是先写的，而修改页面的过程是后发生的。</p>
+<blockquote>
+<p>小贴士：有后台线程不断的将redo log buffer中的redo日志刷新到硬盘的redo日志文件，也有后台线程不断的将buffer pool里的脏页（只有加入到flush链表后的页面才能算作是脏页）刷新到硬盘中的表空间中。设计InnoDB的大叔规定，在刷新一个脏页到硬盘时，该脏页对应的redo日志应该被先刷新到redo日志文件。而redo日志是顺序刷新的，也就是说，在刷新redo log buffer的某条redo日志时，在它之前的redo日志也都应该被刷新到redo日志文件。</p>
+</blockquote>
+<h2 id="修改页面内容"><a href="#修改页面内容" class="headerlink" title="修改页面内容"></a><span style="color:#00ACC1;">修改页面内容</span></h2><p>上一步骤是先把undo日志写到Undo页面中以及记录相应的redo日志，接下来该真正修改聚簇索引记录了。</p>
+<p>首先更新系统字段trx_id以及roll_pointer：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/15.awebp">
+<p>然后真正的修改记录内容：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/16.awebp">
+<blockquote>
+<p>小贴士：由于本例中的更新语句更新前后的各个字段占用的存储空间大小是不变的，所以可以直接就地（in place）更新。</p>
+</blockquote>
+<p>然后记录更新的redo日志：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/17.awebp">
+<p>像向Undo页面写入undo日志一样，InnoDB规定更新一个页面中的一条记录也属于一个MTR。在该MTR提交时，也是先将MTR中的redo日志复制到redo log buffer，然后再将修改的页面加入到flush链表。</p>
+<p>所以我们也可以认为在这个过程中，先记录修改页面的redo日志，然后再真正的修改页面。</p>
+<p>至此，一条聚簇索引记录就更新完毕了。</p>
+<h2 id="更新二级索引记录"><a href="#更新二级索引记录" class="headerlink" title="更新二级索引记录"></a><span style="color:#00ACC1;">更新二级索引记录</span></h2><p>更新二级索引记录的函数如下所示：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/18.awebp">
+<p>更新二级索引记录时不会再记录undo日志，但由于是在修改页面内容，会先记录相应的redo日志。</p>
+<p>由于本例子中并不会更新二级索引记录，所以就跳过本步骤了。</p>
+<h2 id="记录binlog"><a href="#记录binlog" class="headerlink" title="记录binlog"></a><span style="color:#00ACC1;">记录binlog</span></h2><p>在一条更新语句执行完成后（也就是将所有待更新记录都更新完了），就需要该语句对应的binlog日志了（下图中的<code>thd-&gt;binlog_query</code>函数）：</p>
+<img src="/2022/09/06/redo、undo、buffer-pool、binlog，谁先谁后，有点儿乱/19.awebp">
+<p>不过值得注意的是，此时记录的binlog日志并不会被写到binlog日志文件中，而是被暂时保存到内存的某个地方，等之后事务提交的时候才会真正将该事物执行过程中产生的所有binlog统一写入binlog日志文件。</p>
+<h2 id="提交事务的时候"><a href="#提交事务的时候" class="headerlink" title="提交事务的时候"></a><span style="color:#00ACC1;">提交事务的时候</span></h2><p>终于要唠叨到所谓的两阶段提交（two phase commit）啦～</p>
+<p>在事务提交时，binlog才会被真正刷新到binlog日志文件中，redo日志也会被刷新到redo日志文件中。不过由于这个部分涉及较多的知识点，所以我们本篇先不唠叨了，留在下一篇里吧。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a><span style="color:#339AFF;">总结</span></h1><p>本篇文章唠叨了执行一条UPDATE语句过程中都发生了什么事情。当优化器分析出成本最小的执行计划后，就开始对执行计划中的各个扫描扫描区间中的记录进行更新。具体更新一条记录的流程如下：</p>
+<p>1，先在B+树中定位到该记录（这个过程也被称作加锁读），如果该记录所在的页面不在buffer pool里，先将其加载到buffer pool里再读取。</p>
+<p>2，读取到记录后判断记录更新前后是否一样，一样的话就跳过该记录，否则进行后续步骤。</p>
+<p>3，首先更新聚簇索引记录。 更新聚簇索引记录时： ①先向Undo页面写undo日志。不过由于这是在更改页面，所以修改Undo页面前需要先记录一下相应的redo日志。②真正的更新记录。不过在真正更新记录前也需要记录相应的redo日志。</p>
+<p>4，更新其他的二级索引记录。</p>
+<p>至此，一条记录就更新完了。</p>
+<p>然后开始记录该语句对应的binlog日志，此时记录的binlog并没有刷新到硬盘上的binlog日志文件，在事务提交时才会统一将该事务运行过程中的所有binlog日志刷新到硬盘。</p>
+<p>剩下的就是所谓的两阶段提交的事情了，我们下节再会～</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/MySQL是怎样运行的：从根儿上理解MySQL/" rel="tag"># MySQL是怎样运行的：从根儿上理解MySQL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/09/06/binlog那些事儿（二）/" rel="next" title="binlog那些事儿（二）">
+                <i class="fa fa-chevron-left"></i> binlog那些事儿（二）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/09/06/XA事务与两阶段提交/" rel="prev" title="XA事务与两阶段提交">
+                XA事务与两阶段提交 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">965</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">66</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/03/01/24丨RocksDB：不丢数据的高性能KV存储/" title="24丨RocksDB：不丢数据的高性能KV存储" target="_blank">24丨RocksDB：不丢数据的高性能KV存储</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？/" title="23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？" target="_blank">23丨MySQL经常遇到的高可用、分片问题，NewSQL是如何解决的？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/22丨面对海量数据，如何才能查得更快/" title="22丨面对海量数据，如何才能查得更快?" target="_blank">22丨面对海量数据，如何才能查得更快?</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/21丨类似“点击流”这样的海量数据应该如何存储？/" title="21丨类似“点击流”这样的海量数据应该如何存储？" target="_blank">21丨类似“点击流”这样的海量数据应该如何存储？</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/03/01/20丨如何在不停机的情况下，安全地更换数据库？/" title="20丨如何在不停机的情况下，安全地更换数据库？" target="_blank">20丨如何在不停机的情况下，安全地更换数据库？</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#预备知识"><span class="nav-number">1.</span> <span class="nav-text">预备知识</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#准备工作"><span class="nav-number">2.</span> <span class="nav-text">准备工作</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#执行计划的生成"><span class="nav-number">3.</span> <span class="nav-text">执行计划的生成</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#真正开始执行"><span class="nav-number">4.</span> <span class="nav-text">真正开始执行</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#详细的更新过程"><span class="nav-number">5.</span> <span class="nav-text">详细的更新过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#将记录所在的页面加载到buffer-pool"><span class="nav-number">5.1.</span> <span class="nav-text">将记录所在的页面加载到buffer pool</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#检测更新前后记录是否一样"><span class="nav-number">5.2.</span> <span class="nav-text">检测更新前后记录是否一样</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#调用存储引擎接口进行更新"><span class="nav-number">5.3.</span> <span class="nav-text">调用存储引擎接口进行更新</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#更新聚簇索引记录"><span class="nav-number">5.4.</span> <span class="nav-text">更新聚簇索引记录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#记录undo日志"><span class="nav-number">5.5.</span> <span class="nav-text">记录undo日志</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#修改页面内容"><span class="nav-number">5.6.</span> <span class="nav-text">修改页面内容</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#更新二级索引记录"><span class="nav-number">5.7.</span> <span class="nav-text">更新二级索引记录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#记录binlog"><span class="nav-number">5.8.</span> <span class="nav-text">记录binlog</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#提交事务的时候"><span class="nav-number">5.9.</span> <span class="nav-text">提交事务的时候</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">7.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">120:07</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
