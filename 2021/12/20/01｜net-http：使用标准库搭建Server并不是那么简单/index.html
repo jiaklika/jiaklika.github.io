@@ -118,7 +118,7 @@
 <meta property="og:image" content="http://yoursite.com/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/6.webp">
 <meta property="og:image" content="http://yoursite.com/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/7.webp">
 <meta property="og:image" content="http://yoursite.com/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/8.webp">
-<meta property="og:updated_time" content="2022-12-09T09:33:03.548Z">
+<meta property="og:updated_time" content="2023-04-13T03:07:15.137Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="01｜net&#x2F;http：使用标准库搭建Server并不是那么简单">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -451,7 +451,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-12-09 17:33:03" itemprop="dateModified" datetime="2022-12-09T17:33:03+08:00">2022-12-09</time>
+                <time title="修改时间：2023-04-13 11:07:15" itemprop="dateModified" datetime="2023-04-13T11:07:15+08:00">2023-04-13</time>
               
             
           </span>
@@ -543,7 +543,7 @@
 <p>要回答这些问题，你就要深入理解net/http标准库。要不然，只会简单调用，却不知道原理，后面哪里出了问题，或者你想调优，就无从下手了。</p>
 <p>所以，我们先来看看net/http标准库，从代码层面搞清楚整个HTTP服务的主流程原理，最后再基于原理讲实现。</p>
 <h1 id="net-http标准库怎么学"><a href="#net-http标准库怎么学" class="headerlink" title="net/http标准库怎么学"></a><span style="color:#339AFF;">net/http标准库怎么学</span></h1><p>要快速熟悉一个标准库，就得找准方法。这里我教给你一个快速掌握代码库的技巧：<span style="color:red">库函数&gt;结构定义&gt;结构函数。</span></p>
-<p>简单来说，就是当你在阅读一个代码库的时候，不应该从上到下阅读整个代码文档，而应该先阅读整个代码库提供的对外库函数（function），再读这个库提供的结构（struct/class），最后再阅读每个结构函数（method）。</p>
+<p>简单来说，就是当你在阅读一个代码库的时候，不应该从上到下阅读整个代码文档，而应该先阅读整个代码库提供的对外库函数（<span style="color:red">function</span>），再读这个库提供的结构（<span style="color:red">struct/class</span>），最后再阅读每个结构函数（<span style="color:red">method</span>）。</p>
 <img src="/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/2.webp">
 <p>为什么要这么学呢？因为这种阅读思路和代码库作者的思路是一致的。</p>
 <p>首先搞清楚这个库要提供什么功能（提供什么样的对外函数），然后为了提供这些功能，我要把整个库分为几个核心模块（结构），最后每个核心模块，我应该提供什么样的能力（具体的结构函数）来满足我的需求。</p>
@@ -570,7 +570,7 @@
 <p>构建的HTTP服务端除了提供真实服务之外，也能提供代理中转服务，它们分别由Client和Server两个数据结构负责。除了这两个最重要的数据结构之外，HTTP协议的每个部分，比如请求、返回、传输设置等都有具体的数据结构负责。</p>
 <h2 id="结构函数（能力）"><a href="#结构函数（能力）" class="headerlink" title="结构函数（能力）"></a><span style="color:#00ACC1;">结构函数（能力）</span></h2><p>下面从具体的需求出发，我们来阅读具体的结构函数（method）。</p>
 <p>我们当前的需求是创建HTTP服务，开头我举了一个最简单的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个Foo路由和处理函数</span></span><br><span class="line">http.Handle(<span class="string">"/foo"</span>, fooHandler)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建一个bar路由和处理函数</span></span><br><span class="line">http.HandleFunc(<span class="string">"/bar"</span>, <span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">    fmt.Fprintf(w, <span class="string">"Hello, %q"</span>, html.EscapeString(r.URL.Path))</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 监听8080端口</span></span><br><span class="line">log.Fatal(http.ListenAndServe(<span class="string">":8080"</span>, <span class="literal">nil</span>))</span><br></pre></td></tr></table></figure></p>
-<p>我们跟着http.ListenAndServe这个函数来理一下net/http创建服务的主流程逻辑。</p>
+<p>我们跟着<code>http.ListenAndServe</code>这个函数来理一下net/http创建服务的主流程逻辑。</p>
 <p><strong>我们将要分析的代码从入口处一层层记录下来，每个函数，我们只记录其核心代码，然后对每个核心代码一层层解析。</strong></p>
 <blockquote>
 <p>代码分析图</p>
