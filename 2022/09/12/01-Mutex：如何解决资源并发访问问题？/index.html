@@ -115,7 +115,7 @@
 <meta property="og:image" content="http://yoursite.com/2022/09/12/01-Mutex：如何解决资源并发访问问题？/2.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/12/01-Mutex：如何解决资源并发访问问题？/3.webp">
 <meta property="og:image" content="http://yoursite.com/2022/09/12/01-Mutex：如何解决资源并发访问问题？/4.webp">
-<meta property="og:updated_time" content="2022-10-09T06:21:18.950Z">
+<meta property="og:updated_time" content="2023-02-28T01:42:10.468Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="01 | Mutex：如何解决资源并发访问问题？">
 <meta name="twitter:description" content="思考并回答以下问题：  在并发编程中，如果程序中的一部分会被并发访问或修改，那么，为了避免并发访问导致的意想不到的结果，这部分程序需要被保护起来，这部分被保护起来的程序，就叫做临界区。怎么理解？ 互斥锁Mutex就提供两个方法Lock和Unlock：进入临界区之前调用Lock方法，退出临界区的时候调用Unlock方法。怎么使用？ 因为不是原子操作，就可能有并发的问题。怎么理解？">
@@ -389,7 +389,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="description" content="看视频才能学会，看文字学不会的">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -448,7 +448,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-10-09 14:21:18" itemprop="dateModified" datetime="2022-10-09T14:21:18+08:00">2022-10-09</time>
+                <time title="修改时间：2023-02-28 09:42:10" itemprop="dateModified" datetime="2023-02-28T09:42:10+08:00">2023-02-28</time>
               
             
           </span>
@@ -598,7 +598,7 @@
 <p>有时候，我们还可以<strong>采用嵌入字段</strong>的方式。通过嵌入字段，你可以在这个struct上直接调用Lock/Unlock方法。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> counter Counter</span><br><span class="line">    <span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">    wg.Add(<span class="number">10</span>)</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">            <span class="keyword">defer</span> wg.Done()</span><br><span class="line">            <span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">100000</span>; j++ &#123;</span><br><span class="line">                counter.Lock()</span><br><span class="line">                counter.Count++</span><br><span class="line">                counter.Unlock()</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;()</span><br><span class="line">    &#125;</span><br><span class="line">    wg.Wait()</span><br><span class="line">    fmt.Println(counter.Count)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Counter <span class="keyword">struct</span> &#123;</span><br><span class="line">    sync.Mutex</span><br><span class="line">    Count <span class="keyword">uint64</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p><strong>如果嵌入的struct有多个字段，我们一般会把Mutex放在要控制的字段上面，然后使用空格把字段分隔开来</strong>。即使你不这样做，代码也可以正常编译，只不过，用这种风格去写的话，逻辑会更清晰，也更易于维护。</p>
 <p>甚至，你还可以把<strong>获取锁、释放锁、计数加一的逻辑封装成一个方法</strong>，对外不需要暴露锁等逻辑：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 封装好的计数器</span></span><br><span class="line">    <span class="keyword">var</span> counter Counter</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">    wg.Add(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 启动10个goroutine</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">            <span class="keyword">defer</span> wg.Done()</span><br><span class="line">            <span class="comment">// 执行10万次累加</span></span><br><span class="line">            <span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">100000</span>; j++ &#123;</span><br><span class="line">                counter.Incr() <span class="comment">// 受到锁保护的方法</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;()</span><br><span class="line">    &#125;</span><br><span class="line">    wg.Wait()</span><br><span class="line">    fmt.Println(counter.Count())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 线程安全的计数器类型</span></span><br><span class="line"><span class="keyword">type</span> Counter <span class="keyword">struct</span> &#123;</span><br><span class="line">    CounterType <span class="keyword">int</span></span><br><span class="line">    Name        <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line">    mu    sync.Mutex</span><br><span class="line">    count <span class="keyword">uint64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 加1的方法，内部使用互斥锁保护</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Counter)</span> <span class="title">Incr</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c.mu.Lock()</span><br><span class="line">    c.count++</span><br><span class="line">    c.mu.Unlock()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 得到计数器的值，也需要锁保护</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Counter)</span> <span class="title">Count</span><span class="params">()</span> <span class="title">uint64</span></span> &#123;</span><br><span class="line">    c.mu.Lock()</span><br><span class="line">    <span class="keyword">defer</span> c.mu.Unlock()</span><br><span class="line">    <span class="keyword">return</span> c.count</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a><span style="color:#339AFF;">总结</span></h1><p>这节课，我介绍了并发问题的背景知识、标准库中Mutex的使用和最佳实践、通过racedetector工具发现计数器程序的问题以及修复方法。相信你已经大致了解了Mutex这个同步原语。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a><span style="color:#339AFF;">总结</span></h1><p>这节课，我介绍了并发问题的背景知识、标准库中Mutex的使用和最佳实践、通过race detector工具发现计数器程序的问题以及修复方法。相信你已经大致了解了Mutex这个同步原语。</p>
 <p>在项目开发的初始阶段，我们可能并没有仔细地考虑资源的并发问题，因为在初始阶段，我们还不确定这个资源是否被共享。经过更加深入的设计，或者新功能的增加、代码的完善，这个时候，我们就需要考虑共享资源的并发问题了。当然，如果你能在初始阶段预见到资源会被共享并发访问就更好了。</p>
 <p>意识到共享资源的并发访问的早晚不重要，重要的是，一旦你意识到这个问题，你就要及时通过互斥锁等手段去解决。</p>
 <p>比如Docker issue <a href="https://github.com/moby/moby/pull/37583" target="_blank" rel="noopener">37583</a>、<a href="https://github.com/moby/moby/pull/35517" target="_blank" rel="noopener">35517</a>、<a href="https://github.com/moby/moby/pull/32826" target="_blank" rel="noopener">32826</a>、<a href="https://github.com/moby/moby/pull/30696" target="_blank" rel="noopener">30696</a>等、kubernetes issue <a href="https://github.com/kubernetes/kubernetes/pull/72361" target="_blank" rel="noopener">72361</a>、<a href="https://github.com/kubernetes/kubernetes/pull/71617" target="_blank" rel="noopener">71617</a>等，都是后来发现的data race而采用互斥锁Mutex进行修复的。</p>
@@ -712,7 +712,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+              <div class="site-description motion-element" itemprop="description">看视频才能学会，看文字学不会的</div>
           </div>
 
           
@@ -722,7 +722,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">896</span>
+                    <span class="site-state-item-count">1017</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -787,7 +787,17 @@
                     
                       
                     
-                    <span class="site-state-item-count">19</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1030,7 +1040,25 @@
                     
                       
                     
-                    <span class="site-state-item-count">63</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">72</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1061,23 +1089,23 @@
                 
                 
                   <li>
-                    <a href="/2023/01/27/47｜故障容错：如何在Worker崩溃时进行重新调度？/" title="47｜故障容错：如何在Worker崩溃时进行重新调度？" target="_blank">47｜故障容错：如何在Worker崩溃时进行重新调度？</a>
+                    <a href="/2023/04/04/结束语｜秒杀系统之上的业务协同思考/" title="结束语｜秒杀系统之上的业务协同思考" target="_blank">结束语｜秒杀系统之上的业务协同思考</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/46｜Master任务调度：服务发现与资源管理/" title="46｜Master任务调度：服务发现与资源管理" target="_blank">46｜Master任务调度：服务发现与资源管理</a>
+                    <a href="/2023/04/04/14｜百万级流量秒杀系统的关键总结/" title="14｜百万级流量秒杀系统的关键总结" target="_blank">14｜百万级流量秒杀系统的关键总结</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/45｜Master高可用：怎样借助etcd实现服务选主？/" title="45｜Master高可用：怎样借助etcd实现服务选主？" target="_blank">45｜Master高可用：怎样借助etcd实现服务选主？</a>
+                    <a href="/2023/04/04/13｜优化番外篇：Vertx介绍及快速入门/" title="13｜优化番外篇：Vertx介绍及快速入门" target="_blank">13｜优化番外篇：Vertx介绍及快速入门</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/44｜一个程序多种功能：构建子命令与flags/" title="44｜一个程序多种功能：构建子命令与flags" target="_blank">44｜一个程序多种功能：构建子命令与flags</a>
+                    <a href="/2023/04/04/12｜高性能优化：单机Java极致优化/" title="12｜高性能优化：单机Java极致优化" target="_blank">12｜高性能优化：单机Java极致优化</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/43｜分布式协调：etcd读写、MVCC原理与监听机制/" title="43｜分布式协调：etcd读写、MVCC原理与监听机制" target="_blank">43｜分布式协调：etcd读写、MVCC原理与监听机制</a>
+                    <a href="/2023/04/04/11｜高性能优化：物理机极致优化/" title="11｜高性能优化：物理机极致优化" target="_blank">11｜高性能优化：物理机极致优化</a>
                   </li>
                 
               </ul>
@@ -1138,7 +1166,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">7.6m</span>
+    <span title="站点总字数">8.2m</span>
   
 
   
@@ -1149,7 +1177,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">115:03</span>
+    <span title="站点阅读时长">124:48</span>
   
 </div>
 

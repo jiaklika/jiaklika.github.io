@@ -118,7 +118,7 @@
 <meta property="og:image" content="http://yoursite.com/2021/12/20/13｜交互：可以执行命令行的框架才是好框架/5.webp">
 <meta property="og:image" content="http://yoursite.com/2021/12/20/13｜交互：可以执行命令行的框架才是好框架/6.webp">
 <meta property="og:image" content="http://yoursite.com/2021/12/20/13｜交互：可以执行命令行的框架才是好框架/7.webp">
-<meta property="og:updated_time" content="2022-12-11T07:20:44.889Z">
+<meta property="og:updated_time" content="2023-04-03T10:13:16.048Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="13｜交互：可以执行命令行的框架才是好框架">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -392,7 +392,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="description" content="看视频才能学会，看文字学不会的">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -451,7 +451,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-12-11 15:20:44" itemprop="dateModified" datetime="2022-12-11T15:20:44+08:00">2022-12-11</time>
+                <time title="修改时间：2023-04-03 18:13:16" itemprop="dateModified" datetime="2023-04-03T18:13:16+08:00">2023-04-03</time>
               
             
           </span>
@@ -537,7 +537,7 @@
 <p>一个拥有命令行工具的框架会非常受欢迎。比如Beego框架提供了一个命令行工具Bee、Vue框架提供了Vue-CLI，这些工具无疑给框架的使用者提供了不少便利。在使用框架过程中，命令行工具能将很多编码行为自动化。</p>
 <p>而且退一步说，在实际工作中你会发现，即使用的框架没有提供任何命令行工具，在业务运营的过程中，我们也需要开发各种大大小小的命令行运营工具，作为业务运营的必要辅助。所以一个自带命令行工具，且很方便让用户自行开发命令行的框架，是非常有必要的。</p>
 <p>这节课我们就研究一下如何将hade框架改造成为支持命令行交互的框架。</p>
-<h1 id="第三方命令行工具库cobra"><a href="#第三方命令行工具库cobra" class="headerlink" title="第三方命令行工具库cobra"></a><span style="color:#339AFF;">第三方命令行工具库cobra</span></h1><p>要让一个程序支持命令行，那么它的核心功能就是要能解析参数，比如<code>./hade app start --address=:8888</code>其中的./hade是我们要运行的程序，而后面的app和start两个字段以及<code>–address=:8888</code>就是这个程序对应的参数了。</p>
+<h1 id="第三方命令行工具库cobra"><a href="#第三方命令行工具库cobra" class="headerlink" title="第三方命令行工具库cobra"></a><span style="color:#339AFF;">第三方命令行工具库cobra</span></h1><p>要让一个程序支持命令行，那么它的核心功能就是要能解析参数，比如<code>./hade app start --address=:8888</code>其中的./hade是我们要运行的程序，而后面的app和start两个字段以及<code>–-address=:8888</code>就是这个程序对应的参数了。</p>
 <p>那么如何解析参数呢？</p>
 <p>Golang标准库提供了flag包能对参数进行解析。但是flag包<strong>只是一个命令行解析的类库，不支持组织，所以如果想基于flag包实现父子命令行工具，显然就不够了</strong>。出于不重复造轮子，站在巨人肩膀上的想法，我们将视线移向开源社区一个最出名的命令行工具库<a href="https://github.com/spf13/cobra" target="_blank" rel="noopener">cobra</a>。</p>
 <p>cobra不仅仅能让我们快速构建一个命令行，它更大的优势是能更快地组织起有许多命令行工具，因为从根命令行工具开始，cobra把所有的命令按照树形结构组织起来了。</p>
@@ -549,7 +549,8 @@
 <p>它对应的代码如下，后面会解释每一行都是怎么实现的：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// InitFoo 初始化 Foo 命令</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitFoo</span><span class="params">()</span> *<span class="title">cobra</span>.<span class="title">Command</span></span> &#123;</span><br><span class="line">    FooCommand.AddCommand(Foo1Command)</span><br><span class="line">    <span class="keyword">return</span> FooCommand</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// FooCommand 代表 Foo 命令</span></span><br><span class="line"><span class="keyword">var</span> FooCommand = &amp;cobra.Command&#123;</span><br><span class="line">    Use:     <span class="string">"foo"</span>,</span><br><span class="line">    Short:   <span class="string">"foo 的简要说明"</span>,</span><br><span class="line">    Long:    <span class="string">"foo 的长说明"</span>,</span><br><span class="line">    Aliases: []<span class="keyword">string</span>&#123;<span class="string">"fo"</span>, <span class="string">"f"</span>&#125;,</span><br><span class="line">    Example: <span class="string">"foo 命令的例子"</span>,</span><br><span class="line">    RunE: <span class="function"><span class="keyword">func</span><span class="params">(c *cobra.Command, args []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        container := c.GetContainer()</span><br><span class="line">        log.Println(container)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Foo1Command 代表 Foo 命令的子命令 Foo1</span></span><br><span class="line"><span class="keyword">var</span> Foo1Command = &amp;cobra.Command&#123;</span><br><span class="line">    Use:     <span class="string">"foo1"</span>,</span><br><span class="line">    Short:   <span class="string">"foo1 的简要说明"</span>,</span><br><span class="line">    Long:    <span class="string">"foo1 的长说明"</span>,</span><br><span class="line">    Aliases: []<span class="keyword">string</span>&#123;<span class="string">"fo1"</span>, <span class="string">"f1"</span>&#125;,</span><br><span class="line">    Example: <span class="string">"foo1 命令的例子"</span>,</span><br><span class="line">    RunE: <span class="function"><span class="keyword">func</span><span class="params">(c *cobra.Command, args []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        container := c.GetContainer()</span><br><span class="line">        log.Println(container)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>对照代码和输出结果图，能看出Command中最常用的一些字段设置。</p>
 <ul>
-<li>Use代表这个命令的调用关键字，比如要调用Foo1命令，我们就要用<code>./hade foo foo1</code>。Short代表这个命令的简短说明，它会出现在上级命令的使用文档中。</li>
+<li>Use代表这个命令的调用关键字，比如要调用Foo1命令，我们就要用<code>./hade foo foo1</code>。</li>
+<li>Short代表这个命令的简短说明，它会出现在上级命令的使用文档中。</li>
 <li>Long代表这个命令的长说明，它会出现在当前命令的使用文档中。</li>
 <li>Aliases是当前命令的别名，等同于Use字段；</li>
 <li>Example是当前命令的例子，也是显示在当前命令的使用文档中。</li>
@@ -566,7 +567,7 @@
 <p>在main函数中，我们使用<code>gin.New</code>创建了一个Engine结构，在业务中对这个Engine结构进行路由设置，这些都应该在业务代码中。而后，我们就进入了框架代码中，调用Web服务所在Command节点的RunE方法，在这个方法里进行初始化<code>http.Server</code>，并且启动Goroutine进行监听：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建engine结构</span></span><br><span class="line">    core := gin.New()</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    hadeHttp.Routes(core)</span><br><span class="line"></span><br><span class="line">    server := &amp;http.Server&#123;</span><br><span class="line">        Handler: core,</span><br><span class="line">        Addr:    <span class="string">":8888"</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这个goroutine是启动服务的goroutine</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        server.ListenAndServe()</span><br><span class="line">    &#125;()</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>也就是说，我们只能根据Command拿到服务容器，那怎么拿到Gin函数创建的Engine结构呢？这个问题我提供一个解决思路，是否可以将“提供服务引擎”作为一个接口，通过服务提供者注入进服务容器？这样就能在命令行中就能获取服务容器了。</p>
 <h1 id="使用cobra增加框架的交互性"><a href="#使用cobra增加框架的交互性" class="headerlink" title="使用cobra增加框架的交互性"></a><span style="color:#339AFF;">使用cobra增加框架的交互性</span></h1><p>现在思路有了，可能发生的问题也想到了，下面进入实操。</p>
-<p>首先是源码引入cobra库。引入的方式基本上和Gin框架引入的方式一样，先看下cobra源码的许可证，是ApacheLicense。这种许可证允许修改、商用、私有化等，只要求保留著作声明。所以我们直接拷贝最新的cobra源码，用cobrav <a href="https://github.com/spf13/cobra/tree/v1.2.1" target="_blank" rel="noopener">1.2.1版本</a>，将它放在framework/cobra目录下。</p>
+<p>首先是源码引入cobra库。引入的方式基本上和Gin框架引入的方式一样，先看下cobra源码的许可证，是Apache License。这种许可证允许修改、商用、私有化等，只要求保留著作声明。所以我们直接拷贝最新的cobra源码，用cobra <a href="https://github.com/spf13/cobra/tree/v1.2.1" target="_blank" rel="noopener">v1.2.1版本</a>，将它放在framework/cobra目录下。</p>
 <img src="/2021/12/20/13｜交互：可以执行命令行的框架才是好框架/3.webp">
 <p>然后，对Command结构进行修改。要在Command结构中加入服务容器，由于刚才是源码引入的，很容易为Command增加一个container字段，在framework/cobra/command.go中修改Command结构：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Command <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 服务容器</span></span><br><span class="line">    container framework.Container</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p><strong>再为Command提供两个方法：设置服务容器、获取服务容器。</strong>设置服务容器的方法是为了在创建根Command之后，能将服务容器设置到里面去；而获取服务容器的方法，是为了在执行命令的RunE函数的时候，能从参数Command中获取到服务容器。</p>
@@ -734,7 +735,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+              <div class="site-description motion-element" itemprop="description">看视频才能学会，看文字学不会的</div>
           </div>
 
           
@@ -744,7 +745,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">896</span>
+                    <span class="site-state-item-count">1017</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -809,7 +810,17 @@
                     
                       
                     
-                    <span class="site-state-item-count">19</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1052,7 +1063,25 @@
                     
                       
                     
-                    <span class="site-state-item-count">63</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">72</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1083,23 +1112,23 @@
                 
                 
                   <li>
-                    <a href="/2023/01/27/47｜故障容错：如何在Worker崩溃时进行重新调度？/" title="47｜故障容错：如何在Worker崩溃时进行重新调度？" target="_blank">47｜故障容错：如何在Worker崩溃时进行重新调度？</a>
+                    <a href="/2023/04/04/结束语｜秒杀系统之上的业务协同思考/" title="结束语｜秒杀系统之上的业务协同思考" target="_blank">结束语｜秒杀系统之上的业务协同思考</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/46｜Master任务调度：服务发现与资源管理/" title="46｜Master任务调度：服务发现与资源管理" target="_blank">46｜Master任务调度：服务发现与资源管理</a>
+                    <a href="/2023/04/04/14｜百万级流量秒杀系统的关键总结/" title="14｜百万级流量秒杀系统的关键总结" target="_blank">14｜百万级流量秒杀系统的关键总结</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/45｜Master高可用：怎样借助etcd实现服务选主？/" title="45｜Master高可用：怎样借助etcd实现服务选主？" target="_blank">45｜Master高可用：怎样借助etcd实现服务选主？</a>
+                    <a href="/2023/04/04/13｜优化番外篇：Vertx介绍及快速入门/" title="13｜优化番外篇：Vertx介绍及快速入门" target="_blank">13｜优化番外篇：Vertx介绍及快速入门</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/44｜一个程序多种功能：构建子命令与flags/" title="44｜一个程序多种功能：构建子命令与flags" target="_blank">44｜一个程序多种功能：构建子命令与flags</a>
+                    <a href="/2023/04/04/12｜高性能优化：单机Java极致优化/" title="12｜高性能优化：单机Java极致优化" target="_blank">12｜高性能优化：单机Java极致优化</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/43｜分布式协调：etcd读写、MVCC原理与监听机制/" title="43｜分布式协调：etcd读写、MVCC原理与监听机制" target="_blank">43｜分布式协调：etcd读写、MVCC原理与监听机制</a>
+                    <a href="/2023/04/04/11｜高性能优化：物理机极致优化/" title="11｜高性能优化：物理机极致优化" target="_blank">11｜高性能优化：物理机极致优化</a>
                   </li>
                 
               </ul>
@@ -1160,7 +1189,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">7.6m</span>
+    <span title="站点总字数">8.2m</span>
   
 
   
@@ -1171,7 +1200,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">115:03</span>
+    <span title="站点阅读时长">124:48</span>
   
 </div>
 

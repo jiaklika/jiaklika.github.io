@@ -118,7 +118,7 @@
 <meta property="og:image" content="http://yoursite.com/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/6.webp">
 <meta property="og:image" content="http://yoursite.com/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/7.webp">
 <meta property="og:image" content="http://yoursite.com/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/8.webp">
-<meta property="og:updated_time" content="2022-12-09T09:33:03.548Z">
+<meta property="og:updated_time" content="2023-04-13T03:19:47.458Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="01｜net&#x2F;http：使用标准库搭建Server并不是那么简单">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -392,7 +392,7 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CheBin">
-      <meta itemprop="description" content="看书不是为了学习，是为了锻炼意志力">
+      <meta itemprop="description" content="看视频才能学会，看文字学不会的">
       <meta itemprop="image" content="/images/avatar.jpg">
     </span>
 
@@ -451,7 +451,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2022-12-09 17:33:03" itemprop="dateModified" datetime="2022-12-09T17:33:03+08:00">2022-12-09</time>
+                <time title="修改时间：2023-04-13 11:19:47" itemprop="dateModified" datetime="2023-04-13T11:19:47+08:00">2023-04-13</time>
               
             
           </span>
@@ -543,7 +543,7 @@
 <p>要回答这些问题，你就要深入理解net/http标准库。要不然，只会简单调用，却不知道原理，后面哪里出了问题，或者你想调优，就无从下手了。</p>
 <p>所以，我们先来看看net/http标准库，从代码层面搞清楚整个HTTP服务的主流程原理，最后再基于原理讲实现。</p>
 <h1 id="net-http标准库怎么学"><a href="#net-http标准库怎么学" class="headerlink" title="net/http标准库怎么学"></a><span style="color:#339AFF;">net/http标准库怎么学</span></h1><p>要快速熟悉一个标准库，就得找准方法。这里我教给你一个快速掌握代码库的技巧：<span style="color:red">库函数&gt;结构定义&gt;结构函数。</span></p>
-<p>简单来说，就是当你在阅读一个代码库的时候，不应该从上到下阅读整个代码文档，而应该先阅读整个代码库提供的对外库函数（function），再读这个库提供的结构（struct/class），最后再阅读每个结构函数（method）。</p>
+<p>简单来说，就是当你在阅读一个代码库的时候，不应该从上到下阅读整个代码文档，而应该先阅读整个代码库提供的对外库函数（<span style="color:red">function</span>），再读这个库提供的结构（<span style="color:red">struct/class</span>），最后再阅读每个结构函数（<span style="color:red">method</span>）。</p>
 <img src="/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/2.webp">
 <p>为什么要这么学呢？因为这种阅读思路和代码库作者的思路是一致的。</p>
 <p>首先搞清楚这个库要提供什么功能（提供什么样的对外函数），然后为了提供这些功能，我要把整个库分为几个核心模块（结构），最后每个核心模块，我应该提供什么样的能力（具体的结构函数）来满足我的需求。</p>
@@ -570,26 +570,26 @@
 <p>构建的HTTP服务端除了提供真实服务之外，也能提供代理中转服务，它们分别由Client和Server两个数据结构负责。除了这两个最重要的数据结构之外，HTTP协议的每个部分，比如请求、返回、传输设置等都有具体的数据结构负责。</p>
 <h2 id="结构函数（能力）"><a href="#结构函数（能力）" class="headerlink" title="结构函数（能力）"></a><span style="color:#00ACC1;">结构函数（能力）</span></h2><p>下面从具体的需求出发，我们来阅读具体的结构函数（method）。</p>
 <p>我们当前的需求是创建HTTP服务，开头我举了一个最简单的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个Foo路由和处理函数</span></span><br><span class="line">http.Handle(<span class="string">"/foo"</span>, fooHandler)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建一个bar路由和处理函数</span></span><br><span class="line">http.HandleFunc(<span class="string">"/bar"</span>, <span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">    fmt.Fprintf(w, <span class="string">"Hello, %q"</span>, html.EscapeString(r.URL.Path))</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 监听8080端口</span></span><br><span class="line">log.Fatal(http.ListenAndServe(<span class="string">":8080"</span>, <span class="literal">nil</span>))</span><br></pre></td></tr></table></figure></p>
-<p>我们跟着http.ListenAndServe这个函数来理一下net/http创建服务的主流程逻辑。</p>
+<p>我们跟着<code>http.ListenAndServe</code>这个函数来理一下net/http创建服务的主流程逻辑。</p>
 <p><strong>我们将要分析的代码从入口处一层层记录下来，每个函数，我们只记录其核心代码，然后对每个核心代码一层层解析。</strong></p>
 <blockquote>
 <p>代码分析图</p>
 </blockquote>
 <img src="/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/3.webp">
 <p>我们先顺着<code>http.ListenAndServe</code>的脉络读。</p>
-<p>第一层，<code>http.ListenAndServe</code>本质是通过创建一个Server数据结构，调用<code>server.ListenAndServe</code>对外提供服务，这一层完全是比较简单的封装，目的是，将Server结构创建服务的方法ListenAndServe，直接作为库函数对外提供，增加库的易用性。</p>
+<p><strong>第一层</strong>，<code>http.ListenAndServe</code>本质是通过创建一个Server数据结构，调用<code>server.ListenAndServe</code>对外提供服务，这一层完全是比较简单的封装，目的是，将Server结构创建服务的方法ListenAndServe，直接作为库函数对外提供，增加库的易用性。</p>
 <img src="/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/4.webp">
-<p>进入到第二层，创建服务的方法ListenAndServe先定义了监听信息<code>net.Listen</code>，然后调用Serve函数。</p>
-<p>而在第三层Serve函数中，用了一个for循环，通过<code>l.Accept</code>不断接收从客户端传进来的请求连接。当接收到了一个新的请求连接的时候，通过<code>srv.newConn</code>创建了一个连接结构（<code>http.conn</code>），并创建一个Goroutine为这个请求连接对应服务（<code>c.serve</code>）。</p>
+<p>进入到<strong>第二层</strong>，创建服务的方法ListenAndServe先定义了监听信息<code>net.Listen</code>，然后调用Serve函数。</p>
+<p>而在<strong>第三层</strong>Serve函数中，用了一个for循环，通过<code>l.Accept</code>不断接收从客户端传进来的请求连接。当接收到了一个新的请求连接的时候，通过<code>srv.newConn</code>创建了一个连接结构（<code>http.conn</code>），并创建一个Goroutine为这个请求连接对应服务（<code>c.serve</code>）。</p>
 <p>从第四层开始，后面就是单个连接的服务逻辑了。</p>
 <img src="/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/5.webp">
-<p>在第四层，<code>c.serve</code>函数先判断本次HTTP请求是否需要升级为HTTPs，接着创建读文本的reader和写文本的buffer，再进一步读取本次请求数据，然后第五层调用最关键的方法<code>serverHandler{c.server}.ServeHTTP(w,w.req)</code>，来处理这次请求。</p>
+<p>在<strong>第四层</strong>，<code>c.serve</code>函数先判断本次HTTP请求是否需要升级为HTTPs，接着创建读文本的reader和写文本的buffer，再进一步读取本次请求数据，然后<strong>第五层</strong>调用最关键的方法<code>serverHandler{c.server}.ServeHTTP(w,w.req)</code>，来处理这次请求。</p>
 <p>这个关键方法是为了实现自定义的路由和业务逻辑，调用写法是比较有意思的：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">serverHandler&#123;c.server&#125;.ServeHTTP(w, w.req)</span><br></pre></td></tr></table></figure></p>
 <p>serverHandler结构体，是标准库封装的，代表“请求对应的处理逻辑”，它只包含了一个指向总入口服务server的指针。</p>
-<p>这个结构将总入口的服务结构Server和每个连接的处理逻辑巧妙联系在一起了，你可以看接着的第六层逻辑：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// serverHandler 结构代表请求对应的处理逻辑</span></span><br><span class="line"><span class="keyword">type</span> serverHandler <span class="keyword">struct</span> &#123;</span><br><span class="line">    srv *Server</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 具体处理逻辑的处理函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sh serverHandler)</span> <span class="title">ServeHTTP</span><span class="params">(rw ResponseWriter, req *Request)</span></span> &#123;</span><br><span class="line">    handler := sh.srv.Handler</span><br><span class="line">    <span class="keyword">if</span> handler == <span class="literal">nil</span> &#123;</span><br><span class="line">        handler = DefaultServeMux</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    handler.ServeHTTP(rw, req)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个结构将总入口的服务结构Server和每个连接的处理逻辑巧妙联系在一起了，你可以看接着的<strong>第六层</strong>逻辑：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// serverHandler 结构代表请求对应的处理逻辑</span></span><br><span class="line"><span class="keyword">type</span> serverHandler <span class="keyword">struct</span> &#123;</span><br><span class="line">    srv *Server</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 具体处理逻辑的处理函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sh serverHandler)</span> <span class="title">ServeHTTP</span><span class="params">(rw ResponseWriter, req *Request)</span></span> &#123;</span><br><span class="line">    handler := sh.srv.Handler</span><br><span class="line">    <span class="keyword">if</span> handler == <span class="literal">nil</span> &#123;</span><br><span class="line">        handler = DefaultServeMux</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    handler.ServeHTTP(rw, req)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>如果入口服务server结构已经设置了Handler，就调用这个Handler来处理此次请求，反之则使用库自带的DefaultServerMux。</p>
 <p>这里的serverHandler设计，能同时保证这个库的扩展性和易用性：你可以很方便使用默认方法处理请求，但是一旦有需求，也能自己扩展出方法处理请求。</p>
-<p>那么DefaultServeMux是怎么寻找Handler的呢，这就是思维导图的最后一部分第七层。</p>
+<p>那么DefaultServeMux是怎么寻找Handler的呢，这就是思维导图的最后一部分<strong>第七层</strong>。</p>
 <img src="/2021/12/20/01｜net-http：使用标准库搭建Server并不是那么简单/6.webp">
 <p><code>DefaultServeMux.Handle</code>是一个非常简单的map实现，key是路径（pattern），value是这个pattern对应的处理函数（handler）。它是通过<code>mux.match(path)</code>寻找对应Handler，也就是从DefaultServeMux内部的map中直接根据key寻找到value的。</p>
 <p>这种根据map直接查找路由的方式是不是可以满足我们的路由需求呢？我们会在第三讲路由中详细解说。</p>
@@ -735,7 +735,7 @@
               <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
             
               <p class="site-author-name" itemprop="name">CheBin</p>
-              <div class="site-description motion-element" itemprop="description">看书不是为了学习，是为了锻炼意志力</div>
+              <div class="site-description motion-element" itemprop="description">看视频才能学会，看文字学不会的</div>
           </div>
 
           
@@ -745,7 +745,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">896</span>
+                    <span class="site-state-item-count">1017</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -810,7 +810,17 @@
                     
                       
                     
-                    <span class="site-state-item-count">19</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1053,7 +1063,25 @@
                     
                       
                     
-                    <span class="site-state-item-count">63</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">72</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1084,23 +1112,23 @@
                 
                 
                   <li>
-                    <a href="/2023/01/27/47｜故障容错：如何在Worker崩溃时进行重新调度？/" title="47｜故障容错：如何在Worker崩溃时进行重新调度？" target="_blank">47｜故障容错：如何在Worker崩溃时进行重新调度？</a>
+                    <a href="/2023/04/04/结束语｜秒杀系统之上的业务协同思考/" title="结束语｜秒杀系统之上的业务协同思考" target="_blank">结束语｜秒杀系统之上的业务协同思考</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/46｜Master任务调度：服务发现与资源管理/" title="46｜Master任务调度：服务发现与资源管理" target="_blank">46｜Master任务调度：服务发现与资源管理</a>
+                    <a href="/2023/04/04/14｜百万级流量秒杀系统的关键总结/" title="14｜百万级流量秒杀系统的关键总结" target="_blank">14｜百万级流量秒杀系统的关键总结</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/45｜Master高可用：怎样借助etcd实现服务选主？/" title="45｜Master高可用：怎样借助etcd实现服务选主？" target="_blank">45｜Master高可用：怎样借助etcd实现服务选主？</a>
+                    <a href="/2023/04/04/13｜优化番外篇：Vertx介绍及快速入门/" title="13｜优化番外篇：Vertx介绍及快速入门" target="_blank">13｜优化番外篇：Vertx介绍及快速入门</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/44｜一个程序多种功能：构建子命令与flags/" title="44｜一个程序多种功能：构建子命令与flags" target="_blank">44｜一个程序多种功能：构建子命令与flags</a>
+                    <a href="/2023/04/04/12｜高性能优化：单机Java极致优化/" title="12｜高性能优化：单机Java极致优化" target="_blank">12｜高性能优化：单机Java极致优化</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/01/27/43｜分布式协调：etcd读写、MVCC原理与监听机制/" title="43｜分布式协调：etcd读写、MVCC原理与监听机制" target="_blank">43｜分布式协调：etcd读写、MVCC原理与监听机制</a>
+                    <a href="/2023/04/04/11｜高性能优化：物理机极致优化/" title="11｜高性能优化：物理机极致优化" target="_blank">11｜高性能优化：物理机极致优化</a>
                   </li>
                 
               </ul>
@@ -1161,7 +1189,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">7.6m</span>
+    <span title="站点总字数">8.2m</span>
   
 
   
@@ -1172,7 +1200,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">115:03</span>
+    <span title="站点阅读时长">124:48</span>
   
 </div>
 
