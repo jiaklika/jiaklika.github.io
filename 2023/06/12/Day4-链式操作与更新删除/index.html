@@ -103,18 +103,18 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="7天用Go从零实现ORM框架GeeORM">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Day4 链式操作与更新删除">
 <meta property="og:url" content="http://yoursite.com/2023/06/12/Day4-链式操作与更新删除/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-06-12T10:56:21.585Z">
+<meta property="og:updated_time" content="2023-06-14T02:16:53.901Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Day4 链式操作与更新删除">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
 
 
 
@@ -426,12 +426,24 @@
                 
               
 
-              <time title="创建时间：2023-06-12 18:21:19 / 修改时间：18:56:21" itemprop="dateCreated datePublished" datetime="2023-06-12T18:21:19+08:00">2023-06-12</time>
+              <time title="创建时间：2023-06-12 18:21:19" itemprop="dateCreated datePublished" datetime="2023-06-12T18:21:19+08:00">2023-06-12</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2023-06-14 10:16:53" itemprop="dateModified" datetime="2023-06-14T10:16:53+08:00">2023-06-14</time>
               
             
           </span>
@@ -477,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">6k</span>
+                <span title="本文字数">1.3k</span>
               
 
               
@@ -491,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">5 分钟</span>
+                <span title="阅读时长">1 分钟</span>
               
             </div>
           
@@ -512,48 +524,21 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
 <p>通过链式(chain)操作，支持查询条件(where, order by, limit 等)的叠加。<br>实现记录的更新(update)、删除(delete)和统计(count)功能。代码约100行<br>1 支持 Update、Delete 和 Count<br>1.1 子句生成器<br>clause 负责构造 SQL 语句，如果需要增加对更新(update)、删除(delete)和统计(count)功能的支持，第一步自然是在 clause 中实现 update、delete 和 count 子句的生成器。</p>
 <p>第一步：在原来的基础上，新增 UPDATE、DELETE、COUNT 三个 Type 类型的枚举值。</p>
-<p>day4-chain-operation/clause/clause.go</p>
-<p>// Support types for Clause<br>const (<br>    INSERT Type = iota<br>    VALUES<br>    SELECT<br>    LIMIT<br>    WHERE<br>    ORDERBY<br>    UPDATE<br>    DELETE<br>    COUNT<br>)<br>第二步：实现对应字句的 generator，并注册到全局变量 generators 中</p>
-<p>day4-chain-operation/clause/generator.go</p>
-<p>func init() {<br>    generators = make(map[Type]generator)<br>    generators[INSERT] = _insert<br>    generators[VALUES] = _values<br>    generators[SELECT] = _select<br>    generators[LIMIT] = _limit<br>    generators[WHERE] = _where<br>    generators[ORDERBY] = _orderBy<br>    generators[UPDATE] = _update<br>    generators[DELETE] = _delete<br>    generators[COUNT] = _count<br>}</p>
-<p>func _update(values …interface{}) (string, []interface{}) {<br>    tableName := values[0]<br>    m := values[1].(map[string]interface{})<br>    var keys []string<br>    var vars []interface{}<br>    for k, v := range m {<br>        keys = append(keys, k+” = ?”)<br>        vars = append(vars, v)<br>    }<br>    return fmt.Sprintf(“UPDATE %s SET %s”, tableName, strings.Join(keys, “, “)), vars<br>}</p>
-<p>func _delete(values …interface{}) (string, []interface{}) {<br>    return fmt.Sprintf(“DELETE FROM %s”, values[0]), []interface{}{}<br>}</p>
-<p>func _count(values …interface{}) (string, []interface{}) {<br>    return _select(values[0], []string{“count(*)”})<br>}<br>_update 设计入参是2个，第一个参数是表名(table)，第二个参数是 map 类型，表示待更新的键值对。<br>_delete 只有一个入参，即表名。<br>_count 只有一个入参，即表名，并复用了 _select 生成器。<br>1.2 Update 方法<br>子句的 generator 已经准备好了，接下来和 Insert、Find 等方法一样，在 session/record.go 中按照一定顺序拼接 SQL 语句并调用就可以了。</p>
-<p>day4-chain-operation/session/record.go</p>
-<p>// support map[string]interface{}<br>// also support kv list: “Name”, “Tom”, “Age”, 18, ….<br>func (s *Session) Update(kv …interface{}) (int64, error) {<br>    m, ok := kv[0].(map[string]interface{})<br>    if !ok {<br>        m = make(map[string]interface{})<br>        for i := 0; i &lt; len(kv); i += 2 {<br>            m[kv[i].(string)] = kv[i+1]<br>        }<br>    }<br>    s.clause.Set(clause.UPDATE, s.RefTable().Name, m)<br>    sql, vars := s.clause.Build(clause.UPDATE, clause.WHERE)<br>    result, err := s.Raw(sql, vars…).Exec()<br>    if err != nil {<br>        return 0, err<br>    }<br>    return result.RowsAffected()<br>}<br>Update 方法比较特别的一点在于，Update 接受 2 种入参，平铺开来的键值对和 map 类型的键值对。因为 generator 接受的参数是 map 类型的键值对，因此 Update 方法会动态地判断传入参数的类型，如果是不是 map 类型，则会自动转换。</p>
+<p>第二步：实现对应字句的 generator，并注册到全局变量 generators 中</p>
+<p>_update 设计入参是2个，第一个参数是表名(table)，第二个参数是 map 类型，表示待更新的键值对。<br>_delete 只有一个入参，即表名。<br>_count 只有一个入参，即表名，并复用了 _select 生成器。<br>1.2 Update 方法<br>子句的 generator 已经准备好了，接下来和 Insert、Find 等方法一样，在 session/record.go 中按照一定顺序拼接 SQL 语句并调用就可以了。</p>
+<p>Update 方法比较特别的一点在于，Update 接受 2 种入参，平铺开来的键值对和 map 类型的键值对。因为 generator 接受的参数是 map 类型的键值对，因此 Update 方法会动态地判断传入参数的类型，如果是不是 map 类型，则会自动转换。</p>
 <p>1.3 Delete 方法</p>
-<p>// Delete records with where clause<br>func (s *Session) Delete() (int64, error) {<br>    s.clause.Set(clause.DELETE, s.RefTable().Name)<br>    sql, vars := s.clause.Build(clause.DELETE, clause.WHERE)<br>    result, err := s.Raw(sql, vars…).Exec()<br>    if err != nil {<br>        return 0, err<br>    }<br>    return result.RowsAffected()<br>}<br>1.4 Count 方法</p>
-<p>// Count records with where clause<br>func (s *Session) Count() (int64, error) {<br>    s.clause.Set(clause.COUNT, s.RefTable().Name)<br>    sql, vars := s.clause.Build(clause.COUNT, clause.WHERE)<br>    row := s.Raw(sql, vars…).QueryRow()<br>    var tmp int64<br>    if err := row.Scan(&amp;tmp); err != nil {<br>        return 0, err<br>    }<br>    return tmp, nil<br>}<br>2 链式调用(chain)<br>链式调用是一种简化代码的编程方式，能够使代码更简洁、易读。链式调用的原理也非常简单，某个对象调用某个方法后，将该对象的引用/指针返回，即可以继续调用该对象的其他方法。通常来说，当某个对象需要一次调用多个方法来设置其属性时，就非常适合改造为链式调用了。</p>
+<p>1.4 Count 方法</p>
+<p>2 链式调用(chain)<br>链式调用是一种简化代码的编程方式，能够使代码更简洁、易读。链式调用的原理也非常简单，某个对象调用某个方法后，将该对象的引用/指针返回，即可以继续调用该对象的其他方法。通常来说，当某个对象需要一次调用多个方法来设置其属性时，就非常适合改造为链式调用了。</p>
 <p>SQL 语句的构造过程就非常符合这个条件。SQL 语句由多个子句构成，典型的例如 SELECT 语句，往往需要设置查询条件（WHERE）、限制返回行数（LIMIT）等。理想的调用方式应该是这样的：</p>
-<p>s := geeorm.NewEngine(“sqlite3”, “gee.db”).NewSession()<br>var users []User<br>s.Where(“Age &gt; 18”).Limit(3).Find(&amp;users)<br>从上面的示例中，可以看出，WHERE、LIMIT、ORDER BY 等查询条件语句非常适合链式调用。这几个子句的 generator 在之前就已经实现了，那我们接下来在 session/record.go 中添加对应的方法即可。</p>
-<p>day4-chain-operation/session/record.go</p>
-<p>// Limit adds limit condition to clause<br>func (s <em>Session) Limit(num int) </em>Session {<br>    s.clause.Set(clause.LIMIT, num)<br>    return s<br>}</p>
-<p>// Where adds limit condition to clause<br>func (s <em>Session) Where(desc string, args …interface{}) </em>Session {<br>    var vars []interface{}<br>    s.clause.Set(clause.WHERE, append(append(vars, desc), args…)…)<br>    return s<br>}</p>
-<p>// OrderBy adds order by condition to clause<br>func (s <em>Session) OrderBy(desc string) </em>Session {<br>    s.clause.Set(clause.ORDERBY, desc)<br>    return s<br>}<br>3 First 只返回一条记录<br>很多时候，我们期望 SQL 语句只返回一条记录，比如根据某个童鞋的学号查询他的信息，返回结果有且只有一条。结合链式调用，我们可以非常容易地实现 First 方法。</p>
-<p>func (s *Session) First(value interface{}) error {<br>    dest := reflect.Indirect(reflect.ValueOf(value))<br>    destSlice := reflect.New(reflect.SliceOf(dest.Type())).Elem()<br>    if err := s.Limit(1).Find(destSlice.Addr().Interface()); err != nil {<br>        return err<br>    }<br>    if destSlice.Len() == 0 {<br>        return errors.New(“NOT FOUND”)<br>    }<br>    dest.Set(destSlice.Index(0))<br>    return nil<br>}<br>First 方法可以这么使用：</p>
-<p>1<br>2<br>u := &amp;User{}<br>_ = s.OrderBy(“Age DESC”).First(u)<br>实现原理：根据传入的类型，利用反射构造切片，调用 Limit(1) 限制返回的行数，调用 Find 方法获取到查询结果。</p>
+<p>从上面的示例中，可以看出，WHERE、LIMIT、ORDER BY 等查询条件语句非常适合链式调用。这几个子句的 generator 在之前就已经实现了，那我们接下来在 session/record.go 中添加对应的方法即可。</p>
+<p>3 First 只返回一条记录<br>很多时候，我们期望 SQL 语句只返回一条记录，比如根据某个童鞋的学号查询他的信息，返回结果有且只有一条。结合链式调用，我们可以非常容易地实现 First 方法。</p>
+<p>First 方法可以这么使用：</p>
+<p>实现原理：根据传入的类型，利用反射构造切片，调用 Limit(1) 限制返回的行数，调用 Find 方法获取到查询结果。</p>
 <p>4 测试<br>接下来呢，我们在 record_test.go 中添加几个测试用例，检测功能是否正常。</p>
-<p>package session</p>
-<p>import “testing”</p>
-<p>var (<br>    user1 = &amp;User{“Tom”, 18}<br>    user2 = &amp;User{“Sam”, 25}<br>    user3 = &amp;User{“Jack”, 25}<br>)</p>
-<p>func testRecordInit(t <em>testing.T) </em>Session {<br>    t.Helper()<br>    s := NewSession().Model(&amp;User{})<br>    err1 := s.DropTable()<br>    err2 := s.CreateTable()<br>    _, err3 := s.Insert(user1, user2)<br>    if err1 != nil || err2 != nil || err3 != nil {<br>        t.Fatal(“failed init test records”)<br>    }<br>    return s<br>}</p>
-<p>func TestSession_Limit(t *testing.T) {<br>    s := testRecordInit(t)<br>    var users []User<br>    err := s.Limit(1).Find(&amp;users)<br>    if err != nil || len(users) != 1 {<br>        t.Fatal(“failed to query with limit condition”)<br>    }<br>}</p>
-<p>func TestSession_Update(t *testing.T) {<br>    s := testRecordInit(t)<br>    affected, _ := s.Where(“Name = ?”, “Tom”).Update(“Age”, 30)<br>    u := &amp;User{}<br>    _ = s.OrderBy(“Age DESC”).First(u)</p>
-<pre><code>if affected != 1 || u.Age != 30 {
-    t.Fatal(&quot;failed to update&quot;)
-}
-</code></pre><p>}</p>
-<p>func TestSession_DeleteAndCount(t *testing.T) {<br>    s := testRecordInit(t)<br>    affected, _ := s.Where(“Name = ?”, “Tom”).Delete()<br>    count, _ := s.Count()</p>
-<pre><code>if affected != 1 || count != 1 {
-    t.Fatal(&quot;failed to delete or count&quot;)
-}
-</code></pre><p>}</p>
 
       
     </div>
@@ -590,8 +575,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2023/06/12/Day3-记录新增和查询/" rel="next" title="Day3 记录新增和查询">
-                <i class="fa fa-chevron-left"></i> Day3 记录新增和查询
+              <a href="/2023/06/12/Day3-记录新增和查询/" rel="next" title="Day3记录新增和查询">
+                <i class="fa fa-chevron-left"></i> Day3记录新增和查询
               </a>
             
           </div>
@@ -1106,7 +1091,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">126:15</span>
+    <span title="站点阅读时长">125:47</span>
   
 </div>
 

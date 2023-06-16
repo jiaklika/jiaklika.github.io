@@ -103,18 +103,18 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="7天用Go从零实现ORM框架GeeORM">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Day6 支持事务">
 <meta property="og:url" content="http://yoursite.com/2023/06/12/Day6-支持事务/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-06-12T10:55:11.810Z">
+<meta property="og:updated_time" content="2023-06-14T02:06:56.873Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Day6 支持事务">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
 
 
 
@@ -426,12 +426,24 @@
                 
               
 
-              <time title="创建时间：2023-06-12 18:21:33 / 修改时间：18:55:11" itemprop="dateCreated datePublished" datetime="2023-06-12T18:21:33+08:00">2023-06-12</time>
+              <time title="创建时间：2023-06-12 18:21:33" itemprop="dateCreated datePublished" datetime="2023-06-12T18:21:33+08:00">2023-06-12</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2023-06-14 10:06:56" itemprop="dateModified" datetime="2023-06-14T10:06:56+08:00">2023-06-14</time>
               
             
           </span>
@@ -477,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">5.6k</span>
+                <span title="本文字数">1.8k</span>
               
 
               
@@ -491,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">5 分钟</span>
+                <span title="阅读时长">2 分钟</span>
               
             </div>
           
@@ -512,9 +524,6 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
 <p>本文是7天用Go从零实现ORM框架GeeORM的第六篇。</p>
 <p>介绍数据库中的事务(transaction)。<br>封装事务，用户自定义回调函数实现原子操作。代码约100行<br>1 事务的 ACID 属性<br>数据库事务(transaction)是访问并可能操作各种数据项的一个数据库操作序列，这些操作要么全部执行,要么全部不执行，是一个不可分割的工作单位。事务由事务开始与事务结束之间执行的全部数据库操作组成。</p>
@@ -524,44 +533,16 @@
 <p>1）原子性(Atomicity)：事务中的全部操作在数据库中是不可分割的，要么全部完成，要么全部不执行。<br>2）一致性(Consistency): 几个并行执行的事务，其执行结果必须与按某一顺序 串行执行的结果相一致。<br>3）隔离性(Isolation)：事务的执行不受其他事务的干扰，事务执行的中间结果对其他事务必须是透明的。<br>4）持久性(Durability)：对于任意已提交事务，系统必须保证该事务对数据库的改变不被丢失，即使数据库出现故障。<br>2 SQLite 和 Go 标准库中的事务<br>SQLite 中创建一个事务的原生 SQL 长什么样子呢？</p>
 <p>sqlite&gt; BEGIN;<br>sqlite&gt; DELETE FROM User WHERE Age &gt; 25;<br>sqlite&gt; INSERT INTO User VALUES (“Tom”, 25), (“Jack”, 18);<br>sqlite&gt; COMMIT;<br>BEGIN 开启事务，COMMIT 提交事务，ROLLBACK 回滚事务。任何一个事务，均以 BEGIN 开始，COMMIT 或 ROLLBACK 结束。</p>
 <p>Go 语言标准库 database/sql 提供了支持事务的接口。用一个简单的例子，看一看 Go 语言标准是如何支持事务的。</p>
-<p>package main</p>
-<p>import (<br>    “database/sql”<br>    _ “github.com/mattn/go-sqlite3”<br>    “log”<br>)</p>
-<p>func main() {<br>    db, _ := sql.Open(“sqlite3”, “gee.db”)<br>    defer func() { _ = db.Close() }()<br>    _, _ = db.Exec(“CREATE TABLE IF NOT EXISTS User(<code>Name</code> text);”)</p>
-<pre><code>tx, _ := db.Begin()
-_, err1 := tx.Exec(&quot;INSERT INTO User(`Name`) VALUES (?)&quot;, &quot;Tom&quot;)
-_, err2 := tx.Exec(&quot;INSERT INTO User(`Name`) VALUES (?)&quot;, &quot;Jack&quot;)
-if err1 != nil || err2 != nil {
-    _ = tx.Rollback()
-    log.Println(&quot;Rollback&quot;, err1, err2)
-} else {
-    _ = tx.Commit()
-    log.Println(&quot;Commit&quot;)
-}
-</code></pre><p>}<br>Go 语言中实现事务和 SQL 原生语句其实是非常接近的。调用 db.Begin() 得到 *sql.Tx 对象，使用 tx.Exec() 执行一系列操作，如果发生错误，通过 tx.Rollback() 回滚，如果没有发生错误，则通过 tx.Commit() 提交。</p>
-<p>3 GeeORM 支持事务<br>GeeORM 之前的操作均是执行完即自动提交的，每个操作是相互独立的。之前直接使用 sql.DB 对象执行 SQL 语句，如果要支持事务，需要更改为 sql.Tx 执行。在 Session 结构体中新增成员变量 tx *sql.Tx，当 tx 不为空时，则使用 tx 执行 SQL 语句，否则使用 db 执行 SQL 语句。这样既兼容了原有的执行方式，又提供了对事务的支持。</p>
-<p>day6-transaction/session/raw.go</p>
-<p>type Session struct {<br>    db       <em>sql.DB<br>    dialect  dialect.Dialect<br>    tx       </em>sql.Tx<br>    refTable *schema.Schema<br>    clause   clause.Clause<br>    sql      strings.Builder<br>    sqlVars  []interface{}<br>}</p>
-<p>// CommonDB is a minimal function set of db<br>type CommonDB interface {<br>    Query(query string, args …interface{}) (<em>sql.Rows, error)<br>    QueryRow(query string, args …interface{}) </em>sql.Row<br>    Exec(query string, args …interface{}) (sql.Result, error)<br>}</p>
-<p>var _ CommonDB = (<em>sql.DB)(nil)<br>var _ CommonDB = (</em>sql.Tx)(nil)</p>
-<p>// DB returns tx if a tx begins. otherwise return <em>sql.DB<br>func (s </em>Session) DB() CommonDB {<br>    if s.tx != nil {<br>        return s.tx<br>    }<br>    return s.db<br>}<br>新建文件 session/transaction.go 封装事务的 Begin、Commit 和 Rollback 三个接口。</p>
-<p>day6-transaction/session/transaction.go</p>
-<p>package session</p>
-<p>import “geeorm/log”</p>
-<p>func (s *Session) Begin() (err error) {<br>    log.Info(“transaction begin”)<br>    if s.tx, err = s.db.Begin(); err != nil {<br>        log.Error(err)<br>        return<br>    }<br>    return<br>}</p>
-<p>func (s *Session) Commit() (err error) {<br>    log.Info(“transaction commit”)<br>    if err = s.tx.Commit(); err != nil {<br>        log.Error(err)<br>    }<br>    return<br>}</p>
-<p>func (s <em>Session) Rollback() (err error) {<br>    log.Info(“transaction rollback”)<br>    if err = s.tx.Rollback(); err != nil {<br>        log.Error(err)<br>    }<br>    return<br>}<br>调用 s.db.Begin() 得到 </em>sql.Tx 对象，赋值给 s.tx。<br>封装的另一个目的是统一打印日志，方便定位问题。<br>最后一步，在 geeorm.go 中为用户提供傻瓜式/一键式使用的接口。</p>
-<p>day6-transaction/geeorm.go</p>
-<p>type TxFunc func(*session.Session) (interface{}, error)</p>
-<p>func (engine *Engine) Transaction(f TxFunc) (result interface{}, err error) {<br>    s := engine.NewSession()<br>    if err := s.Begin(); err != nil {<br>        return nil, err<br>    }<br>    defer func() {<br>        if p := recover(); p != nil {<br>            _ = s.Rollback()<br>            panic(p) // re-throw panic after Rollback<br>        } else if err != nil {<br>            _ = s.Rollback() // err is non-nil; don’t change it<br>        } else {<br>            err = s.Commit() // err is nil; if Commit returns error update err<br>        }<br>    }()</p>
-<pre><code>return f(s)
-</code></pre><p>}<br>Transaction 的实现参考了 stackoverflow</p>
+<p>Go 语言中实现事务和 SQL 原生语句其实是非常接近的。调用 db.Begin() 得到 <code>*sql.Tx</code> 对象，使用 tx.Exec() 执行一系列操作，如果发生错误，通过 tx.Rollback() 回滚，如果没有发生错误，则通过 tx.Commit() 提交。</p>
+<p>3 GeeORM 支持事务<br>GeeORM 之前的操作均是执行完即自动提交的，每个操作是相互独立的。之前直接使用 sql.DB 对象执行 SQL 语句，如果要支持事务，需要更改为 sql.Tx 执行。在 Session 结构体中新增成员变量 <code>tx *sql.Tx</code>，当 tx 不为空时，则使用 tx 执行 SQL 语句，否则使用 db 执行 SQL 语句。这样既兼容了原有的执行方式，又提供了对事务的支持。</p>
+<p>新建文件 session/transaction.go 封装事务的 Begin、Commit 和 Rollback 三个接口。</p>
+<p>调用 s.db.Begin() 得到<code>*sql.Tx</code> 对象，赋值给 s.tx。<br>封装的另一个目的是统一打印日志，方便定位问题。<br>最后一步，在 geeorm.go 中为用户提供傻瓜式/一键式使用的接口。</p>
+<p>Transaction 的实现参考了 stackoverflow</p>
 <p>用户只需要将所有的操作放到一个回调函数中，作为入参传递给 engine.Transaction()，发生任何错误，自动回滚，如果没有错误发生，则提交。</p>
 <p>4 测试<br>在 geeorm_test.go 中添加测试用例看看 Transaction 如何工作的吧。</p>
-<p>func OpenDB(t <em>testing.T) </em>Engine {<br>    t.Helper()<br>    engine, err := NewEngine(“sqlite3”, “gee.db”)<br>    if err != nil {<br>        t.Fatal(“failed to connect”, err)<br>    }<br>    return engine<br>}</p>
-<p>type User struct {<br>    Name string <code>geeorm:&quot;PRIMARY KEY&quot;</code><br>    Age  int<br>}</p>
-<p>func TestEngine_Transaction(t <em>testing.T) {<br>    t.Run(“rollback”, func(t </em>testing.T) {<br>        transactionRollback(t)<br>    })<br>    t.Run(“commit”, func(t *testing.T) {<br>        transactionCommit(t)<br>    })<br>}<br>首先是 rollback 的用例：</p>
-<p>func transactionRollback(t <em>testing.T) {<br>    engine := OpenDB(t)<br>    defer engine.Close()<br>    s := engine.NewSession()<br>    _ = s.Model(&amp;User{}).DropTable()<br>    _, err := engine.Transaction(func(s </em>session.Session) (result interface{}, err error) {<br>        _ = s.Model(&amp;User{}).CreateTable()<br>        _, err = s.Insert(&amp;User{“Tom”, 18})<br>        return nil, errors.New(“Error”)<br>    })<br>    if err == nil || s.HasTable() {<br>        t.Fatal(“failed to rollback”)<br>    }<br>}<br>在这个用例中，如何执行成功，则会创建一张表 User，并插入一条记录。<br>故意返回了一个自定义 error，最终事务回滚，表创建失败。<br>接下来是 commit 的用例：</p>
-<p>func transactionCommit(t <em>testing.T) {<br>    engine := OpenDB(t)<br>    defer engine.Close()<br>    s := engine.NewSession()<br>    _ = s.Model(&amp;User{}).DropTable()<br>    _, err := engine.Transaction(func(s </em>session.Session) (result interface{}, err error) {<br>        _ = s.Model(&amp;User{}).CreateTable()<br>        _, err = s.Insert(&amp;User{“Tom”, 18})<br>        return<br>    })<br>    u := &amp;User{}<br>    _ = s.First(u)<br>    if err != nil || u.Name != “Tom” {<br>        t.Fatal(“failed to commit”)<br>    }<br>}<br>创建表和插入记录均成功执行，最终通过 s.First() 方法查询到插入的记录。</p>
+<p>首先是 rollback 的用例：</p>
+<p>在这个用例中，如何执行成功，则会创建一张表 User，并插入一条记录。<br>故意返回了一个自定义 error，最终事务回滚，表创建失败。<br>接下来是 commit 的用例：</p>
+<p>创建表和插入记录均成功执行，最终通过 s.First() 方法查询到插入的记录。</p>
 
       
     </div>
@@ -1114,7 +1095,7 @@ if err1 != nil || err2 != nil {
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">126:15</span>
+    <span title="站点阅读时长">125:47</span>
   
 </div>
 
