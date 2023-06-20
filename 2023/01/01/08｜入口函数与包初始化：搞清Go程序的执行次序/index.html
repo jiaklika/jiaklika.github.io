@@ -112,7 +112,7 @@
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2023/01/01/08｜入口函数与包初始化：搞清Go程序的执行次序/1.webp">
-<meta property="og:updated_time" content="2023-01-14T02:14:25.691Z">
+<meta property="og:updated_time" content="2023-06-16T03:32:22.082Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="08｜入口函数与包初始化：搞清Go程序的执行次序">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -445,7 +445,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-01-14 10:14:25" itemprop="dateModified" datetime="2023-01-14T10:14:25+08:00">2023-01-14</time>
+                <time title="修改时间：2023-06-16 11:32:22" itemprop="dateModified" datetime="2023-06-16T11:32:22+08:00">2023-06-16</time>
               
             
           </span>
@@ -550,7 +550,7 @@
 <p>那么，现在我们就知晓了main.main函数可能并不是第一个被执行的函数的原因了。所以，当我们要在main.main函数执行之前，执行一些函数或语句的时候，我们只需要将它放入init函数中就可以了。</p>
 <p>了解了这两个函数的执行顺序之后，我们现在就来整体地看看，一个Go包的初始化是以何种次序和逻辑进行的。</p>
 <h1 id="Go包的初始化次序"><a href="#Go包的初始化次序" class="headerlink" title="Go包的初始化次序"></a><span style="color:#339AFF;">Go包的初始化次序</span></h1><p>我们从程序逻辑结构角度来看，Go包是程序逻辑封装的基本单元，每个包都可以理解为是一个“自治”的、封装良好的、对外部暴露有限接口的基本单元。一个Go程序就是由一组包组成的，程序的初始化就是这些包的初始化。每个Go包还会有自己的依赖包、常量、变量、init函数（其中main包有main函数）等。</p>
-<p>在这里你要注意：<strong>我们在阅读和理解代码的时候，需要知道这些元素在在程序初始化过程中的初始化顺序，这样便于我们确定在某一行代码处这些元素的当前状态</strong>。</p>
+<p>在这里你要注意：<strong>我们在阅读和理解代码的时候，需要知道这些元素在程序初始化过程中的初始化顺序，这样便于我们确定在某一行代码处这些元素的当前状态</strong>。</p>
 <p>下面，我们就通过一张流程图，来了解学习下Go包的初始化次序：</p>
 <img src="/2023/01/01/08｜入口函数与包初始化：搞清Go程序的执行次序/1.webp">
 <p>Go包的初始化次序这里，我们来看看具体的初始化步骤。</p>
@@ -601,8 +601,7 @@
 <p>这种“注册模式”在标准库的其他包中也有广泛应用，比如说，使用标准库image包获取各种格式图片的宽和高：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"image"</span></span><br><span class="line">    _ <span class="string">"image/gif"</span> <span class="comment">// 以空导入方式注入gif图片格式驱动</span></span><br><span class="line">    _ <span class="string">"image/jpeg"</span> <span class="comment">// 以空导入方式注入jpeg图片格式驱动</span></span><br><span class="line">    _ <span class="string">"image/png"</span> <span class="comment">// 以空导入方式注入png图片格式驱动</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 支持png, jpeg, gif</span></span><br><span class="line">    width, height, err := imageSize(os.Args[<span class="number">1</span>]) <span class="comment">// 获取传入的图片文件的宽与高</span></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"get image size error:"</span>, err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Printf(<span class="string">"image size: [%d, %d]\n"</span>, width, height)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">imageSize</span><span class="params">(imageFile <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">int</span>, <span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">    f, _ := os.Open(imageFile) <span class="comment">// 打开图文文件</span></span><br><span class="line">    <span class="keyword">defer</span> f.Close()</span><br><span class="line"></span><br><span class="line">    img, _, err := image.Decode(f) <span class="comment">// 对文件进行解码，得到图片实例</span></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>, <span class="number">0</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    b := img.Bounds() <span class="comment">// 返回图片区域</span></span><br><span class="line">    <span class="keyword">return</span> b.Max.X, b.Max.Y, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>你可以看到，上面这个示例程序支持png、jpeg、gif三种格式的图片，而达成这一目标的原因，正是image/png、image/jpeg和image/gif包都在各自的init函数中，将自己“注册”到image的支持格式列表中了，你可以看看下面这个代码：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// $GOROOT/src/image/png/reader.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    image.RegisterFormat(<span class="string">"png"</span>, pngHeader, Decode, DecodeConfig)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $GOROOT/src/image/jpeg/reader.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    image.RegisterFormat(<span class="string">"jpeg"</span>, <span class="string">"\xff\xd8"</span>, Decode, DecodeConfig)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $GOROOT/src/image/gif/reader.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    image.RegisterFormat(<span class="string">"gif"</span>, <span class="string">"GIF8?a"</span>, Decode, DecodeConfig)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>那么，现在我们了解了init函数的常见用途。init函数之所以可以胜任这些工作，恰恰是因为它在Go应用初始化次序中的特殊“位次”，也就是main函数之前，常量和变量初始化之后。</p>
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>好了，我们今天这一节课就到这里了。</p>
-<p>在这一节课中，我们一起了解了Go应用的用户层入口函数main.main、包初始化函数init，还有Go程序包的初始化次序和包内各种语法元素的初始化次序。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a><span style="color:#339AFF;">小结</span></h1><p>在这一节课中，我们一起了解了Go应用的用户层入口函数main.main、包初始化函数init，还有Go程序包的初始化次序和包内各种语法元素的初始化次序。</p>
 <p>其中，你需要重点关注init函数具备的几种行为特征：</p>
 <ul>
 <li>执行顺位排在包内其他语法元素的后面；</li>
@@ -611,7 +610,11 @@
 </ul>
 <p>基于上面这些特征，init函数十分适合做一些包级数据初始化工作以及包级数据初始状态的检查工作，我们也通过实例讲解了init函数的这些常见用途。</p>
 <p>最后，大多Go程序都是并发程序，程序会启动多个Goroutine并发执行程序逻辑，这里你一定要注意主Goroutine的优雅退出，也就是主Goroutine要根据实际情况来决定，是否要等待其他子Goroutine做完清理收尾工作退出后再行退出。</p>
-<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>今天我给你留了一个思考题：当init函数在检查包数据初始状态时遇到失败或错误的情况，我们该如何处理呢？</p>
+<h1 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a><span style="color:#339AFF;">思考题</span></h1><p>当init函数在检查包数据初始状态时遇到失败或错误的情况，我们该如何处理呢？</p>
+<ul>
+<li>初始化失败的是必要的数据：panic处理，结束进程。</li>
+<li>初始化失败的是对业务没影响，可成功可失败的：输出warn或error日志，方便定位。</li>
+</ul>
 
       
     </div>
@@ -731,7 +734,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">1034</span>
+                    <span class="site-state-item-count">1035</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1102,6 +1105,10 @@
                 
                 
                   <li>
+                    <a href="/2023/06/19/8、精通Golang项目依赖Go-modules/" title="8、精通Golang项目依赖Go Modules" target="_blank">8、精通Golang项目依赖Go Modules</a>
+                  </li>
+                
+                  <li>
                     <a href="/2023/06/13/Day7-错误恢复/" title="Day7 错误恢复" target="_blank">Day7 错误恢复</a>
                   </li>
                 
@@ -1115,10 +1122,6 @@
                 
                   <li>
                     <a href="/2023/06/13/Day4-分组控制/" title="Day4 分组控制" target="_blank">Day4 分组控制</a>
-                  </li>
-                
-                  <li>
-                    <a href="/2023/06/13/Day3-前缀树路由/" title="Day3 前缀树路由" target="_blank">Day3 前缀树路由</a>
                   </li>
                 
               </ul>
@@ -1190,7 +1193,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">125:47</span>
+    <span title="站点阅读时长">125:55</span>
   
 </div>
 
