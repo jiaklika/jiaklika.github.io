@@ -103,18 +103,18 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="Gin">
 <meta property="og:type" content="article">
 <meta property="og:title" content="3-熟悉路由">
 <meta property="og:url" content="http://yoursite.com/2023/07/04/3-熟悉路由/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-07-04T02:51:54.222Z">
+<meta property="og:updated_time" content="2023-07-04T12:42:15.839Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="3-熟悉路由">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
 
 
 
@@ -426,7 +426,7 @@
                 
               
 
-              <time title="创建时间：2023-07-04 10:40:59 / 修改时间：10:51:54" itemprop="dateCreated datePublished" datetime="2023-07-04T10:40:59+08:00">2023-07-04</time>
+              <time title="创建时间：2023-07-04 10:40:59 / 修改时间：20:42:15" itemprop="dateCreated datePublished" datetime="2023-07-04T10:40:59+08:00">2023-07-04</time>
             
 
             
@@ -477,7 +477,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">6.1k</span>
               
 
               
@@ -491,7 +491,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">6 分钟</span>
               
             </div>
           
@@ -512,10 +512,108 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
+<p>实验介绍<br>本次实验的主题是路由（Router），我们将主要介绍 Gin 框架路由中的一些关键概念，包括如何为 API 方法或控制器处理函数注册到路由中，Gin 框架中如何定义动态路由，对于大型项目来说如何进行路由分组，如何重定向，等等。</p>
+<p>知识点<br>路由注册<br>动态路由<br>路由分组<br>重定向</p>
+<p>路由注册<br>在之前的实验中，我们将路由比喻成住房中的房门，每一个房门（路由 URL 路径）对应着一个房间（控制器处理函数）。而如果我们想让 Gin 应用能够正确对不同 URL 路径的请求进行相应合适的处理，就必须得为将每个请求分配其对应的处理函数，这就需要我们显式的进行路由注册（Router Registration）。</p>
+<p>我们现在稍微回顾一下前一个实验（3-1 控制器）中的控制器代码，如下所示（我们省略了函数内容）。</p>
+<pre><code>app.GET(&quot;/&quot;, func(c *gin.Context) { ... })
+app.GET(&quot;/:id&quot;, func(c *gin.Context) { ... )
+app.GET(&quot;/query&quot;, func(c *gin.Context) { ... })
+app.GET(&quot;/query-binding&quot;, func(c *gin.Context) { ... })
+app.POST(&quot;/body-binding&quot;, func(c *gin.Context) { ... })
+</code></pre><p>copy<br>上面的代码在 Gin 引擎实例中，定义不同的几个 “入口”，进入之后会经过一系列处理最终返回给客户端一些 JSON 或 HTML 响应数据。如果你还记得我们如何测试咱们的控制器的，就会注意到我们会在 URL 中输入不同的相对路径，也就是 /、/query、/query-binding 之类的。下图描述其大致的请求-路由对应关系。</p>
+<p>图片描述</p>
+<p>因此，我们注册路由，本质上就是将请求的 URL 路径与对应的处理函数映射起来。</p>
+<p>上一个实验简单介绍了一下 Gin 框架中 IRoutes 接口，这里我们再回顾一下，其定义如下（这里只保留了路由相关方法）。</p>
+<p>type IRoutes interface {<br>  // 路由方法<br>    Handle(string, string, …HandlerFunc) IRoutes<br>    Any(string, …HandlerFunc) IRoutes<br>    GET(string, …HandlerFunc) IRoutes<br>    POST(string, …HandlerFunc) IRoutes<br>    DELETE(string, …HandlerFunc) IRoutes<br>    PATCH(string, …HandlerFunc) IRoutes<br>    PUT(string, …HandlerFunc) IRoutes<br>    OPTIONS(string, …HandlerFunc) IRoutes<br>    HEAD(string, …HandlerFunc) IRoutes<br>}<br>copy<br>在 Gin 框架中注册路由，只需要调用 IRoutes 对应的方法。Gin 框架开发团队很贴心，已经将大部分常见的 HTTP 方法（GET、POST、DELETE、PATCH、PUT、OPTIONS、HEAD）内置到了标准路由库中，可以通过类似 app.GET(“/path/to/route”, func(c *gin.Context) {…}) 的方式调用。如果一个 HTTP 请求的 URL 路径和 HTTP 方法都匹配到该路由时，就会被分发到对应的控制器处理函数里。</p>
+<p>这里我们简单提及其中两个特殊的方法， Handle、 Any。Handle 跟内置方法用法类似，主要多了第一个参数，也就是 HTTP 方法，它的主要目的是注册不是很常见的 HTTP 方法，例如 CONNECT 等；Any 也类似，但它包含了所有的 HTTP 方法，也就是说，当一个请求只要 URL 路径能匹配到该路由，就会直接分发到对应的控制器处理函数里。</p>
+<p>点击下方环境窗口，开启实战<br>默认环境</p>
+<p>动态路由<br>概念介绍<br>动态路由（Dynamic Routing）在 Gin 框架（甚至是所有 Web 框架）中是非常重要的概念，因为很多大型网站（例如电商）中的 URL 是不固定的，而且一些重要信息（例如产品 ID）都会被嵌入到 URL 中。处理这种重复数据结构、处理逻辑的场景，正是动态路由所擅长的。之前的回顾的其中一个路由路径，/:id 正是动态路由。</p>
+<p>Gin 框架中的动态路由有两种定义方式：</p>
+<p>冒号 + 参数名，表示非空参数。例如 /:id，可以匹配 /1001，不能匹配 / 或 /1001/sku1。<br>星号 + 参数名，表示可空参数。例如 /me/*action，可以匹配 /me/、/me/update，如果没有其他路由匹配到 /me，则会重定向至 /me/。<br>我们在实际开发中可以灵活应用这两种动态路由。</p>
+<p>实战练习-1<br>下面我们来实战练习一下动态路由，同样的，先打开蓝桥云课 VS Code</p>
+<p>现在我们需要稍微做一些优化，为了保证 main 包内尽量简洁。</p>
+<p>现在，我们在项目目录下添加一个新文件夹 routes，并在 routes 下添加一个新文件 users.go，如下图。</p>
+<p>图片描述</p>
+<p>然后，我们在 routes/users.go 下输入如下内容。</p>
+<p>package routes</p>
+<p>import (<br>    “net/http”</p>
+<pre><code>&quot;github.com/gin-gonic/gin&quot;
+</code></pre><p>)</p>
+<p>// 注册路由<br>func RegisterUsers(app <em>gin.Engine) {<br>    app.GET(“/users/:id”, getUser)<br>    app.POST(“/users/:id/</em>action”, postUserAction)<br>}</p>
+<p>// 获取用户<br>func getUser(c *gin.Context) {<br>    // 用户 ID<br>    id := c.Param(“id”)</p>
+<pre><code>// 如用户不存在，返回 404
+if id != &quot;zhangsan&quot; {
+    c.AbortWithStatus(http.StatusNotFound)
+    return
+}
+
+// 用户
+user := map[string]interface{}{
+    &quot;username&quot;: &quot;zhangsan&quot;,
+    &quot;role&quot;:     &quot;normal&quot;,
+}
+
+// 返回响应
+c.AbortWithStatusJSON(http.StatusOK, user)
+</code></pre><p>}</p>
+<p>// 执行用户操作<br>func postUserAction(c *gin.Context) {<br>    // 用户 ID<br>    id := c.Param(“id”)</p>
+<pre><code>// 操作
+action := c.Param(&quot;action&quot;)
+
+// 如用户不存在，返回 404
+if id != &quot;zhangsan&quot; {
+    c.AbortWithStatus(http.StatusNotFound)
+    return
+}
+
+// 返回响应
+c.AbortWithStatusJSON(http.StatusOK, map[string]interface{}{
+    &quot;id&quot;:     id,
+    &quot;action&quot;: action,
+})
+</code></pre><p>}<br>copy<br>然后，打开 main.go，在启动 Gin 引擎实例前加入如下代码。</p>
+<pre><code>// 注册路由 users
+routes.RegisterUsers(app)
+</code></pre><p>copy<br>编辑完成后，我们在终端中执行 go run main.go 启动应用。</p>
+<p>成功启动后，打开 Web 服务，更改 URL 相对路径为 /users/zhangsan，结果如下。</p>
+<p>图片描述</p>
+<p>成功获得了张三的用户信息。</p>
+<p>那么当我们试图获取李四的信息会如何呢？同样，URL 相对路径更高为 /users/lisi，结果如下。</p>
+<p>图片描述</p>
+<p>返回了 404 找不到用户的响应。这是符合预期的。</p>
+<p>这里可以思考一下，如果试图获取 /users、/users/ 会怎样。先根据自己的判断猜测结果，然后自己更改 URL 为 /users、/users/ 再试试。</p>
+<p>点击下方环境窗口，开启实战<br>默认环境</p>
+<p>实战练习-2<br>下面我们再试一下 /users/:id/*action 这个动态路由。</p>
+<p>由于是 POST 请求，我们需要利用上一个实验用到的 API 测试工具，即 VS Code 中已经安装好的 Thunder Client。</p>
+<p>利用 Thunder Client 发起一个 POST 请求，请求相对路径为 /users/zhangsan/update，结果如下。</p>
+<p>图片描述</p>
+<p>结果符合预期，非空参数 id 以及 可空参数 action 都按预期返回。</p>
+<p>路由分组<br>概念介绍<br>路由分组（Routes Grouping）在大型 Web 应用中非常常见。分组就是将单个路由通过一定方式（例如，按 URL 前缀、按功能）聚合成不同类别的路由组，从而达到降低复杂度、维护成本以及提高可读性的目的。按照前一部分介绍的用户相关路由来看，它实际上前缀都是 /users，如果有非常多路由，那么代码会比较冗余。路由分组带来的另一个好处是，可以允许对不同的路由注册不同的中间件，这对 Web 框架的权限控制尤为重要。</p>
+<p>在 Gin 框架中创建一个路由组非常简单，只需要调用 app.Group(relativePath string) 即可。下面我们通过一个实战练习体会一下。</p>
+<p>实战练习<br>为了消除冗余，我们将利用路由分组来优化之前创建的关于用户的路由。</p>
+<p>在蓝桥云课 VS Code 中打开 routes/users.go 文件，在 RegisterUsers 中做一小部分更改，代码如下。</p>
+<p>// 注册路由<br>func RegisterUsers(app <em>gin.Engine) {<br>    g := app.Group(“/users/:id”)<br>    g.GET(“”, getUser)<br>    g.POST(“</em>action”, postUserAction)<br>}<br>copy<br>然后，在终端中重新执行 go run main.go 运行应用。</p>
+<p>成功启动后，再重复之前本实验动态路由中实战练习的测试部分，将会发现结果是一致的。</p>
+<p>实际上，我们在这里做的是对代码的重构。目前看起来这个代码没什么大的变化，而那是因为我们只注册了 2 个路由。思考一下，如果我们的项目很大，在用户路由中有非常多的逻辑，例如 50 个左右接口呢？这种情况下，采用路由分组会非常明显的提升代码可读性和冗余。之后在项目实战的章节我们会用到这个技巧。</p>
+<p>重定向<br>概念介绍<br>重定向（Redirect）是 Web 框架中非常有用的特性。当我们遇到功能改造时，很可能会遇到一些棘手情况。例如，在升级页面时，需要保留旧的路由，而在不影响用户正常使用的前提下，要让他们尽快使用新的页面。这就是会用到重定向了。</p>
+<p>重定向的概念其实主要是来自 HTTP 协议，通常情况下 HTTP 代码为 301 或 302，在返回的响应 Header 中会加入 Location: &lt;目标 URL&gt;，表示该请求需要重定向到另一个地址。在浏览器中，如果一个请求被重定向了，则会看到 URL 也会变化为重定向后的目标地址。</p>
+<p>在 Gin 框架中，要重定向非常简单，只需要在上下文中调用 Redirect 方法即可，即 c.Redirect(code string, location string)。</p>
+<p>实战练习<br>下面我们用实验来体会一下 Gin 框架中的重定向。</p>
+<p>在蓝桥云课 VS Code 中打开 routes/users.go，添加一个处理函数 getMe，代码如下。</p>
+<p>// 获取当前用户<br>func getMe(c *gin.Context) {<br>    c.Redirect(http.StatusFound, “/users/zhangsan”)<br>}<br>copy<br>将这个处理函数添加到路由，即在 routes/users.go 文件中的 RegisterUsers 方法中添加一行代码，修改后的代码如下。</p>
+<p>// 注册路由<br>func RegisterUsers(app <em>gin.Engine) {<br>    g := app.Group(“/users/:id”)<br>    g.GET(“”, getUser)<br>    g.POST(“</em>action”, postUserAction)<br>    app.GET(“me”, getMe)<br>}<br>copy<br>这样的修改表示，当请求自己的用户信息 /me 时，会被重定向到 /users/zhangsan。</p>
+<p>编辑完成后，在终端里执行 go run main.go 启动应用。</p>
+<p>成功启动后，打开 Web 服务，并在浏览器 URL 路径中输入 /me，并查看结果，会得到跟输入 /users/zhangsan 一模一样的结果，而且 URL 也变成了 /users/zhangsan，如下。</p>
+<p>图片描述</p>
+<p>现在我们看看在 HTTP 协议层面发生了什么。步骤如下。</p>
+<p>在 Chrome 浏览器中按 F12，打开开发者界面，并切换到 Network 或 网络 标签<br>再次在浏览器 URL 中相对路径输入 /me，并回车，会在开发者界面中看到有 /me 的请求；<br>点击 /me 请求，查看 Headers 信息。<br>图片描述</p>
+<p>可以看到，这个请求的响应 Status Code 是 302，而响应头（Response Headers）中包含一个 location: /users/zhangsan 值，表明目标 URL 是 /users/zhangsan。因此，你会看到浏览器紧接着就发起了一个 /users/zhangsan 的 GET 请求。这就是重定向。</p>
+<p>点击下方环境窗口，开启实战<br>默认环境</p>
+<p>实验总结<br>通过本次实验，我们了解了 Gin 框架中关于路由的相关知识点，包括路由注册、动态路由、路由分组、重定向。这些都是 Gin 框架中路由的重要概念，在很多 Go 项目中会被经常使用。从实验过程中，我们能了解路由注册的内置方法和特殊方法，也体会了动态路由的两种定义形式，以及路由分组和重定向的实现过程。此外，我们还通过创建新文件 routes/users.go，将一部分路由逻辑拆分了出来，这也是代码优化的技巧。接下来，我们将介绍 Gin 框架中非常重要的功能，中间件。</p>
+<p>点击下方环境窗口，开启实战<br>默认环境</p>
+
       
     </div>
 
@@ -1075,7 +1173,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">126:13</span>
+    <span title="站点阅读时长">126:27</span>
   
 </div>
 

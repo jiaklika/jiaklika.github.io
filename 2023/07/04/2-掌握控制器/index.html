@@ -103,18 +103,24 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="Gin">
 <meta property="og:type" content="article">
 <meta property="og:title" content="2-掌握控制器">
 <meta property="og:url" content="http://yoursite.com/2023/07/04/2-掌握控制器/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-07-04T02:51:52.459Z">
+<meta property="og:image" content="http://yoursite.com/2023/07/04/2-掌握控制器/1.png">
+<meta property="og:image" content="http://yoursite.com/2023/07/04/2-掌握控制器/2.png">
+<meta property="og:image" content="http://yoursite.com/2023/07/04/2-掌握控制器/3.png">
+<meta property="og:image" content="http://yoursite.com/2023/07/04/2-掌握控制器/4.png">
+<meta property="og:image" content="http://yoursite.com/2023/07/04/2-掌握控制器/5.png">
+<meta property="og:updated_time" content="2023-07-04T15:12:08.910Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="2-掌握控制器">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2023/07/04/2-掌握控制器/1.png">
 
 
 
@@ -426,7 +432,7 @@
                 
               
 
-              <time title="创建时间：2023-07-04 10:40:51 / 修改时间：10:51:52" itemprop="dateCreated datePublished" datetime="2023-07-04T10:40:51+08:00">2023-07-04</time>
+              <time title="创建时间：2023-07-04 10:40:51 / 修改时间：23:12:08" itemprop="dateCreated datePublished" datetime="2023-07-04T10:40:51+08:00">2023-07-04</time>
             
 
             
@@ -477,7 +483,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">7.2k</span>
               
 
               
@@ -491,7 +497,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">7 分钟</span>
               
             </div>
           
@@ -512,10 +518,152 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
+<h1 id="实验介绍"><a href="#实验介绍" class="headerlink" title="实验介绍"></a>实验介绍</h1><p>本次实验重点讲解Gin框架中的核心知识，控制器（Controller），或处理器（Handler），帮助学员们深刻理解如何在Gin框架中编写GET、POST等方法的控制器函数，以及请求中的数据绑定（Binding）、如何处理HTTP响应。</p>
+<p><strong>知识点</strong></p>
+<ul>
+<li>上下文</li>
+<li>请求</li>
+<li>表单</li>
+<li>响应</li>
+</ul>
+<h1 id="控制器"><a href="#控制器" class="headerlink" title="控制器"></a>控制器</h1><p>咱们首先回顾一下，在前面实验的第一个Gin应用中，我们通过一个极简的Gin应用简单提及了控制器（Controller）。它的参数包含路由、处理函数。类似下面这样。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">app.GET(<span class="string">"/"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">    c.String(http.StatusOK, <span class="string">"Hello World!"</span>)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>上面是个非常简单的HTTP GET请求的Hello World控制器定义，当请求时会返回Hello World给客户端。</p>
+<p>我们不会在这里讲解第一个参数，URL路径或路由（Router），这个在后面的实验中会详细介绍。而接下来，我们会稍微重点讲解第二个参数，<strong>处理函数</strong>（Handler Function），以及其包含的唯一参数<code>c *gin.Context</code>，<strong>上下文</strong>（Context）。</p>
+<p>这里其实还有一个重要概念，也就是<strong>路由方法</strong>（Routing Method），在这里是以<code>app.GET</code>的方式被调用。它对应的是定义一个接收HTTP GET请求的路由。那么其他HTTP请求方法，例如POST、PUT、DELETE呢？没错，它们分别就是直接调用对应的大写形式的方法名，即<code>app.POST</code>、<code>app.PUT</code>、<code>app.DELETE</code>。对于一些特殊的HTTP请求方法，例如HEAD、PATCH、OPTIONS等，也同样如此。我们将这些方法都统称为路由方法，它们在Gin框架中对应的接口是IRoutes，定义如下。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> IRoutes <span class="keyword">interface</span> &#123;</span><br><span class="line">    <span class="comment">// 定义中间件</span></span><br><span class="line">    Use(...HandlerFunc) IRoutes</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 路由方法</span></span><br><span class="line">    Handle(<span class="keyword">string</span>, <span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">    Any(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">    GET(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">    POST(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">    DELETE(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">    PATCH(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">    PUT(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">    OPTIONS(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">    HEAD(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 静态文件</span></span><br><span class="line">    StaticFile(<span class="keyword">string</span>, <span class="keyword">string</span>) IRoutes</span><br><span class="line">    StaticFileFS(<span class="keyword">string</span>, <span class="keyword">string</span>, http.FileSystem) IRoutes</span><br><span class="line">    Static(<span class="keyword">string</span>, <span class="keyword">string</span>) IRoutes</span><br><span class="line">    StaticFS(<span class="keyword">string</span>, http.FileSystem) IRoutes</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而app对应的<code>gin.Engine</code>类，其实最终继承了这个接口，因此可以调用这些方法。其他的关于中间件、静态文件的方法我们目前暂时不用关心，后面会详细讲解。</p>
+<p>我们可以在路由方法对应的接口IRoutes中发现有另一个类型HandlerFunc，其实这就是处理函数对应的接口。它的定义如下。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> HandlerFunc <span class="function"><span class="keyword">func</span><span class="params">(*Context)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>这也就是处理函数的基本形式，只带唯一参数<code>*gin.Context</code>，也就是上下文。</p>
+<p>好了，理清楚关于控制器及其相关的概念之后，我们需要重点讲解Gin框架中的重要概念，上下文。</p>
+<h1 id="上下文"><a href="#上下文" class="headerlink" title="上下文"></a>上下文</h1><p>概念介绍</p>
+<p>上下文在Gin框架中是非常重要的概念，因为Web框架中大部分概念都与它相关，包括HTTP请求、HTTP响应、表单绑定、中间件等。我们会看到，上下文在处理函数中是核心般的存在：要解析请求，得用上下文；要返回响应，得用上下文；要验证用户令牌，得用上下文。因此，了解上下文的基本原理以及如何使用，对我们学习Gin框架是很有必要的。</p>
+<p>上下文主要是通过其中包含的公有方法（大写开头的方法）来进行操作的，其方法有几十个，很多。其方法总结下来有几大类，如下表。</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:left"><strong><center>方法类别</center></strong></th>
+<th style="text-align:left"><strong><center>描述</center></strong></th>
+<th><strong><center>常用方法</center></strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">请求参数</td>
+<td style="text-align:left">获取HTTP请求参数</td>
+<td>Param<br>Query<br>QueryArray<br>QueryMap</td>
+</tr>
+<tr>
+<td style="text-align:left">请求数据绑定</td>
+<td style="text-align:left">将HTTP请求数据绑定为对象实例</td>
+<td>ShouldBindJSON<br>ShouldBindHeader<br>ShouldBindUri</td>
+</tr>
+<tr>
+<td style="text-align:left">响应数据处理</td>
+<td style="text-align:left">处理HTTP响应的数据</td>
+<td>Data<br>JSON<br>File<br>Render<br>HTML<br>String</td>
+</tr>
+<tr>
+<td style="text-align:left">响应终止</td>
+<td style="text-align:left">返回HTTP响应</td>
+<td>Abort<br>AbortWithStatus<br>AbortWithError</td>
+</tr>
+<tr>
+<td style="text-align:left">中间数据处理</td>
+<td style="text-align:left">处理HTTP请求-响应过程中的中间数据</td>
+<td>Set<br>Get<br>Value</td>
+</tr>
+<tr>
+<td style="text-align:left">其他</td>
+<td style="text-align:left">一些其他比较特殊的方法</td>
+<td>Next<br>Redirect<br>Cookie<br>ClientIP</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>其中，我们目前主要需要了解请求和响应相关的方法类别，即前4类。对所有方法感兴趣的学员可以参考<a href="https://pkg.go.dev/github.com/gin-gonic/gin#Context" target="_blank" rel="noopener">上下文官方文档</a>，以加深对该概念的掌握。</p>
+<p>现在，为了加深对上下文概念的理解，我们将在前面实验的的代码基础上添加一部分代码。</p>
+<p>同样，打开文件main.go，在其基础上添加一个新的控制器，代码如下。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"errors"</span></span><br><span class="line">    <span class="string">"net/http"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"github.com/gin-gonic/gin"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建 Gin 引擎</span></span><br><span class="line">    app := gin.New()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 定义控制器</span></span><br><span class="line">    app.GET(<span class="string">"/"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">        c.String(http.StatusOK, <span class="string">"Hello World!"</span>)</span><br><span class="line">    &#125;)</span><br><span class="line">    app.GET(<span class="string">"/:id"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">        <span class="comment">// 请求路径参数 id</span></span><br><span class="line">        id := c.Param(<span class="string">"id"</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 请求 URL 参数 query</span></span><br><span class="line">        query := c.Query(<span class="string">"query"</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 如果参数为空，返回错误</span></span><br><span class="line">        <span class="keyword">if</span> query == <span class="string">""</span> &#123;</span><br><span class="line">            c.AbortWithError(http.StatusBadRequest, errors.New(<span class="string">"query is empty"</span>))</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 响应 JSON 数据</span></span><br><span class="line">        res := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">            <span class="string">"id"</span>:    id,</span><br><span class="line">            <span class="string">"query"</span>: query,</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 返回 200 响应</span></span><br><span class="line">        c.AbortWithStatusJSON(http.StatusOK, res)</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 运行 Gin 引擎</span></span><br><span class="line">    app.Run(<span class="string">":8080"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>除了之前创建的Hello World控制器以外，我们在下面添加了一个新的控制器，其中:id表示URL路径动态参数，后面讲路由的时候会详细讲解。</p>
+<p>输入完毕后，咱们打开终端，运行<code>go run main.go</code>，可以看到日志如下。</p>
+<img src="/2023/07/04/2-掌握控制器/1.png">
+<p>然后，我们在URL后面添加/hello?query=world并敲回车，可以得到如下符合预期的结果。</p>
+<img src="/2023/07/04/2-掌握控制器/2.png">
+<p>接下来，咱们试试不带URL参数query的情况。只在URL后面设置为/hello，会返回如下400报错页面。这也是意料之中的。</p>
+<img src="/2023/07/04/2-掌握控制器/3.png">
+<p>现在，咱们已经对Gin框架的上下文有一定了解，咱们可以进一步探索如何操作HTTP请求了。</p>
+<h1 id="请求"><a href="#请求" class="headerlink" title="请求"></a>请求</h1><h2 id="URL参数"><a href="#URL参数" class="headerlink" title="URL参数"></a>URL参数</h2><p>在上一小节介绍上下文的内容中，我们都涉及了请求这个概念。现在我们将稍微详细讲解一下。</p>
+<p>通常来说，很多HTTP请求（特别是GET）是会带着参数的，例如<code>http://example.com?query=hello</code>中的query=hello就是URL参数。就像前面展示的一样，我们可以通过<code>c.Query</code>来获取对应的URL参数，例如<code>query := c.Query(&quot;query&quot;)</code>，这是一个string类型。</p>
+<p>当然，有些时候我们的URL参数不止是一两个，甚至可能作为数组或字典出现，这时候，就需要用到另一个Query开头的方法，QueryArray或QueryMap。</p>
+<p>总结一下，对于URL参数，我们获取它们的方法如下。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取 URL 参数（字符串）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Context)</span> <span class="title">Query</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(value <span class="keyword">string</span>)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">// 获取 <span class="title">URL</span> 参数（数组）</span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(c *Context)</span> <span class="title">QueryArray</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(values []<span class="keyword">string</span>)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">// 获取 <span class="title">URL</span> 参数（字典）</span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(c *Context)</span> <span class="title">QueryMap</span><span class="params">(key <span class="keyword">string</span>)</span> <span class="params">(dicts <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>当然，对于开发过Gin应用的Go开发者来说，咱们还有更有效的获取URL参数的方式，也就是下面我们会介绍的数据绑定。</p>
+<h2 id="数据绑定"><a href="#数据绑定" class="headerlink" title="数据绑定"></a>数据绑定</h2><p>请求数据绑定（Binding）在Web框架中是非常常见的功能，对于Gin框架也不例外。Gin框架中关于表单绑定的主要关键词是Bind。上下文方法中，带有Bind的方法都是跟表单绑定相关的。</p>
+<p>其中，又有两个关键词来表示绑定的，Must（严格绑定）和Should（按需绑定）。其区别在于：严格绑定会在绑定错误后直接返回400错误；而按需绑定则不会，只会将绑定的字段设置为空。以Bind开头的绑定方法都是严格绑定。</p>
+<p>下面将常用的数据绑定方法列出来。</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:left"><strong><center>方法名</center></strong></th>
+<th style="text-align:left"><strong><center>描述</center></strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">BindHeader</td>
+<td style="text-align:left">严格绑定Header</td>
+</tr>
+<tr>
+<td style="text-align:left">BindJSON</td>
+<td style="text-align:left">严格绑定JSON数据</td>
+</tr>
+<tr>
+<td style="text-align:left">BindQuery</td>
+<td style="text-align:left">严格绑定URL参数</td>
+</tr>
+<tr>
+<td style="text-align:left">ShouldBindHeader</td>
+<td style="text-align:left">按需绑定Header</td>
+</tr>
+<tr>
+<td style="text-align:left">ShouldBindJSON</td>
+<td style="text-align:left">按需绑定JSON数据</td>
+</tr>
+<tr>
+<td style="text-align:left">ShouldBindQuery</td>
+<td style="text-align:left">按需绑定URL参数</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>下面我们做一个实战练习，体会一下关于Gin框架请求的知识。</p>
+<p>在项目的main.go中添加另一个控制器，如下。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">app.GET(<span class="string">"/query"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 数组参数</span></span><br><span class="line">    queryArray := c.QueryArray(<span class="string">"array"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 字典参数</span></span><br><span class="line">    queryMap := c.QueryMap(<span class="string">"map"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 响应 JSON 数据</span></span><br><span class="line">    res := <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">        <span class="string">"array"</span>: queryArray,</span><br><span class="line">        <span class="string">"map"</span>:   queryMap,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 返回 200 响应</span></span><br><span class="line">    c.AbortWithStatusJSON(http.StatusOK, res)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>然后，在终端中运行<code>go run main.go</code>。成功启动后，在URL后面输入<code>/query?array=1&amp;array=2&amp;map=a&amp;map[a]=1&amp;map[b]=2</code>。可以看到如下响应数据。</p>
+<img src="/2023/07/04/2-掌握控制器/4.png">
+<p>可以看到，数组和字典形式的URL参数都获取到了。</p>
+<p>接下来，我们要开始数据绑定了，这里我们将练习如何进行URL参数绑定以及POST请求的JSON绑定。</p>
+<p>同样，在main.go中添加两个控制器，代码如下。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">app.GET(<span class="string">"/query-binding"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">    <span class="comment">// URL 参数</span></span><br><span class="line">    <span class="keyword">var</span> bindingData <span class="keyword">struct</span> &#123;</span><br><span class="line">        Id  <span class="keyword">int</span>    <span class="string">`form:"id" json:"id"`</span></span><br><span class="line">        Key <span class="keyword">string</span> <span class="string">`form:"key" json:"key"`</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 绑定</span></span><br><span class="line">    <span class="keyword">if</span> err := c.Bind(&amp;bindingData); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 返回 200 响应</span></span><br><span class="line">    c.AbortWithStatusJSON(http.StatusOK, bindingData)</span><br><span class="line">&#125;)</span><br><span class="line">app.POST(<span class="string">"/body-binding"</span>, <span class="function"><span class="keyword">func</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">    <span class="comment">// URL 参数</span></span><br><span class="line">    <span class="keyword">var</span> bindingData <span class="keyword">struct</span> &#123;</span><br><span class="line">        Id  <span class="keyword">int</span>    <span class="string">`json:"id"`</span></span><br><span class="line">        Key <span class="keyword">string</span> <span class="string">`json:"key"`</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 绑定</span></span><br><span class="line">    <span class="keyword">if</span> err := c.Bind(&amp;bindingData); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 返回 200 响应</span></span><br><span class="line">    c.AbortWithStatusJSON(http.StatusOK, bindingData)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>打开终端，运行gorunmain.go。成功启动后，打开Web服务，在URL后面输入/query-binding?id=1&amp;key=alpha。可以看到如下响应数据。</p>
+<img src="/2023/07/04/2-掌握控制器/5.png">
+<p>绑定成功！</p>
+<p>接下来，我们需要进行POST请求，这意味着我们不能直接用浏览器打开进行测试，因为那默认是GET请求。我们需要借助一些工具，也就是在VSCode中的ThunderClient，我们可以用这个来发起POST请求。</p>
+<p>安装ThunderClient的步骤如下：</p>
+<p>在VSCode左侧点击扩展<br>搜索并安装ThunderClient<br>安装完成后，会在VSCode左侧出现闪电标志的菜单按钮<br>POST请求操作步骤如下：</p>
+<p>在VSCode左侧点击闪电标志的菜单按钮，打开ThunderClient</p>
+<p>点击左上侧蓝色的NewRequest按钮</p>
+<p>将GET换成POST</p>
+<p>在URL中输入<code>https://&lt;Web服务地址&gt;/body-binding</code>，例如<code>https://bc834048e7ee.hz-iframe-svc.simplelab.cn/body-binding</code></p>
+<p>在Body标签中输入如下内容</p>
+<p>点击Send按钮</p>
+<p>执行完毕后，右侧会有相应的HTTP响应数据，如下图。</p>
+<p>图片描述</p>
+<p>跟预期的结果一致，太棒了！</p>
+<h1 id="响应"><a href="#响应" class="headerlink" title="响应"></a>响应</h1><p>概述</p>
+<p>关于响应（Response）部分，我们需要了解的并不多，但它也非常重要，因为响应决定着最后用户或前端看到的东西。这里我们稍微讲解一下。</p>
+<p>对于一个Web框架来说，会有很多种响应形式，可以是HTML返回给浏览器，也可以是JSON数据返回给前端（就像刚才展示的一样），或者是一个静态的文件（例如文件下载）等等。Gin框架也支持所有这些响应形式。我们在课程中将会讲解一些比较重要的响应形式。</p>
+<p>JSON<br>对于RESTfulAPI来说，JSON格式就是其响应形式。Gin中代码很简单，可以是单独的c.JSON或者在最后调用AbortWithStatusJSON。这些在前面的部分都介绍过，就不详细展开了。<br>HTML<br>HTML形式的响应主要是通过加载HTML模版，然后调用c.HTML方法来完成前端页面渲染。这个主要是用于传统的MVC架构，由后端直接渲染模版成HTML传给浏览器将页面展现给用户。我们在后面有专门的实验来详细讲解Gin框架中的模版渲染。</p>
+<p>实验总结<br>本次实验是整个Gin框架基础章节的第一个实验，也是Gin框架的重点，在后面的章节中会反复用到。我们通过实验讲解了控制器的基础概念，以及上下文的定义和如何使用，另外还介绍了请求和响应的相关要点。通过本次实验，同学们应该可以开始做很多事情了，比如构建一个可以传参的API，或者渲染一个HTML页面。感兴趣的同学可以在蓝桥云课VSCode上试着自己实现一下，动手探索一下Gin的特性。当然，光是这些还不够。在实际工作中我们还会涉及更多知识。接下来，我们将介绍Gin框架中的路由模块。</p>
+
       
     </div>
 
@@ -607,8 +755,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -1036,6 +1193,23 @@
       </div>
 
       
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#实验介绍"><span class="nav-number">1.</span> <span class="nav-text">实验介绍</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#控制器"><span class="nav-number">2.</span> <span class="nav-text">控制器</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#上下文"><span class="nav-number">3.</span> <span class="nav-text">上下文</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#请求"><span class="nav-number">4.</span> <span class="nav-text">请求</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#URL参数"><span class="nav-number">4.1.</span> <span class="nav-text">URL参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据绑定"><span class="nav-number">4.2.</span> <span class="nav-text">数据绑定</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#响应"><span class="nav-number">5.</span> <span class="nav-text">响应</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
 
       
 
@@ -1075,7 +1249,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">126:13</span>
+    <span title="站点阅读时长">126:27</span>
   
 </div>
 
