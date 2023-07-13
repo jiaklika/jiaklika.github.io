@@ -118,7 +118,7 @@
 <meta property="og:image" content="http://yoursite.com/2023/01/02/36｜打稳根基：怎么实现一个TCP服务器？（上）/7.webp">
 <meta property="og:image" content="http://yoursite.com/2023/01/02/36｜打稳根基：怎么实现一个TCP服务器？（上）/8.webp">
 <meta property="og:image" content="http://yoursite.com/2023/01/02/36｜打稳根基：怎么实现一个TCP服务器？（上）/9.webp">
-<meta property="og:updated_time" content="2023-07-13T02:50:36.929Z">
+<meta property="og:updated_time" content="2023-07-13T07:24:27.549Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="36｜打稳根基：怎么实现一个TCP服务器？（上）">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -451,7 +451,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-07-13 10:50:36" itemprop="dateModified" datetime="2023-07-13T10:50:36+08:00">2023-07-13</time>
+                <time title="修改时间：2023-07-13 15:24:27" itemprop="dateModified" datetime="2023-07-13T15:24:27+08:00">2023-07-13</time>
               
             
           </span>
@@ -592,7 +592,7 @@
 <p>比如：当用户层针对某个Socket描述符发起read操作时，如果这个Socket对应的连接上还没有数据，运行时就会将这个Socket描述符加入到netpoller中监听，同时发起此次读操作的Goroutine会被挂起。</p>
 <p>直到Go运行时收到这个Socket数据可读的通知，Go运行时才会重新唤醒等待在这个Socket上准备读数据的那个Goroutine。而这个过程，从Goroutine的视角来看，就像是read操作一直阻塞在那个Socket描述符上一样。</p>
 <p>而且，Go语言在网络轮询器（netpoller）中采用了I/O多路复用的模型。考虑到最常见的多路复用系统调用select有比较多的限制，比如：监听Socket的数量有上限（1024）、时间复杂度高，等等，Go运行时选择了在不同操作系统上，使用操作系统各自实现的高性能多路复用函数，比如：Linux上的epoll、Windows上的iocp、FreeBSD/MacOS上的kqueue、Solaris上的eventport等，这样可以最大程度提高netpoller的调度和执行性能。</p>
-<p>了解完Gosocket编程模型后，接下来，我们就深入到几个常用的基于socket的网络I/O操作中，逐一了解一下这些操作的机制与注意事项。</p>
+<p>了解完Go socket编程模型后，接下来，我们就深入到几个常用的基于socket的网络I/O操作中，逐一了解一下这些操作的机制与注意事项。</p>
 <h1 id="socket监听（listen）与接收连接（accept）"><a href="#socket监听（listen）与接收连接（accept）" class="headerlink" title="socket监听（listen）与接收连接（accept）"></a><span style="color:#339AFF;">socket监听（listen）与接收连接（accept）</span></h1><p>socket编程的核心在于服务端，而服务端有着自己一套相对固定的套路：Listen+Accept。在这套固定套路的基础上，我们的服务端程序通常采用一个Goroutine处理一个连接，它的大致结构如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleConn</span><span class="params">(c net.Conn)</span></span> &#123;</span><br><span class="line">    <span class="keyword">defer</span> c.Close()</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="comment">// read from the connection</span></span><br><span class="line">        <span class="comment">// ... ...</span></span><br><span class="line">        <span class="comment">// write to the connection</span></span><br><span class="line">        <span class="comment">//... ...</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    l, err := net.Listen(<span class="string">"tcp"</span>, <span class="string">":8888"</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"listen error:"</span>, err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        c, err := l.Accept()</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            fmt.Println(<span class="string">"accept error:"</span>, err)</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// start a new goroutine to handle</span></span><br><span class="line">        <span class="comment">// the new connection.</span></span><br><span class="line">        <span class="keyword">go</span> handleConn(c)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>在这个服务端程序中，我们在第12行使用了net包的Listen函数绑定（bind）服务器端口8888，并将它转换为监听状态，Listen返回成功后，这个服务会进入一个循环，并调用net.Listener的Accept方法接收新客户端连接。</p>
 <p>在没有新连接的时候，这个服务会阻塞在Accept调用上，直到有客户端连接上来，Accept方法将返回一个net.Conn实例。通过这个net.Conn，我们可以和新连上的客户端进行通信。这个服务程序启动了一个新Goroutine，并将net.Conn传给这个Goroutine，这样这个Goroutine就专职负责处理与这个客户端的通信了。</p>
@@ -791,7 +791,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">1102</span>
+                    <span class="site-state-item-count">1107</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1170,23 +1170,23 @@
                 
                 
                   <li>
-                    <a href="/2023/07/13/EasyGoAdmin-Gin-EleVue-3/" title="EasyGoAdmin_Gin_EleVue-3" target="_blank">EasyGoAdmin_Gin_EleVue-3</a>
+                    <a href="/2023/07/13/gin-admin-2/" title="gin-admin-2" target="_blank">gin-admin-2</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/13/EasyGoAdmin-Gin-EleVue-2/" title="EasyGoAdmin_Gin_EleVue-2" target="_blank">EasyGoAdmin_Gin_EleVue-2</a>
+                    <a href="/2023/07/13/gin-admin-1/" title="gin-admin-1" target="_blank">gin-admin-1</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/12/EasyGoAdmin-Gin-EleVue-1/" title="EasyGoAdmin_Gin_EleVue-1" target="_blank">EasyGoAdmin_Gin_EleVue-1</a>
+                    <a href="/2023/07/13/关于GIN的路由树/" title="关于GIN的路由树" target="_blank">关于GIN的路由树</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/12/yshop-gin-3/" title="yshop-gin-3" target="_blank">yshop-gin-3</a>
+                    <a href="/2023/07/13/Golang常见设计模式之装饰模式/" title="Golang常见设计模式之装饰模式" target="_blank">Golang常见设计模式之装饰模式</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/11/yshop-gin-2/" title="yshop-gin-2" target="_blank">yshop-gin-2</a>
+                    <a href="/2023/07/13/Golang常见设计模式之单例模式/" title="Golang常见设计模式之单例模式" target="_blank">Golang常见设计模式之单例模式</a>
                   </li>
                 
               </ul>
@@ -1258,7 +1258,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">128:09</span>
+    <span title="站点阅读时长">128:47</span>
   
 </div>
 
