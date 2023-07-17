@@ -106,14 +106,14 @@
   <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="7天用Go从零实现ORM框架GeeORM">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Day2对象表结构映射">
+<meta property="og:title" content="Day2 对象表结构映射">
 <meta property="og:url" content="http://yoursite.com/2023/06/12/Day2-对象表结构映射/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-06-21T03:11:59.750Z">
+<meta property="og:updated_time" content="2023-07-17T10:08:53.106Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Day2对象表结构映射">
+<meta name="twitter:title" content="Day2 对象表结构映射">
 <meta name="twitter:description" content="思考并回答以下问题：">
 
 
@@ -131,7 +131,7 @@
   };
 </script>
 
-  <title>Day2对象表结构映射 | 车斌的技术博客</title>
+  <title>Day2 对象表结构映射 | 车斌的技术博客</title>
   
 
 
@@ -397,7 +397,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">Day2对象表结构映射
+          <h1 class="post-title" itemprop="name headline">Day2 对象表结构映射
 
               
             
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-06-21 11:11:59" itemprop="dateModified" datetime="2023-06-21T11:11:59+08:00">2023-06-21</time>
+                <time title="修改时间：2023-07-17 18:08:53" itemprop="dateModified" datetime="2023-07-17T18:08:53+08:00">2023-07-17</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">2.9k</span>
+                <span title="本文字数">9k</span>
               
 
               
@@ -503,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">3 分钟</span>
+                <span title="阅读时长">8 分钟</span>
               
             </div>
           
@@ -525,28 +525,71 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-<p>使用dialect隔离不同数据库之间的差异，便于扩展。<br>使用反射（reflect）获取任意struct对象的名称和字段，映射为数据中的表。<br>数据库表的创建（create）、删除（drop）。代码约150行</p>
-<h1 id="Dialect"><a href="#Dialect" class="headerlink" title="Dialect"></a>Dialect</h1><p>SQL语句中的类型和Go语言中的类型是不同的，例如Go语言中的int、int8、int16等类型均对应SQLite中的integer类型。因此实现ORM映射的第一步，需要思考如何将Go语言的类型映射为数据库中的类型。</p>
+<ul>
+<li>使用dialect隔离不同数据库之间的差异，便于扩展。</li>
+<li>使用反射（reflect）获取任意struct对象的名称和字段，映射为数据中的表。</li>
+<li>数据库表的创建（create）、删除（drop）。</li>
+</ul>
+<h1 id="Dialect"><a href="#Dialect" class="headerlink" title="Dialect"></a><span style="color:#339AFF;">Dialect</span></h1><p>SQL语句中的类型和Go语言中的类型是不同的，例如Go语言中的int、int8、int16等类型均对应SQLite中的integer类型。因此实现ORM映射的第一步，需要思考如何将Go语言的类型映射为数据库中的类型。</p>
 <p>同时，不同数据库支持的数据类型也是有差异的，即使功能相同，在SQL语句的表达上也可能有差异。ORM框架往往需要兼容多种数据库，因此我们需要将差异的这一部分提取出来，每一种数据库分别实现，实现最大程度的复用和解耦。这部分代码称之为dialect。</p>
 <p>在根目录下新建文件夹dialect，并在dialect文件夹下新建文件dialect.go，抽象出各个数据库差异的部分。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> dialect</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"reflect"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> dialectsMap = <span class="keyword">map</span>[<span class="keyword">string</span>]Dialect&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Dialect <span class="keyword">interface</span> &#123;</span><br><span class="line">    DataTypeOf(typ reflect.Value) <span class="keyword">string</span></span><br><span class="line">    TableExistSQL(tableName <span class="keyword">string</span>) (<span class="keyword">string</span>, []<span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RegisterDialect</span><span class="params">(name <span class="keyword">string</span>, dialect Dialect)</span></span> &#123;</span><br><span class="line">    dialectsMap[name] = dialect</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetDialect</span><span class="params">(name <span class="keyword">string</span>)</span> <span class="params">(dialect Dialect, ok <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">    dialect, ok = dialectsMap[name]</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>Dialect接口包含2个方法：</p>
-<p>DataTypeOf用于将Go语言的类型转换为该数据库的数据类型。<br>TableExistSQL返回某个表是否存在的SQL语句，参数是表名（table）。<br>当然，不同数据库之间的差异远远不止这两个地方，随着ORM框架功能的增多，dialect的实现也会逐渐丰富起来，同时框架的其他部分不会受到影响。</p>
+<ul>
+<li>DataTypeOf用于将Go语言的类型转换为该数据库的数据类型。</li>
+<li>TableExistSQL返回某个表是否存在的SQL语句，参数是表名（table）。</li>
+</ul>
+<p>当然，不同数据库之间的差异远远不止这两个地方，随着ORM框架功能的增多，dialect的实现也会逐渐丰富起来，同时框架的其他部分不会受到影响。</p>
 <p>同时，声明了RegisterDialect和GetDialect两个方法用于注册和获取dialect实例。如果新增加对某个数据库的支持，那么调用RegisterDialect即可注册到全局。</p>
-<p>接下来，在dialect目录下新建文件sqlite3.go增加对SQLite的支持。</p>
-<p>sqlite3.go的实现虽然比较繁琐，但是整体逻辑还是非常清晰的。DataTypeOf将Go语言的类型映射为SQLite的数据类型。TableExistSQL返回了在SQLite中判断表tableName是否存在的SQL语句。<br>实现了init（）函数，包在第一次加载时，会将sqlite3的dialect自动注册到全局。<br>2Schema<br>Dialect实现了一些特定的SQL语句的转换，接下来我们将要实现ORM框架中最为核心的转换——对象（object）和表（table）的转换。给定一个任意的对象，转换为关系型数据库中的表结构。</p>
+<p>接下来，在dialect目录下新建文件sqlite3.go增加对SQLite的支持。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> dialect</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"reflect"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> sqlite3 <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> _ Dialect = (*sqlite3)(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    RegisterDialect(<span class="string">"sqlite3"</span>, &amp;sqlite3&#123;&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *sqlite3)</span> <span class="title">DataTypeOf</span><span class="params">(typ reflect.Value)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> typ.Kind() &#123;</span><br><span class="line">    <span class="keyword">case</span> reflect.Bool:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"bool"</span></span><br><span class="line">    <span class="keyword">case</span> reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,</span><br><span class="line">        reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"integer"</span></span><br><span class="line">    <span class="keyword">case</span> reflect.Int64, reflect.Uint64:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"bigint"</span></span><br><span class="line">    <span class="keyword">case</span> reflect.Float32, reflect.Float64:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"real"</span></span><br><span class="line">    <span class="keyword">case</span> reflect.String:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"text"</span></span><br><span class="line">    <span class="keyword">case</span> reflect.Array, reflect.Slice:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"blob"</span></span><br><span class="line">    <span class="keyword">case</span> reflect.Struct:</span><br><span class="line">        <span class="keyword">if</span> _, ok := typ.Interface().(time.Time); ok &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"datetime"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"invalid sql type %s (%s)"</span>, typ.Type().Name(), typ.Kind()))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *sqlite3)</span> <span class="title">TableExistSQL</span><span class="params">(tableName <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">string</span>, []<span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">    args := []<span class="keyword">interface</span>&#123;&#125;&#123;tableName&#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">"SELECT name FROM sqlite_master WHERE type='table' and name = ?"</span>, args</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>sqlite3.go的实现虽然比较繁琐，但是整体逻辑还是非常清晰的。DataTypeOf将Go语言的类型映射为SQLite的数据类型。TableExistSQL返回了在SQLite中判断表tableName是否存在的SQL语句。</li>
+<li>实现了init()函数，包在第一次加载时，会将sqlite3的dialect自动注册到全局。</li>
+</ul>
+<h1 id="Schema"><a href="#Schema" class="headerlink" title="Schema"></a><span style="color:#339AFF;">Schema</span></h1><p>Dialect实现了一些特定的SQL语句的转换，接下来我们将要实现ORM框架中最为核心的转换——对象（object）和表（table）的转换。给定一个任意的对象，转换为关系型数据库中的表结构。</p>
 <p>在数据库中创建一张表需要哪些要素呢？</p>
-<p>表名（tablename）——结构体名（structname）<br>字段名和字段类型——成员变量和类型。<br>额外的约束条件（例如非空、主键等）——成员变量的Tag（Go语言通过Tag实现，Java、Python等语言通过注解实现）<br>举一个实际的例子：</p>
-<p>期望对应的schema语句：</p>
-<p>我们将这部分代码的实现放置在一个子包schema/schema.go中。</p>
-<p>Field包含3个成员变量，字段名Name、类型Type、和约束条件Tag<br>Schema主要包含被映射的对象Model、表名Name和字段Fields。<br>FieldNames包含所有的字段名（列名），fieldMap记录字段名和Field的映射关系，方便之后直接使用，无需遍历Fields。<br>接下来实现Parse函数，将任意的对象解析为Schema实例。</p>
-<p>TypeOf（）和ValueOf（）是reflect包最为基本也是最重要的2个方法，分别用来返回入参的类型和值。因为设计的入参是一个对象的指针，因此需要reflect.Indirect（）获取指针指向的实例。<br>modelType.Name（）获取到结构体的名称作为表名。<br>NumField（）获取实例的字段的个数，然后通过下标获取到特定字段p:=modelType.Field（i）。<br>p.Name即字段名，p.Type即字段类型，通过（Dialect）.DataTypeOf（）转换为数据库的字段类型，p.Tag即额外的约束条件。<br>写一个测试用例来验证Parse函数。</p>
-<p>3Session<br>Session的核心功能是与数据库进行交互。因此，我们将数据库表的增/删操作实现在子包session中。在此之前，Session的结构需要做一些调整。</p>
-<p>Session成员变量新增dialect和refTable<br>构造函数New的参数改为2个，db和dialect。<br>在文件夹session下新建table.go用于放置操作数据库表相关的代码。</p>
-<p>Model（）方法用于给refTable赋值。解析操作是比较耗时的，因此将解析的结果保存在成员变量refTable中，即使Model（）被调用多次，如果传入的结构体名称不发生变化，则不会更新refTable的值。<br>RefTable（）方法返回refTable的值，如果refTable未被赋值，则打印错误日志。<br>接下来实现数据库表的创建、删除和判断是否存在的功能。三个方法的实现逻辑是相似的，利用RefTable（）返回的数据库表和字段的信息，拼接出SQL语句，调用原生SQL接口执行。</p>
-<p>在table_test.go中实现对应的测试用例：</p>
-<p>4Engine<br>因为Session构造函数增加了对dialect的依赖，Engine需要作一些细微的调整。</p>
-<p>NewEngine创建Engine实例时，获取driver对应的dialect。<br>NewSession创建Session实例时，传递dialect给构造函数New。<br>至此，第二天的内容已经完成了，总结一下今天的成果：</p>
-<p>1）为适配不同的数据库，映射数据类型和特定的SQL语句，创建Dialect层屏蔽数据库差异。<br>2）设计Schema，利用反射（reflect）完成结构体和数据库表结构的映射，包括表名、字段名、字段类型、字段tag等。<br>3）构造创建（create）、删除（drop）、存在性（tableexists）的SQL语句完成数据库表的基本操作。</p>
+<ul>
+<li>表名（table name）——结构体名（struct name）。</li>
+<li>字段名和字段类型——成员变量和类型。</li>
+<li>额外的约束条件（例如非空、主键等）——成员变量的Tag（Go语言通过Tag实现，Java、Python等语言通过注解实现）。</li>
+</ul>
+<p>举一个实际的例子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name <span class="keyword">string</span> <span class="string">`geeorm:"PRIMARY KEY"`</span></span><br><span class="line">    Age  <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>期望对应的schema语句：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`User`</span> (<span class="string">`Name`</span> <span class="built_in">text</span> PRIMARY <span class="keyword">KEY</span>, <span class="string">`Age`</span> <span class="built_in">integer</span>);</span><br></pre></td></tr></table></figure></p>
+<p>我们将这部分代码的实现放置在一个子包schema/schema.go中。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> schema</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"geeorm/dialect"</span></span><br><span class="line">    <span class="string">"go/ast"</span></span><br><span class="line">    <span class="string">"reflect"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Field represents a column of database</span></span><br><span class="line"><span class="keyword">type</span> Field <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name <span class="keyword">string</span></span><br><span class="line">    Type <span class="keyword">string</span></span><br><span class="line">    Tag  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Schema represents a table of database</span></span><br><span class="line"><span class="keyword">type</span> Schema <span class="keyword">struct</span> &#123;</span><br><span class="line">    Model      <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">    Name       <span class="keyword">string</span></span><br><span class="line">    Fields     []*Field</span><br><span class="line">    FieldNames []<span class="keyword">string</span></span><br><span class="line">    fieldMap   <span class="keyword">map</span>[<span class="keyword">string</span>]*Field</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(schema *Schema)</span> <span class="title">GetField</span><span class="params">(name <span class="keyword">string</span>)</span> *<span class="title">Field</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> schema.fieldMap[name]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>Field包含3个成员变量，字段名Name、类型Type、和约束条件Tag</li>
+<li>Schema主要包含被映射的对象Model、表名Name和字段Fields。</li>
+<li>FieldNames包含所有的字段名（列名），fieldMap记录字段名和Field的映射关系，方便之后直接使用，无需遍历Fields。</li>
+</ul>
+<p>接下来实现Parse函数，将任意的对象解析为Schema实例。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Parse</span><span class="params">(dest <span class="keyword">interface</span>&#123;&#125;, d dialect.Dialect)</span> *<span class="title">Schema</span></span> &#123;</span><br><span class="line">    modelType := reflect.Indirect(reflect.ValueOf(dest)).Type()</span><br><span class="line">    schema := &amp;Schema&#123;</span><br><span class="line">        Model:    dest,</span><br><span class="line">        Name:     modelType.Name(),</span><br><span class="line">        fieldMap: <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*Field),</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; modelType.NumField(); i++ &#123;</span><br><span class="line">        p := modelType.Field(i)</span><br><span class="line">        <span class="keyword">if</span> !p.Anonymous &amp;&amp; ast.IsExported(p.Name) &#123;</span><br><span class="line">            field := &amp;Field&#123;</span><br><span class="line">                Name: p.Name,</span><br><span class="line">                Type: d.DataTypeOf(reflect.Indirect(reflect.New(p.Type))),</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> v, ok := p.Tag.Lookup(<span class="string">"geeorm"</span>); ok &#123;</span><br><span class="line">                field.Tag = v</span><br><span class="line">            &#125;</span><br><span class="line">            schema.Fields = <span class="built_in">append</span>(schema.Fields, field)</span><br><span class="line">            schema.FieldNames = <span class="built_in">append</span>(schema.FieldNames, p.Name)</span><br><span class="line">            schema.fieldMap[p.Name] = field</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> schema</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>TypeOf()和ValueOf()是reflect包最为基本也是最重要的2个方法，分别用来返回入参的类型和值。因为设计的入参是一个对象的指针，因此需要<code>reflect.Indirect()</code>获取指针指向的实例。</li>
+<li><code>modelType.Name()</code>获取到结构体的名称作为表名。</li>
+<li>NumField()获取实例的字段的个数，然后通过下标获取到特定字段<code>p := modelType.Field(i)</code>。</li>
+<li><code>p.Name</code>即字段名，<code>p.Type</code>即字段类型，通过<code>(Dialect).DataTypeOf()</code>转换为数据库的字段类型，<code>p.Tag</code>即额外的约束条件。</li>
+</ul>
+<p>写一个测试用例来验证Parse函数。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// schema_test.go</span></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name <span class="keyword">string</span> <span class="string">`geeorm:"PRIMARY KEY"`</span></span><br><span class="line">    Age  <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> TestDial, _ = dialect.GetDialect(<span class="string">"sqlite3"</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestParse</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">    schema := Parse(&amp;User&#123;&#125;, TestDial)</span><br><span class="line">    <span class="keyword">if</span> schema.Name != <span class="string">"User"</span> || <span class="built_in">len</span>(schema.Fields) != <span class="number">2</span> &#123;</span><br><span class="line">        t.Fatal(<span class="string">"failed to parse User struct"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> schema.GetField(<span class="string">"Name"</span>).Tag != <span class="string">"PRIMARY KEY"</span> &#123;</span><br><span class="line">        t.Fatal(<span class="string">"failed to parse primary key"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="Session"><a href="#Session" class="headerlink" title="Session"></a><span style="color:#339AFF;">Session</span></h1><p>Session的核心功能是与数据库进行交互。因此，我们将数据库表的增/删操作实现在子包session中。在此之前，Session的结构需要做一些调整。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Session <span class="keyword">struct</span> &#123;</span><br><span class="line">    db       *sql.DB</span><br><span class="line">    dialect  dialect.Dialect</span><br><span class="line">    refTable *schema.Schema</span><br><span class="line">    sql      strings.Builder</span><br><span class="line">    sqlVars  []<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(db *sql.DB, dialect dialect.Dialect)</span> *<span class="title">Session</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;Session&#123;</span><br><span class="line">        db:      db,</span><br><span class="line">        dialect: dialect,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>Session成员变量新增dialect和refTable</li>
+<li>构造函数New的参数改为2个，db和dialect。</li>
+</ul>
+<p>在文件夹session下新建table.go用于放置操作数据库表相关的代码。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">Model</span><span class="params">(value <span class="keyword">interface</span>&#123;&#125;)</span> *<span class="title">Session</span></span> &#123;</span><br><span class="line">    <span class="comment">// nil or different model, update refTable</span></span><br><span class="line">    <span class="keyword">if</span> s.refTable == <span class="literal">nil</span> || reflect.TypeOf(value) != reflect.TypeOf(s.refTable.Model) &#123;</span><br><span class="line">        s.refTable = schema.Parse(value, s.dialect)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">RefTable</span><span class="params">()</span> *<span class="title">schema</span>.<span class="title">Schema</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> s.refTable == <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Error(<span class="string">"Model is not set"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> s.refTable</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>Model()方法用于给refTable赋值。解析操作是比较耗时的，因此将解析的结果保存在成员变量refTable中，即使Model()被调用多次，如果传入的结构体名称不发生变化，则不会更新refTable的值。</li>
+<li>RefTable()方法返回refTable的值，如果refTable未被赋值，则打印错误日志。</li>
+</ul>
+<p>接下来实现数据库表的创建、删除和判断是否存在的功能。三个方法的实现逻辑是相似的，利用RefTable()返回的数据库表和字段的信息，拼接出SQL语句，调用原生SQL接口执行。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">CreateTable</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    table := s.RefTable()</span><br><span class="line">    <span class="keyword">var</span> columns []<span class="keyword">string</span></span><br><span class="line">    <span class="keyword">for</span> _, field := <span class="keyword">range</span> table.Fields &#123;</span><br><span class="line">        columns = <span class="built_in">append</span>(columns, fmt.Sprintf(<span class="string">"%s %s %s"</span>, field.Name, field.Type, field.Tag))</span><br><span class="line">    &#125;</span><br><span class="line">    desc := strings.Join(columns, <span class="string">","</span>)</span><br><span class="line">    _, err := s.Raw(fmt.Sprintf(<span class="string">"CREATE TABLE %s (%s);"</span>, table.Name, desc)).Exec()</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">DropTable</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    _, err := s.Raw(fmt.Sprintf(<span class="string">"DROP TABLE IF EXISTS %s"</span>, s.RefTable().Name)).Exec()</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">HasTable</span><span class="params">()</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    sql, values := s.dialect.TableExistSQL(s.RefTable().Name)</span><br><span class="line">    row := s.Raw(sql, values...).QueryRow()</span><br><span class="line">    <span class="keyword">var</span> tmp <span class="keyword">string</span></span><br><span class="line">    _ = row.Scan(&amp;tmp)</span><br><span class="line">    <span class="keyword">return</span> tmp == s.RefTable().Name</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在table_test.go中实现对应的测试用例：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name <span class="keyword">string</span> <span class="string">`geeorm:"PRIMARY KEY"`</span></span><br><span class="line">    Age  <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestSession_CreateTable</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">    s := NewSession().Model(&amp;User&#123;&#125;)</span><br><span class="line">    _ = s.DropTable()</span><br><span class="line">    _ = s.CreateTable()</span><br><span class="line">    <span class="keyword">if</span> !s.HasTable() &#123;</span><br><span class="line">        t.Fatal(<span class="string">"Failed to create table User"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="Engine"><a href="#Engine" class="headerlink" title="Engine"></a><span style="color:#339AFF;">Engine</span></h1><p>因为Session构造函数增加了对dialect的依赖，Engine需要作一些细微的调整。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Engine <span class="keyword">struct</span> &#123;</span><br><span class="line">    db      *sql.DB</span><br><span class="line">    dialect dialect.Dialect</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewEngine</span><span class="params">(driver, source <span class="keyword">string</span>)</span> <span class="params">(e *Engine, err error)</span></span> &#123;</span><br><span class="line">    db, err := sql.Open(driver, source)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Error(err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Send a ping to make sure the database connection is alive.</span></span><br><span class="line">    <span class="keyword">if</span> err = db.Ping(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Error(err)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// make sure the specific dialect exists</span></span><br><span class="line">    dial, ok := dialect.GetDialect(driver)</span><br><span class="line">    <span class="keyword">if</span> !ok &#123;</span><br><span class="line">        log.Errorf(<span class="string">"dialect %s Not Found"</span>, driver)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    e = &amp;Engine&#123;db: db, dialect: dial&#125;</span><br><span class="line">    log.Info(<span class="string">"Connect database success"</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">NewSession</span><span class="params">()</span> *<span class="title">session</span>.<span class="title">Session</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> session.New(engine.db, engine.dialect)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>NewEngine创建Engine实例时，获取driver对应的dialect。</li>
+<li>NewSession创建Session实例时，传递dialect给构造函数New。</li>
+</ul>
+<p>至此，第二天的内容已经完成了，总结一下今天的成果：</p>
+<p>1）为适配不同的数据库，映射数据类型和特定的SQL语句，创建Dialect层屏蔽数据库差异。</p>
+<p>2）设计Schema，利用反射（reflect）完成结构体和数据库表结构的映射，包括表名、字段名、字段类型、字段tag等。</p>
+<p>3）构造创建（create）、删除（drop）、存在性（table exists）的SQL语句完成数据库表的基本操作。</p>
 
       
     </div>
@@ -666,7 +709,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">1107</span>
+                    <span class="site-state-item-count">1122</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -745,7 +788,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">26</span>
+                      
+                    
+                    <span class="site-state-item-count">27</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -1045,23 +1090,23 @@
                 
                 
                   <li>
-                    <a href="/2023/07/13/gin-admin-2/" title="gin-admin-2" target="_blank">gin-admin-2</a>
+                    <a href="/2023/07/17/Day7-使用Protobuf通信/" title="Day7 使用Protobuf通信" target="_blank">Day7 使用Protobuf通信</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/13/gin-admin-1/" title="gin-admin-1" target="_blank">gin-admin-1</a>
+                    <a href="/2023/07/17/Day6-防止缓存击穿/" title="Day6 防止缓存击穿" target="_blank">Day6 防止缓存击穿</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/13/关于GIN的路由树/" title="关于GIN的路由树" target="_blank">关于GIN的路由树</a>
+                    <a href="/2023/07/17/Day5-分布式节点/" title="Day5 分布式节点" target="_blank">Day5 分布式节点</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/13/Golang常见设计模式之装饰模式/" title="Golang常见设计模式之装饰模式" target="_blank">Golang常见设计模式之装饰模式</a>
+                    <a href="/2023/07/17/Day4-一致性哈希/" title="Day4 一致性哈希" target="_blank">Day4 一致性哈希</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/13/Golang常见设计模式之单例模式/" title="Golang常见设计模式之单例模式" target="_blank">Golang常见设计模式之单例模式</a>
+                    <a href="/2023/07/17/Day3-HTTP服务端/" title="Day3 HTTP服务端" target="_blank">Day3 HTTP服务端</a>
                   </li>
                 
               </ul>
@@ -1087,7 +1132,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Dialect"><span class="nav-number">1.</span> <span class="nav-text">Dialect</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Dialect"><span class="nav-number">1.</span> <span class="nav-text">Dialect</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Schema"><span class="nav-number">2.</span> <span class="nav-text">Schema</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Session"><span class="nav-number">3.</span> <span class="nav-text">Session</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Engine"><span class="nav-number">4.</span> <span class="nav-text">Engine</span></a></li></ol></div>
             
 
           </div>
@@ -1122,7 +1167,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">8.5m</span>
+    <span title="站点总字数">8.6m</span>
   
 
   
@@ -1133,7 +1178,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">128:47</span>
+    <span title="站点阅读时长">130:37</span>
   
 </div>
 
