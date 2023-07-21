@@ -111,7 +111,7 @@
 <meta property="og:site_name" content="车斌的技术博客">
 <meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-06-14T02:06:56.873Z">
+<meta property="og:updated_time" content="2023-07-18T01:17:57.211Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Day6 支持事务">
 <meta name="twitter:description" content="思考并回答以下问题：">
@@ -443,7 +443,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2023-06-14 10:06:56" itemprop="dateModified" datetime="2023-06-14T10:06:56+08:00">2023-06-14</time>
+                <time title="修改时间：2023-07-18 09:17:57" itemprop="dateModified" datetime="2023-07-18T09:17:57+08:00">2023-07-18</time>
               
             
           </span>
@@ -489,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">1.8k</span>
+                <span title="本文字数">5.7k</span>
               
 
               
@@ -503,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">2 分钟</span>
+                <span title="阅读时长">5 分钟</span>
               
             </div>
           
@@ -525,24 +525,45 @@
       
         <p>思考并回答以下问题：</p>
 <a id="more"></a>
-<p>本文是7天用Go从零实现ORM框架GeeORM的第六篇。</p>
-<p>介绍数据库中的事务(transaction)。<br>封装事务，用户自定义回调函数实现原子操作。代码约100行<br>1 事务的 ACID 属性<br>数据库事务(transaction)是访问并可能操作各种数据项的一个数据库操作序列，这些操作要么全部执行,要么全部不执行，是一个不可分割的工作单位。事务由事务开始与事务结束之间执行的全部数据库操作组成。</p>
-<p>举一个简单的例子，转账。A 转账给 B 一万元，那么数据库至少需要执行 2 个操作：</p>
-<p>1）A 的账户减掉一万元。<br>2）B 的账户增加一万元。<br>这两个操作要么全部执行，代表转账成功。任意一个操作失败了，之前的操作都必须回退，代表转账失败。一个操作完成，另一个操作失败，这种结果是不能够接受的。这种场景就非常适合利用数据库事务的特性来解决。</p>
-<p>如果一个数据库支持事务，那么必须具备 ACID 四个属性。</p>
-<p>1）原子性(Atomicity)：事务中的全部操作在数据库中是不可分割的，要么全部完成，要么全部不执行。<br>2）一致性(Consistency): 几个并行执行的事务，其执行结果必须与按某一顺序 串行执行的结果相一致。<br>3）隔离性(Isolation)：事务的执行不受其他事务的干扰，事务执行的中间结果对其他事务必须是透明的。<br>4）持久性(Durability)：对于任意已提交事务，系统必须保证该事务对数据库的改变不被丢失，即使数据库出现故障。<br>2 SQLite 和 Go 标准库中的事务<br>SQLite 中创建一个事务的原生 SQL 长什么样子呢？</p>
-<p>sqlite&gt; BEGIN;<br>sqlite&gt; DELETE FROM User WHERE Age &gt; 25;<br>sqlite&gt; INSERT INTO User VALUES (“Tom”, 25), (“Jack”, 18);<br>sqlite&gt; COMMIT;<br>BEGIN 开启事务，COMMIT 提交事务，ROLLBACK 回滚事务。任何一个事务，均以 BEGIN 开始，COMMIT 或 ROLLBACK 结束。</p>
-<p>Go 语言标准库 database/sql 提供了支持事务的接口。用一个简单的例子，看一看 Go 语言标准是如何支持事务的。</p>
-<p>Go 语言中实现事务和 SQL 原生语句其实是非常接近的。调用 db.Begin() 得到 <code>*sql.Tx</code> 对象，使用 tx.Exec() 执行一系列操作，如果发生错误，通过 tx.Rollback() 回滚，如果没有发生错误，则通过 tx.Commit() 提交。</p>
-<p>3 GeeORM 支持事务<br>GeeORM 之前的操作均是执行完即自动提交的，每个操作是相互独立的。之前直接使用 sql.DB 对象执行 SQL 语句，如果要支持事务，需要更改为 sql.Tx 执行。在 Session 结构体中新增成员变量 <code>tx *sql.Tx</code>，当 tx 不为空时，则使用 tx 执行 SQL 语句，否则使用 db 执行 SQL 语句。这样既兼容了原有的执行方式，又提供了对事务的支持。</p>
-<p>新建文件 session/transaction.go 封装事务的 Begin、Commit 和 Rollback 三个接口。</p>
-<p>调用 s.db.Begin() 得到<code>*sql.Tx</code> 对象，赋值给 s.tx。<br>封装的另一个目的是统一打印日志，方便定位问题。<br>最后一步，在 geeorm.go 中为用户提供傻瓜式/一键式使用的接口。</p>
-<p>Transaction 的实现参考了 stackoverflow</p>
-<p>用户只需要将所有的操作放到一个回调函数中，作为入参传递给 engine.Transaction()，发生任何错误，自动回滚，如果没有错误发生，则提交。</p>
-<p>4 测试<br>在 geeorm_test.go 中添加测试用例看看 Transaction 如何工作的吧。</p>
-<p>首先是 rollback 的用例：</p>
-<p>在这个用例中，如何执行成功，则会创建一张表 User，并插入一条记录。<br>故意返回了一个自定义 error，最终事务回滚，表创建失败。<br>接下来是 commit 的用例：</p>
-<p>创建表和插入记录均成功执行，最终通过 s.First() 方法查询到插入的记录。</p>
+<ul>
+<li>介绍数据库中的事务（transaction）。</li>
+<li>封装事务，用户自定义回调函数实现原子操作。</li>
+</ul>
+<h1 id="事务的ACID属性"><a href="#事务的ACID属性" class="headerlink" title="事务的ACID属性"></a><span style="color:#339AFF;">事务的ACID属性</span></h1><blockquote>
+<p>数据库事务（transaction）是访问并可能操作各种数据项的一个数据库操作序列，这些操作要么全部执行，要么全部不执行，是一个不可分割的工作单位。事务由事务开始与事务结束之间执行的全部数据库操作组成。</p>
+</blockquote>
+<p>举一个简单的例子，转账。A转账给B一万元，那么数据库至少需要执行2个操作：</p>
+<p>1）A的账户减掉一万元。</p>
+<p>2）B的账户增加一万元。</p>
+<p>这两个操作要么全部执行，代表转账成功。任意一个操作失败了，之前的操作都必须回退，代表转账失败。一个操作完成，另一个操作失败，这种结果是不能够接受的。这种场景就非常适合利用数据库事务的特性来解决。</p>
+<p>如果一个数据库支持事务，那么必须具备ACID四个属性。</p>
+<p>1）原子性（Atomicity）：事务中的全部操作在数据库中是不可分割的，要么全部完成，要么全部不执行。</p>
+<p>2）一致性（Consistency）：几个并行执行的事务，其执行结果必须与按某一顺序串行执行的结果相一致。</p>
+<p>3）隔离性（Isolation）：事务的执行不受其他事务的干扰，事务执行的中间结果对其他事务必须是透明的。</p>
+<p>4）持久性（Durability）：对于任意已提交事务，系统必须保证该事务对数据库的改变不被丢失，即使数据库出现故障。</p>
+<h1 id="SQLite和Go标准库中的事务"><a href="#SQLite和Go标准库中的事务" class="headerlink" title="SQLite和Go标准库中的事务"></a><span style="color:#339AFF;">SQLite和Go标准库中的事务</span></h1><p>SQLite中创建一个事务的原生SQL长什么样子呢？<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; BEGIN;</span><br><span class="line">sqlite&gt; DELETE FROM User WHERE Age &gt; 25;</span><br><span class="line">sqlite&gt; INSERT INTO User VALUES (<span class="string">"Tom"</span>, 25), (<span class="string">"Jack"</span>, 18);</span><br><span class="line">sqlite&gt; COMMIT;</span><br></pre></td></tr></table></figure></p>
+<p>BEGIN开启事务，COMMIT提交事务，ROLLBACK回滚事务。任何一个事务，均以BEGIN开始，COMMIT或ROLLBACK结束。</p>
+<p>Go语言标准库database/sql提供了支持事务的接口。用一个简单的例子，看一看Go语言标准是如何支持事务的。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"database/sql"</span></span><br><span class="line">	_ <span class="string">"github.com/mattn/go-sqlite3"</span></span><br><span class="line">	<span class="string">"log"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	db, _ := sql.Open(<span class="string">"sqlite3"</span>, <span class="string">"gee.db"</span>)</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = db.Close() &#125;()</span><br><span class="line">	_, _ = db.Exec(<span class="string">"CREATE TABLE IF NOT EXISTS User(`Name` text);"</span>)</span><br><span class="line"></span><br><span class="line">	tx, _ := db.Begin()</span><br><span class="line">	_, err1 := tx.Exec(<span class="string">"INSERT INTO User(`Name`) VALUES (?)"</span>, <span class="string">"Tom"</span>)</span><br><span class="line">	_, err2 := tx.Exec(<span class="string">"INSERT INTO User(`Name`) VALUES (?)"</span>, <span class="string">"Jack"</span>)</span><br><span class="line">	<span class="keyword">if</span> err1 != <span class="literal">nil</span> || err2 != <span class="literal">nil</span> &#123;</span><br><span class="line">		_ = tx.Rollback()</span><br><span class="line">		log.Println(<span class="string">"Rollback"</span>, err1, err2)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		_ = tx.Commit()</span><br><span class="line">		log.Println(<span class="string">"Commit"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Go语言中实现事务和SQL原生语句其实是非常接近的。调用<code>db.Begin()</code>得到<code>*sql.Tx</code>对象，使用<code>tx.Exec()</code>执行一系列操作，如果发生错误，通过<code>tx.Rollback()</code>回滚，如果没有发生错误，则通过<code>tx.Commit()</code>提交。</p>
+<h1 id="GeeORM支持事务"><a href="#GeeORM支持事务" class="headerlink" title="GeeORM支持事务"></a><span style="color:#339AFF;">GeeORM支持事务</span></h1><p>GeeORM之前的操作均是执行完即自动提交的，每个操作是相互独立的。之前直接使用<code>sql.DB</code>对象执行SQL语句，如果要支持事务，需要更改为<code>sql.Tx</code>执行。在Session结构体中新增成员变量<code>tx *sql.Tx</code>，当tx不为空时，则使用tx执行SQL语句，否则使用db执行SQL语句。这样既兼容了原有的执行方式，又提供了对事务的支持。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Session <span class="keyword">struct</span> &#123;</span><br><span class="line">	db       *sql.DB</span><br><span class="line">	dialect  dialect.Dialect</span><br><span class="line">	tx       *sql.Tx</span><br><span class="line">	refTable *schema.Schema</span><br><span class="line">	clause   clause.Clause</span><br><span class="line">	sql      strings.Builder</span><br><span class="line">	sqlVars  []<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// CommonDB is a minimal function set of db</span></span><br><span class="line"><span class="keyword">type</span> CommonDB <span class="keyword">interface</span> &#123;</span><br><span class="line">	Query(query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;) (*sql.Rows, error)</span><br><span class="line">	QueryRow(query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;) *sql.Row</span><br><span class="line">	Exec(query <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;) (sql.Result, error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> _ CommonDB = (*sql.DB)(<span class="literal">nil</span>)</span><br><span class="line"><span class="keyword">var</span> _ CommonDB = (*sql.Tx)(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// DB returns tx if a tx begins. otherwise return *sql.DB</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">DB</span><span class="params">()</span> <span class="title">CommonDB</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> s.tx != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> s.tx</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> s.db</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>新建文件session/transaction.go封装事务的Begin、Commit和Rollback三个接口。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> session</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"geeorm/log"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">Begin</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	log.Info(<span class="string">"transaction begin"</span>)</span><br><span class="line">	<span class="keyword">if</span> s.tx, err = s.db.Begin(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Error(err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">Commit</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	log.Info(<span class="string">"transaction commit"</span>)</span><br><span class="line">	<span class="keyword">if</span> err = s.tx.Commit(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Error(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Session)</span> <span class="title">Rollback</span><span class="params">()</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	log.Info(<span class="string">"transaction rollback"</span>)</span><br><span class="line">	<span class="keyword">if</span> err = s.tx.Rollback(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Error(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>调用<code>s.db.Begin()</code>得到<code>*sql.Tx</code>对象，赋值给<code>s.tx</code>。</li>
+<li>封装的另一个目的是统一打印日志，方便定位问题。</li>
+</ul>
+<p>最后一步，在geeorm.go中为用户提供傻瓜式/一键式使用的接口。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> TxFunc <span class="function"><span class="keyword">func</span><span class="params">(*session.Session)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(engine *Engine)</span> <span class="title">Transaction</span><span class="params">(f TxFunc)</span> <span class="params">(result <span class="keyword">interface</span>&#123;&#125;, err error)</span></span> &#123;</span><br><span class="line">	s := engine.NewSession()</span><br><span class="line">	<span class="keyword">if</span> err := s.Begin(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> p := <span class="built_in">recover</span>(); p != <span class="literal">nil</span> &#123;</span><br><span class="line">			_ = s.Rollback()</span><br><span class="line">			<span class="built_in">panic</span>(p) <span class="comment">// re-throw panic after Rollback</span></span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			_ = s.Rollback() <span class="comment">// err is non-nil; don't change it</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			err = s.Commit() <span class="comment">// err is nil; if Commit returns error update err</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> f(s)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<blockquote>
+<p>Transaction的实现参考了<a href="https://stackoverflow.com/questions/16184238/database-sql-tx-detecting-commit-or-rollback" target="_blank" rel="noopener">stackoverflow</a></p>
+</blockquote>
+<p>用户只需要将所有的操作放到一个回调函数中，作为入参传递给<code>engine.Transaction()</code>，发生任何错误，自动回滚，如果没有错误发生，则提交。</p>
+<h1 id="测试"><a href="#测试" class="headerlink" title="测试"></a><span style="color:#339AFF;">测试</span></h1><p>在geeorm_test.go中添加测试用例看看Transaction如何工作的吧。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OpenDB</span><span class="params">(t *testing.T)</span> *<span class="title">Engine</span></span> &#123;</span><br><span class="line">	t.Helper()</span><br><span class="line">	engine, err := NewEngine(<span class="string">"sqlite3"</span>, <span class="string">"gee.db"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		t.Fatal(<span class="string">"failed to connect"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> engine</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> User <span class="keyword">struct</span> &#123;</span><br><span class="line">	Name <span class="keyword">string</span> <span class="string">`geeorm:"PRIMARY KEY"`</span></span><br><span class="line">	Age  <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestEngine_Transaction</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	t.Run(<span class="string">"rollback"</span>, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">		transactionRollback(t)</span><br><span class="line">	&#125;)</span><br><span class="line">	t.Run(<span class="string">"commit"</span>, <span class="function"><span class="keyword">func</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">		transactionCommit(t)</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>首先是rollback的用例：<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">transactionRollback</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	engine := OpenDB(t)</span><br><span class="line">	<span class="keyword">defer</span> engine.Close()</span><br><span class="line">	s := engine.NewSession()</span><br><span class="line">	_ = s.Model(&amp;User&#123;&#125;).DropTable()</span><br><span class="line">	_, err := engine.Transaction(<span class="function"><span class="keyword">func</span><span class="params">(s *session.Session)</span> <span class="params">(result <span class="keyword">interface</span>&#123;&#125;, err error)</span></span> &#123;</span><br><span class="line">		_ = s.Model(&amp;User&#123;&#125;).CreateTable()</span><br><span class="line">		_, err = s.Insert(&amp;User&#123;<span class="string">"Tom"</span>, <span class="number">18</span>&#125;)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"Error"</span>)</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> || s.HasTable() &#123;</span><br><span class="line">		t.Fatal(<span class="string">"failed to rollback"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>在这个用例中，如何执行成功，则会创建一张表User，并插入一条记录。</li>
+<li>故意返回了一个自定义error，最终事务回滚，表创建失败。</li>
+</ul>
+<p>接下来是commit的用例：<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">transactionCommit</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	engine := OpenDB(t)</span><br><span class="line">	<span class="keyword">defer</span> engine.Close()</span><br><span class="line">	s := engine.NewSession()</span><br><span class="line">	_ = s.Model(&amp;User&#123;&#125;).DropTable()</span><br><span class="line">	_, err := engine.Transaction(<span class="function"><span class="keyword">func</span><span class="params">(s *session.Session)</span> <span class="params">(result <span class="keyword">interface</span>&#123;&#125;, err error)</span></span> &#123;</span><br><span class="line">		_ = s.Model(&amp;User&#123;&#125;).CreateTable()</span><br><span class="line">		_, err = s.Insert(&amp;User&#123;<span class="string">"Tom"</span>, <span class="number">18</span>&#125;)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;)</span><br><span class="line">	u := &amp;User&#123;&#125;</span><br><span class="line">	_ = s.First(u)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> || u.Name != <span class="string">"Tom"</span> &#123;</span><br><span class="line">		t.Fatal(<span class="string">"failed to commit"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>创建表和插入记录均成功执行，最终通过<code>s.First()</code>方法查询到插入的记录。</p>
 
       
     </div>
@@ -579,8 +600,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2023/06/12/Day5-实现钩子/" rel="next" title="Day5实现钩子">
-                <i class="fa fa-chevron-left"></i> Day5实现钩子
+              <a href="/2023/06/12/Day5-实现钩子/" rel="next" title="Day5 实现钩子">
+                <i class="fa fa-chevron-left"></i> Day5 实现钩子
               </a>
             
           </div>
@@ -635,8 +656,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -653,7 +683,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">1122</span>
+                    <span class="site-state-item-count">1144</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1003,7 +1033,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">77</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">79</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -1034,23 +1068,23 @@
                 
                 
                   <li>
-                    <a href="/2023/07/17/Day7-使用Protobuf通信/" title="Day7 使用Protobuf通信" target="_blank">Day7 使用Protobuf通信</a>
+                    <a href="/2023/07/19/zero-admin-3/" title="zero-admin-3" target="_blank">zero-admin-3</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/17/Day6-防止缓存击穿/" title="Day6 防止缓存击穿" target="_blank">Day6 防止缓存击穿</a>
+                    <a href="/2023/07/19/zero-admin-2/" title="zero-admin-2" target="_blank">zero-admin-2</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/17/Day5-分布式节点/" title="Day5 分布式节点" target="_blank">Day5 分布式节点</a>
+                    <a href="/2023/07/19/zero-admin-1/" title="zero-admin-1" target="_blank">zero-admin-1</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/17/Day4-一致性哈希/" title="Day4 一致性哈希" target="_blank">Day4 一致性哈希</a>
+                    <a href="/2023/07/19/Day7-服务发现与注册中心/" title="Day7 服务发现与注册中心" target="_blank">Day7 服务发现与注册中心</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/07/17/Day3-HTTP服务端/" title="Day3 HTTP服务端" target="_blank">Day3 HTTP服务端</a>
+                    <a href="/2023/07/19/Day6-负载均衡/" title="Day6 负载均衡" target="_blank">Day6 负载均衡</a>
                   </li>
                 
               </ul>
@@ -1065,6 +1099,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#事务的ACID属性"><span class="nav-number">1.</span> <span class="nav-text">事务的ACID属性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#SQLite和Go标准库中的事务"><span class="nav-number">2.</span> <span class="nav-text">SQLite和Go标准库中的事务</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GeeORM支持事务"><span class="nav-number">3.</span> <span class="nav-text">GeeORM支持事务</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#测试"><span class="nav-number">4.</span> <span class="nav-text">测试</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1094,7 +1145,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">8.6m</span>
+    <span title="站点总字数">8.7m</span>
   
 
   
@@ -1105,7 +1156,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">130:37</span>
+    <span title="站点阅读时长">132:26</span>
   
 </div>
 
