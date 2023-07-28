@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="7天用Go从零实现RPC框架GeeRPC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Day7 服务发现与注册中心">
+<meta property="og:url" content="http://yoursite.com/2023/07/19/Day7-服务发现与注册中心/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2023/07/19/Day7-服务发现与注册中心/1.jpg">
+<meta property="og:updated_time" content="2023-07-19T07:20:28.091Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Day7 服务发现与注册中心">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2023/07/19/Day7-服务发现与注册中心/1.jpg">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2023/07/19/Day7-服务发现与注册中心/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Day7 服务发现与注册中心 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/07/19/Day7-服务发现与注册中心/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看视频才能学会，看文字学不会的">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Day7 服务发现与注册中心
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2023-07-19 12:28:41 / 修改时间：15:20:28" itemprop="dateCreated datePublished" datetime="2023-07-19T12:28:41+08:00">2023-07-19</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Go/" itemprop="url" rel="index"><span itemprop="name">Go</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">11k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">10 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<ul>
+<li>实现一个简单的注册中心，支持服务注册、接收心跳等功能</li>
+<li>客户端实现基于注册中心的服务发现机制</li>
+</ul>
+<h1 id="注册中心的位置"><a href="#注册中心的位置" class="headerlink" title="注册中心的位置"></a><span style="color:#339AFF;">注册中心的位置</span></h1><img src="/2023/07/19/Day7-服务发现与注册中心/1.jpg">
+<p>注册中心的位置如上图所示。注册中心的好处在于，客户端和服务端都只需要感知注册中心的存在，而无需感知对方的存在。更具体一些：</p>
+<p>1，服务端启动后，向注册中心发送注册消息，注册中心得知该服务已经启动，处于可用状态。一般来说，服务端还需要定期向注册中心发送心跳，证明自己还活着。</p>
+<p>2，客户端向注册中心询问，当前哪天服务是可用的，注册中心将可用的服务列表返回客户端。</p>
+<p>3，客户端根据注册中心得到的服务列表，选择其中一个发起调用。</p>
+<p>如果没有注册中心，就像GeeRPC第六天实现的一样，客户端需要硬编码服务端的地址，而且没有机制保证服务端是否处于可用状态。当然注册中心的功能还有很多，比如配置的动态同步、通知机制等。比较常用的注册中心有etcd、zookeeper、consul，一般比较出名的微服务或者RPC框架，这些主流的注册中心都是支持的。</p>
+<h1 id="GeeRegistry"><a href="#GeeRegistry" class="headerlink" title="GeeRegistry"></a><span style="color:#339AFF;">GeeRegistry</span></h1><p>主流的注册中心etcd、zookeeper等功能强大，与这类注册中心的对接代码量是比较大的，需要实现的接口很多。GeeRPC选择自己实现一个简单的支持心跳保活的注册中心。</p>
+<p>GeeRegistry的代码独立放置在子目录registry中。</p>
+<p>首先定义GeeRegistry结构体，默认超时时间设置为5min，也就是说，任何注册的服务超过5min，即视为不可用状态。</p>
+<blockquote>
+<p>day7-registry/registry/registry.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// GeeRegistry is a simple register center, provide following functions.</span></span><br><span class="line"><span class="comment">// add a server and receive heartbeat to keep it alive.</span></span><br><span class="line"><span class="comment">// returns all alive servers and delete dead servers sync simultaneously.</span></span><br><span class="line"><span class="keyword">type</span> GeeRegistry <span class="keyword">struct</span> &#123;</span><br><span class="line">    timeout time.Duration</span><br><span class="line">    mu      sync.Mutex <span class="comment">// protect following</span></span><br><span class="line">    servers <span class="keyword">map</span>[<span class="keyword">string</span>]*ServerItem</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ServerItem <span class="keyword">struct</span> &#123;</span><br><span class="line">    Addr  <span class="keyword">string</span></span><br><span class="line">    start time.Time</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    defaultPath    = <span class="string">"/_geerpc_/registry"</span></span><br><span class="line">    defaultTimeout = time.Minute * <span class="number">5</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// New create a registry instance with timeout setting</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(timeout time.Duration)</span> *<span class="title">GeeRegistry</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;GeeRegistry&#123;</span><br><span class="line">        servers: <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*ServerItem),</span><br><span class="line">        timeout: timeout,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> DefaultGeeRegister = New(defaultTimeout)</span><br></pre></td></tr></table></figure>
+<p>为GeeRegistry实现添加服务实例和返回服务列表的方法。</p>
+<ul>
+<li>putServer：添加服务实例，如果服务已经存在，则更新start。</li>
+<li>aliveServers：返回可用的服务列表，如果存在超时的服务，则删除。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *GeeRegistry)</span> <span class="title">putServer</span><span class="params">(addr <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    r.mu.Lock()</span><br><span class="line">    <span class="keyword">defer</span> r.mu.Unlock()</span><br><span class="line">    s := r.servers[addr]</span><br><span class="line">    <span class="keyword">if</span> s == <span class="literal">nil</span> &#123;</span><br><span class="line">        r.servers[addr] = &amp;ServerItem&#123;Addr: addr, start: time.Now()&#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        s.start = time.Now() <span class="comment">// if exists, update start time to keep alive</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *GeeRegistry)</span> <span class="title">aliveServers</span><span class="params">()</span> []<span class="title">string</span></span> &#123;</span><br><span class="line">    r.mu.Lock()</span><br><span class="line">    <span class="keyword">defer</span> r.mu.Unlock()</span><br><span class="line">    <span class="keyword">var</span> alive []<span class="keyword">string</span></span><br><span class="line">    <span class="keyword">for</span> addr, s := <span class="keyword">range</span> r.servers &#123;</span><br><span class="line">        <span class="keyword">if</span> r.timeout == <span class="number">0</span> || s.start.Add(r.timeout).After(time.Now()) &#123;</span><br><span class="line">            alive = <span class="built_in">append</span>(alive, addr)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">delete</span>(r.servers, addr)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    sort.Strings(alive)</span><br><span class="line">    <span class="keyword">return</span> alive</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为了实现上的简单，GeeRegistry采用HTTP协议提供服务，且所有的有用信息都承载在HTTPHeader中。</p>
+<ul>
+<li>Get：返回所有可用的服务列表，通过自定义字段X-Geerpc-Servers承载。</li>
+<li>Post：添加服务实例或发送心跳，通过自定义字段X-Geerpc-Server承载。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Runs at /_geerpc_/registry</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *GeeRegistry)</span> <span class="title">ServeHTTP</span><span class="params">(w http.ResponseWriter, req *http.Request)</span></span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> req.Method &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"GET"</span>:</span><br><span class="line">        <span class="comment">// keep it simple, server is in req.Header</span></span><br><span class="line">        w.Header().Set(<span class="string">"X-Geerpc-Servers"</span>, strings.Join(r.aliveServers(), <span class="string">","</span>))</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"POST"</span>:</span><br><span class="line">        <span class="comment">// keep it simple, server is in req.Header</span></span><br><span class="line">        addr := req.Header.Get(<span class="string">"X-Geerpc-Server"</span>)</span><br><span class="line">        <span class="keyword">if</span> addr == <span class="string">""</span> &#123;</span><br><span class="line">            w.WriteHeader(http.StatusInternalServerError)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">        r.putServer(addr)</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        w.WriteHeader(http.StatusMethodNotAllowed)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// HandleHTTP registers an HTTP handler for GeeRegistry messages on registryPath</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *GeeRegistry)</span> <span class="title">HandleHTTP</span><span class="params">(registryPath <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    http.Handle(registryPath, r)</span><br><span class="line">    log.Println(<span class="string">"rpc registry path:"</span>, registryPath)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HandleHTTP</span><span class="params">()</span></span> &#123;</span><br><span class="line">    DefaultGeeRegister.HandleHTTP(defaultPath)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>另外，提供Heartbeat方法，便于服务启动时定时向注册中心发送心跳，默认周期比注册中心设置的过期时间少1min。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Heartbeat send a heartbeat message every once in a while</span></span><br><span class="line"><span class="comment">// it's a helper function for a server to register or send heartbeat</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Heartbeat</span><span class="params">(registry, addr <span class="keyword">string</span>, duration time.Duration)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> duration == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="comment">// make sure there is enough time to send heart beat</span></span><br><span class="line">        <span class="comment">// before it's removed from registry</span></span><br><span class="line">        duration = defaultTimeout - time.Duration(<span class="number">1</span>)*time.Minute</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">var</span> err error</span><br><span class="line">    err = sendHeartbeat(registry, addr)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        t := time.NewTicker(duration)</span><br><span class="line">        <span class="keyword">for</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">            &lt;-t.C</span><br><span class="line">            err = sendHeartbeat(registry, addr)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendHeartbeat</span><span class="params">(registry, addr <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    log.Println(addr, <span class="string">"send heart beat to registry"</span>, registry)</span><br><span class="line">    httpClient := &amp;http.Client&#123;&#125;</span><br><span class="line">    req, _ := http.NewRequest(<span class="string">"POST"</span>, registry, <span class="literal">nil</span>)</span><br><span class="line">    req.Header.Set(<span class="string">"X-Geerpc-Server"</span>, addr)</span><br><span class="line">    <span class="keyword">if</span> _, err := httpClient.Do(req); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Println(<span class="string">"rpc server: heart beat err:"</span>, err)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="GeeRegistryDiscovery"><a href="#GeeRegistryDiscovery" class="headerlink" title="GeeRegistryDiscovery"></a><span style="color:#339AFF;">GeeRegistryDiscovery</span></h1><p>在xclient中对应实现Discovery。</p>
+<blockquote>
+<p>day7-registry/xclient/discovery_gee.go</p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> xclient</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> GeeRegistryDiscovery <span class="keyword">struct</span> &#123;</span><br><span class="line">    *MultiServersDiscovery</span><br><span class="line">    registry   <span class="keyword">string</span></span><br><span class="line">    timeout    time.Duration</span><br><span class="line">    lastUpdate time.Time</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> defaultUpdateTimeout = time.Second * <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewGeeRegistryDiscovery</span><span class="params">(registerAddr <span class="keyword">string</span>, timeout time.Duration)</span> *<span class="title">GeeRegistryDiscovery</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> timeout == <span class="number">0</span> &#123;</span><br><span class="line">        timeout = defaultUpdateTimeout</span><br><span class="line">    &#125;</span><br><span class="line">    d := &amp;GeeRegistryDiscovery&#123;</span><br><span class="line">        MultiServersDiscovery: NewMultiServerDiscovery(<span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">0</span>)),</span><br><span class="line">        registry:              registerAddr,</span><br><span class="line">        timeout:               timeout,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> d</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>GeeRegistryDiscovery嵌套了MultiServersDiscovery，很多能力可以复用。</li>
+<li>registry即注册中心的地址</li>
+<li>timeout服务列表的过期时间</li>
+<li>lastUpdate是代表最后从注册中心更新服务列表的时间，默认10s过期，即10s之后，需要从注册中心更新新的列表。</li>
+</ul>
+<p>实现Update和Refresh方法，超时重新获取的逻辑在Refresh中实现：<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *GeeRegistryDiscovery)</span> <span class="title">Update</span><span class="params">(servers []<span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    d.mu.Lock()</span><br><span class="line">    <span class="keyword">defer</span> d.mu.Unlock()</span><br><span class="line">    d.servers = servers</span><br><span class="line">    d.lastUpdate = time.Now()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *GeeRegistryDiscovery)</span> <span class="title">Refresh</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    d.mu.Lock()</span><br><span class="line">    <span class="keyword">defer</span> d.mu.Unlock()</span><br><span class="line">    <span class="keyword">if</span> d.lastUpdate.Add(d.timeout).After(time.Now()) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    log.Println(<span class="string">"rpc registry: refresh servers from registry"</span>, d.registry)</span><br><span class="line">    resp, err := http.Get(d.registry)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Println(<span class="string">"rpc registry refresh err:"</span>, err)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    servers := strings.Split(resp.Header.Get(<span class="string">"X-Geerpc-Servers"</span>), <span class="string">","</span>)</span><br><span class="line">    d.servers = <span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">0</span>, <span class="built_in">len</span>(servers))</span><br><span class="line">    <span class="keyword">for</span> _, server := <span class="keyword">range</span> servers &#123;</span><br><span class="line">        <span class="keyword">if</span> strings.TrimSpace(server) != <span class="string">""</span> &#123;</span><br><span class="line">            d.servers = <span class="built_in">append</span>(d.servers, strings.TrimSpace(server))</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    d.lastUpdate = time.Now()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Get和GetAll与MultiServersDiscovery相似，唯一的不同在于，GeeRegistryDiscovery需要先调用Refresh确保服务列表没有过期。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *GeeRegistryDiscovery)</span> <span class="title">Get</span><span class="params">(mode SelectMode)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> err := d.Refresh(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">""</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> d.MultiServersDiscovery.Get(mode)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *GeeRegistryDiscovery)</span> <span class="title">GetAll</span><span class="params">()</span> <span class="params">([]<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> err := d.Refresh(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> d.MultiServersDiscovery.GetAll()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a><span style="color:#339AFF;">Demo</span></h1><p>最后，依旧通过简单的Demo验证今天的成果。</p>
+<p>添加函数startRegistry，稍微修改startServer，添加调用注册中心的Heartbeat方法的逻辑，定期向注册中心发送心跳保活。</p>
+<p>day7-registry/main/main.go<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">startRegistry</span><span class="params">(wg *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">    l, _ := net.Listen(<span class="string">"tcp"</span>, <span class="string">":9999"</span>)</span><br><span class="line">    registry.HandleHTTP()</span><br><span class="line">    wg.Done()</span><br><span class="line">    _ = http.Serve(l, <span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">startServer</span><span class="params">(registryAddr <span class="keyword">string</span>, wg *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> foo Foo</span><br><span class="line">    l, _ := net.Listen(<span class="string">"tcp"</span>, <span class="string">":0"</span>)</span><br><span class="line">    server := geerpc.NewServer()</span><br><span class="line">    _ = server.Register(&amp;foo)</span><br><span class="line">    registry.Heartbeat(registryAddr, <span class="string">"tcp@"</span>+l.Addr().String(), <span class="number">0</span>)</span><br><span class="line">    wg.Done()</span><br><span class="line">    server.Accept(l)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>接下来，将call和broadcast的MultiServersDiscovery替换为GeeRegistryDiscovery，不再需要硬编码服务列表。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">call</span><span class="params">(registry <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    d := xclient.NewGeeRegistryDiscovery(registry, <span class="number">0</span>)</span><br><span class="line">    xc := xclient.NewXClient(d, xclient.RandomSelect, <span class="literal">nil</span>)</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = xc.Close() &#125;()</span><br><span class="line">    <span class="comment">// send request &amp; receive response</span></span><br><span class="line">    <span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">        wg.Add(<span class="number">1</span>)</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">            <span class="keyword">defer</span> wg.Done()</span><br><span class="line">            foo(xc, context.Background(), <span class="string">"call"</span>, <span class="string">"Foo.Sum"</span>, &amp;Args&#123;Num1: i, Num2: i * i&#125;)</span><br><span class="line">        &#125;(i)</span><br><span class="line">    &#125;</span><br><span class="line">    wg.Wait()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">broadcast</span><span class="params">(registry <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    d := xclient.NewGeeRegistryDiscovery(registry, <span class="number">0</span>)</span><br><span class="line">    xc := xclient.NewXClient(d, xclient.RandomSelect, <span class="literal">nil</span>)</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; _ = xc.Close() &#125;()</span><br><span class="line">    <span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">5</span>; i++ &#123;</span><br><span class="line">        wg.Add(<span class="number">1</span>)</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">            <span class="keyword">defer</span> wg.Done()</span><br><span class="line">            foo(xc, context.Background(), <span class="string">"broadcast"</span>, <span class="string">"Foo.Sum"</span>, &amp;Args&#123;Num1: i, Num2: i * i&#125;)</span><br><span class="line">            <span class="comment">// expect 2 - 5 timeout</span></span><br><span class="line">            ctx, _ := context.WithTimeout(context.Background(), time.Second*<span class="number">2</span>)</span><br><span class="line">            foo(xc, ctx, <span class="string">"broadcast"</span>, <span class="string">"Foo.Sleep"</span>, &amp;Args&#123;Num1: i, Num2: i * i&#125;)</span><br><span class="line">        &#125;(i)</span><br><span class="line">    &#125;</span><br><span class="line">    wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最后在main函数中，将所有的逻辑串联起来，确保注册中心启动后，再启动RPC服务端，最后客户端远程调用。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    log.SetFlags(<span class="number">0</span>)</span><br><span class="line">    registryAddr := <span class="string">"http://localhost:9999/_geerpc_/registry"</span></span><br><span class="line">    <span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">    wg.Add(<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> startRegistry(&amp;wg)</span><br><span class="line">    wg.Wait()</span><br><span class="line"></span><br><span class="line">    time.Sleep(time.Second)</span><br><span class="line">    wg.Add(<span class="number">2</span>)</span><br><span class="line">    <span class="keyword">go</span> startServer(registryAddr, &amp;wg)</span><br><span class="line">    <span class="keyword">go</span> startServer(registryAddr, &amp;wg)</span><br><span class="line">    wg.Wait()</span><br><span class="line"></span><br><span class="line">    time.Sleep(time.Second)</span><br><span class="line">    call(registryAddr)</span><br><span class="line">    broadcast(registryAddr)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>运行结果如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">rpc registry path: /_geerpc_/registry</span><br><span class="line">rpc server: register Foo.Sleep</span><br><span class="line">rpc server: register Foo.Sum</span><br><span class="line">tcp@[::]:56276 send heart beat to registry http://localhost:9999/_geerpc_/registry</span><br><span class="line">rpc server: register Foo.Sleep</span><br><span class="line">rpc server: register Foo.Sum</span><br><span class="line">tcp@[::]:56277 send heart beat to registry http://localhost:9999/_geerpc_/registry</span><br><span class="line">rpc registry: refresh servers from registry http://localhost:9999/_geerpc_/registry</span><br><span class="line">call Foo.Sum success: 3 + 9 = 12</span><br><span class="line">call Foo.Sum success: 4 + 16 = 20</span><br><span class="line">call Foo.Sum success: 1 + 1 = 2</span><br><span class="line">call Foo.Sum success: 0 + 0 = 0</span><br><span class="line">call Foo.Sum success: 2 + 4 = 6</span><br><span class="line">rpc registry: refresh servers from registry http://localhost:9999/_geerpc_/registry</span><br><span class="line">broadcast Foo.Sum success: 4 + 16 = 20</span><br><span class="line">broadcast Foo.Sum success: 1 + 1 = 2</span><br><span class="line">broadcast Foo.Sum success: 3 + 9 = 12</span><br><span class="line">broadcast Foo.Sum success: 0 + 0 = 0</span><br><span class="line">broadcast Foo.Sum success: 2 + 4 = 6</span><br><span class="line">broadcast Foo.Sleep success: 0 + 0 = 0</span><br><span class="line">broadcast Foo.Sleep success: 1 + 1 = 2</span><br><span class="line">broadcast Foo.Sleep error: rpc client: call failed: context deadline exceeded</span><br><span class="line">broadcast Foo.Sleep error: rpc client: call failed: context deadline exceeded</span><br><span class="line">broadcast Foo.Sleep error: rpc client: call failed: context deadline exceeded</span><br></pre></td></tr></table></figure></p>
+<p>到这里，七天用Go从零实现RPC框架的教程也结束了。我们用七天时间参照golang标准库net/rpc，实现了服务端以及支持并发的客户端，并且支持选择不同的序列化与反序列化方式；为了防止服务挂死，在其中一些关键部分添加了超时处理机制；支持TCP、Unix、HTTP等多种传输协议；支持多种负载均衡模式，最后还实现了一个简易的服务注册和发现中心。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/7天用Go从零实现RPC框架GeeRPC/" rel="tag"># 7天用Go从零实现RPC框架GeeRPC</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/07/19/Day6-负载均衡/" rel="next" title="Day6 负载均衡">
+                <i class="fa fa-chevron-left"></i> Day6 负载均衡
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/07/19/zero-admin-1/" rel="prev" title="zero-admin-1">
+                zero-admin-1 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看视频才能学会，看文字学不会的</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">1140</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">79</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/07/19/zero-admin-3/" title="zero-admin-3" target="_blank">zero-admin-3</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/07/19/zero-admin-2/" title="zero-admin-2" target="_blank">zero-admin-2</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/07/19/zero-admin-1/" title="zero-admin-1" target="_blank">zero-admin-1</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/07/19/Day7-服务发现与注册中心/" title="Day7 服务发现与注册中心" target="_blank">Day7 服务发现与注册中心</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/07/19/Day6-负载均衡/" title="Day6 负载均衡" target="_blank">Day6 负载均衡</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#注册中心的位置"><span class="nav-number">1.</span> <span class="nav-text">注册中心的位置</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GeeRegistry"><span class="nav-number">2.</span> <span class="nav-text">GeeRegistry</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GeeRegistryDiscovery"><span class="nav-number">3.</span> <span class="nav-text">GeeRegistryDiscovery</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Demo"><span class="nav-number">4.</span> <span class="nav-text">Demo</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">8.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">135:21</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

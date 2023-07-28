@@ -103,18 +103,18 @@
 
 
 
-  <meta name="description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+  <meta name="description" content="思考并回答以下问题：">
 <meta name="keywords" content="Go进阶·分布式爬虫实战">
 <meta property="og:type" content="article">
 <meta property="og:title" content="45｜Master高可用：怎样借助etcd实现服务选主？">
 <meta property="og:url" content="http://yoursite.com/2023/01/27/45｜Master高可用：怎样借助etcd实现服务选主？/index.html">
 <meta property="og:site_name" content="车斌的技术博客">
-<meta property="og:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta property="og:description" content="思考并回答以下问题：">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2023-01-27T05:32:21.062Z">
+<meta property="og:updated_time" content="2023-07-26T09:11:26.853Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="45｜Master高可用：怎样借助etcd实现服务选主？">
-<meta name="twitter:description" content="思考并回答以下问题：  总结一下，这章作者最主要想表达什么观点？">
+<meta name="twitter:description" content="思考并回答以下问题：">
 
 
 
@@ -426,12 +426,24 @@
                 
               
 
-              <time title="创建时间：2023-01-27 11:16:23 / 修改时间：13:32:21" itemprop="dateCreated datePublished" datetime="2023-01-27T11:16:23+08:00">2023-01-27</time>
+              <time title="创建时间：2023-01-27 11:16:23" itemprop="dateCreated datePublished" datetime="2023-01-27T11:16:23+08:00">2023-01-27</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2023-07-26 17:11:26" itemprop="dateModified" datetime="2023-07-26T17:11:26+08:00">2023-07-26</time>
               
             
           </span>
@@ -477,7 +489,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">34</span>
+                <span title="本文字数">15k</span>
               
 
               
@@ -491,7 +503,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">1 分钟</span>
+                <span title="阅读时长">14 分钟</span>
               
             </div>
           
@@ -512,10 +524,46 @@
 
       
         <p>思考并回答以下问题：</p>
-<ul>
-<li>总结一下，这章作者最主要想表达什么观点？</li>
-</ul>
 <a id="more"></a>
+<p>上一节课，我们搭建起了Master的基本框架。这一节课，让我们接着实现分布式Master的核心功能：选主。</p>
+<h1 id="etcd选主API"><a href="#etcd选主API" class="headerlink" title="etcd选主API"></a>etcd选主API</h1><p>我们在讲解架构设计时提到过，可以开启多个Master来实现分布式服务的故障容错。其中，只有一个Master能够成为Leader，只有Leader能够完成任务的分配，只有Leader能够处理外部访问。当Leader崩溃时，其他的Master将竞争上岗成为Leader。</p>
+<p>实现分布式的选主并没有想象中那样复杂，在我们的项目中，只需要借助分布式协调服务etcd就能实现。<a href="https://pkg.go.dev/go.etcd.io/etcd/clientv3/concurrency" target="_blank" rel="noopener">etcd clientv3</a>已经为我们封装了对分布式选主的实现，核心的API如下。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// client/v3/concurrency</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewSession</span><span class="params">(client *v3.Client, opts ...SessionOption)</span> <span class="params">(*Session, error)</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="title">NewElection</span><span class="params">(s *Session, pfx <span class="keyword">string</span>)</span> *<span class="title">Election</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(e *Election)</span> <span class="title">Campaign</span><span class="params">(ctx context.Context, val <span class="keyword">string</span>)</span> <span class="title">error</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(e *Election)</span> <span class="title">Leader</span><span class="params">(ctx context.Context)</span> <span class="params">(*v3.GetResponse, error)</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(e *Election)</span> <span class="title">Observe</span><span class="params">(ctx context.Context)</span> &lt;-<span class="title">chan</span> <span class="title">v3</span>.<span class="title">GetResponse</span></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(e *Election)</span> <span class="title">Resign</span><span class="params">(ctx context.Context)</span> <span class="params">(err error)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>我来解释一下这些API的含义。</p>
+<ul>
+<li>NewSession函数：创建一个与etcd服务端带租约的会话。</li>
+<li>NewElection函数：创建一个选举对象Election，Election有许多方法。</li>
+<li>Election.Leader方法可以查询当前集群中的Leader信息。</li>
+<li>Election.Observe可以接收到当前Leader的变化</li>
+<li>Election.Campaign方法：开启选举，该方法会阻塞住协程，直到调用者成为Leader。</li>
+</ul>
+<h1 id="实现Master选主与故障容错"><a href="#实现Master选主与故障容错" class="headerlink" title="实现Master选主与故障容错"></a>实现Master选主与故障容错</h1><p>现在让我们在项目中实现分布式选主算法，核心逻辑位于Master.Campaign方法中，完整的代码位于<a href="https://github.com/dreamerjackson/crawler/tree/v0.3.5" target="_blank" rel="noopener">v0.3.5</a>分支。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Master)</span> <span class="title">Campaign</span><span class="params">()</span></span> &#123;</span><br><span class="line">    endpoints := []<span class="keyword">string</span>&#123;m.registryURL&#125;</span><br><span class="line">    cli, err := clientv3.New(clientv3.Config&#123;Endpoints: endpoints&#125;)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="built_in">panic</span>(err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    s, err := concurrency.NewSession(cli, concurrency.WithTTL(<span class="number">5</span>))</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">"NewSession"</span>, <span class="string">"error"</span>, <span class="string">"err"</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> s.Close()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建一个新的etcd选举election</span></span><br><span class="line">    e := concurrency.NewElection(s, <span class="string">"/resources/election"</span>)</span><br><span class="line">    leaderCh := <span class="built_in">make</span>(<span class="keyword">chan</span> error)</span><br><span class="line">    <span class="keyword">go</span> m.elect(e, leaderCh)</span><br><span class="line">    leaderChange := e.Observe(context.Background())</span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> resp := &lt;-leaderChange:</span><br><span class="line">        m.logger.Info(<span class="string">"watch leader change"</span>, zap.String(<span class="string">"leader:"</span>, <span class="keyword">string</span>(resp.Kvs[<span class="number">0</span>].Value)))</span><br><span class="line">    &#125;</span><br><span class="line">    workerNodeChange := m.WatchWorker()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> err := &lt;-leaderCh:</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                m.logger.Error(<span class="string">"leader elect failed"</span>, zap.Error(err))</span><br><span class="line">                <span class="keyword">go</span> m.elect(e, leaderCh)</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                m.logger.Info(<span class="string">"master change to leader"</span>)</span><br><span class="line">                m.leaderID = m.ID</span><br><span class="line">                <span class="keyword">if</span> !m.IsLeader() &#123;</span><br><span class="line">                    m.BecomeLeader()</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        <span class="keyword">case</span> resp := &lt;-leaderChange:</span><br><span class="line">            <span class="keyword">if</span> <span class="built_in">len</span>(resp.Kvs) &gt; <span class="number">0</span> &#123;</span><br><span class="line">                m.logger.Info(<span class="string">"watch leader change"</span>, zap.String(<span class="string">"leader:"</span>, <span class="keyword">string</span>(resp.Kvs[<span class="number">0</span>].Value)))</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们一步步来解析这段分布式选主的代码。</p>
+<p>1，第3行调用<code>clientv3.New</code>函数创建一个etcdclientv3的客户端。</p>
+<p>2，第15行，<code>concurrency.NewElection(s,&quot;/resources/election&quot;)</code>意为创建一个新的etcd选举对象。其中的第二个参数就是所有Master都在抢占的Key，抢占到该Key的Master将变为Leader。</p>
+<p>在etcd中，一般都会选择这种目录形式的结构作为Key，这种方式可以方便我们进行前缀查找。例如，Kubernetes资源在etcd中的存储格式为prefix/资源类型/namespace/资源名称。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">/registry/clusterrolebindings/system:coredns</span><br><span class="line">/registry/clusterroles/system:coredns</span><br><span class="line">/registry/configmaps/kube-system/coredns</span><br><span class="line">/registry/deployments/kube-system/coredns</span><br><span class="line">/registry/replicasets/kube-system/coredns-7fdd6d65dc</span><br><span class="line">/registry/secrets/kube-system/coredns-token-hpqbt</span><br><span class="line">/registry/serviceaccounts/kube-system/coredns</span><br></pre></td></tr></table></figure></p>
+<p>3，第17行<code>gom.elect(e,leaderCh)</code>代表开启一个新的协程，让当前的Master进行Leader的选举。如果集群中已经有了其他的Leader，当前协程将陷入到堵塞状态。如果当前Master选举成功，成为了Leader，e.Campaign方法会被唤醒，我们将其返回的消息传递到ch通道中。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Master)</span> <span class="title">elect</span><span class="params">(e *concurrency.Election, ch <span class="keyword">chan</span> error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 堵塞直到选取成功</span></span><br><span class="line">    err := e.Campaign(context.Background(), m.ID)</span><br><span class="line">    ch &lt;- err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>e.Campaign</code>方法的第二个参数为Master成为Leader后，设置到Key中的Value值。在这里，我们将MasterID作为Value值。Master的ID是初始化时设置的，它当前包含了Master的序号、Master的IP地址和监听的GRPC地址。</p>
+<p>其实，Master的ID就足够标识唯一的Master了，但这里还存储了MasterIP，是为了方便后续其他的Master拿到Leader的IP地址，从而对Leader进行访问。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(id <span class="keyword">string</span>, opts ...Option)</span> <span class="params">(*Master, error)</span></span> &#123;</span><br><span class="line">    m := &amp;Master&#123;&#125;</span><br><span class="line"></span><br><span class="line">    options := defaultOptions</span><br><span class="line">    <span class="keyword">for</span> _, opt := <span class="keyword">range</span> opts &#123;</span><br><span class="line">        opt(&amp;options)</span><br><span class="line">    &#125;</span><br><span class="line">    m.options = options</span><br><span class="line"></span><br><span class="line">    ipv4, err := getLocalIP()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    m.ID = genMasterID(id, ipv4, m.GRPCAddress)</span><br><span class="line">    m.logger.Sugar().Debugln(<span class="string">"master_id:"</span>, m.ID)</span><br><span class="line">    <span class="keyword">go</span> m.Campaign()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &amp;Master&#123;&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Master <span class="keyword">struct</span> &#123;</span><br><span class="line">    ID        <span class="keyword">string</span></span><br><span class="line">    ready     <span class="keyword">int32</span></span><br><span class="line">    leaderID  <span class="keyword">string</span></span><br><span class="line">    workNodes <span class="keyword">map</span>[<span class="keyword">string</span>]*registry.Node</span><br><span class="line">    options</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">genMasterID</span><span class="params">(id <span class="keyword">string</span>, ipv4 <span class="keyword">string</span>, GRPCAddress <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">"master"</span> + id + <span class="string">"-"</span> + ipv4 + GRPCAddress</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>获取本机的IP地址有一个很简单的方式，那就是遍历所有网卡，找到第一个IPv4地址，代码如下所示。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getLocalIP</span><span class="params">()</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> (</span><br><span class="line">        addrs []net.Addr</span><br><span class="line">        err   error</span><br><span class="line">    )</span><br><span class="line">    <span class="comment">// 获取所有网卡</span></span><br><span class="line">    <span class="keyword">if</span> addrs, err = net.InterfaceAddrs(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">""</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 取第一个非lo的网卡IP</span></span><br><span class="line">    <span class="keyword">for</span> _, addr := <span class="keyword">range</span> addrs &#123;</span><br><span class="line">        <span class="keyword">if</span> ipNet, isIpNet := addr.(*net.IPNet); isIpNet &amp;&amp; !ipNet.IP.IsLoopback() &#123;</span><br><span class="line">            <span class="keyword">if</span> ipNet.IP.To4() != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> ipNet.IP.String(), <span class="literal">nil</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="string">""</span>, errors.New(<span class="string">"no local ip"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>4，当Master并行进行选举的同时（第18行），调用<code>e.Observe</code>监听Leader的变化。<code>e.Observe</code>函数会返回一个通道，当Leader状态发生变化时，会将当前Leader的信息发送到通道中。在这里我们初始化时首先堵塞读取了一次e.Observe返回的通道信息。因为只有成功收到<code>e.Observe</code>返回的消息，才意味着集群中已经存在Leader，表示集群完成了选举。</p>
+<p>5，第24行，我们在for循环中使用select监听了多个通道的变化，其中通道leaderCh负责监听当前Master是否当上了Leader，而leaderChange负责监听当前集群中Leader是否发生了变化。</p>
+<p>书写好Master的选主逻辑之后，接下来让我们执行Master程序，完整的代码位于v0.3.5分支。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">» go run main.go master --id=2 --http=:8081  --grpc=:9091</span><br></pre></td></tr></table></figure></p>
+<p>由于当前只有一个Master，因此当前Master一定会成为Leader。我们可以看到打印出的当前Leader的信息：master2-192.168.0.107:9091。<br><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"INFO"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-12-07T18:23:28.494+0800"</span>,<span class="attr">"logger"</span>:<span class="string">"master"</span>,<span class="attr">"caller"</span>:<span class="string">"master/master.go:65"</span>,<span class="attr">"msg"</span>:<span class="string">"watch leader change"</span>,<span class="attr">"leader:"</span>:<span class="string">"master2-192.168.0.107:9091"</span>&#125;</span><br><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"INFO"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-12-07T18:23:28.494+0800"</span>,<span class="attr">"logger"</span>:<span class="string">"master"</span>,<span class="attr">"caller"</span>:<span class="string">"master/master.go:65"</span>,<span class="attr">"msg"</span>:<span class="string">"watch leader change"</span>,<span class="attr">"leader:"</span>:<span class="string">"master2-192.168.0.107:9091"</span>&#125;</span><br><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"INFO"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-12-07T18:23:28.494+0800"</span>,<span class="attr">"logger"</span>:<span class="string">"master"</span>,<span class="attr">"caller"</span>:<span class="string">"master/master.go:75"</span>,<span class="attr">"msg"</span>:<span class="string">"master change to leader"</span>&#125;</span><br><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"DEBUG"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-12-07T18:23:38.500+0800"</span>,<span class="attr">"logger"</span>:<span class="string">"master"</span>,<span class="attr">"caller"</span>:<span class="string">"master/master.go:87"</span>,<span class="attr">"msg"</span>:<span class="string">"get Leader"</span>,<span class="attr">"Value"</span>:<span class="string">"master2-192.168.0.107:9091"</span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果这时我们查看etcd的信息，会看到自动生成了/resources/election/xxx的Key，并且它的Value是我们设置的master2-192.168.0.107:9091。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">» docker exec etcd-gcr-v3.5.6 /bin/sh -c "/usr/local/bin/etcdctl get --prefix /" </span><br><span class="line"></span><br><span class="line">/micro/registry/go.micro.server.master/go.micro.server.master-2</span><br><span class="line">&#123;"name":"go.micro.server.master","version":"latest","metadata":null,"endpoints":[&#123;"name":"Greeter.Hello","request":&#123;"name":"Request","type":"Request","values":[&#123;"name":"name","type":"string","values":null&#125;]&#125;,"response":&#123;"name":"Response","type":"Response","values":[&#123;"name":"greeting","type":"string","values":null&#125;]&#125;,"metadata":&#123;"endpoint":"Greeter.Hello","handler":"rpc","method":"POST","path":"/greeter/hello"&#125;&#125;],"nodes":[&#123;"id":"go.micro.server.master-2","address":"192.168.0.107:9091","metadata":&#123;"broker":"http","protocol":"grpc","registry":"etcd","server":"grpc","transport":"grpc"&#125;&#125;]&#125;</span><br><span class="line"></span><br><span class="line">/resources/election/3f3584fc571ae898</span><br><span class="line">master2-192.168.0.107:9091</span><br></pre></td></tr></table></figure></p>
+<p>如果我们再启动一个新的Master程序，会发现当前获取到的Leader仍然是master2-192.168.0.107:9091。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">» go run main.go master --id=3 --http=:8082  --grpc=:9092</span><br><span class="line"></span><br><span class="line">&#123;"level":"DEBUG","ts":"2022-12-07T18:23:52.371+0800","logger":"master","caller":"master/master.go:33","msg":"master_id: master3-192.168.0.107:9092"&#125;</span><br><span class="line">&#123;"level":"INFO","ts":"2022-12-07T18:23:52.387+0800","logger":"master","caller":"master/master.go:65","msg":"watch leader change","leader:":"master2-192.168.0.107:9091"&#125;</span><br><span class="line">&#123;"level":"DEBUG","ts":"2022-12-07T18:24:02.393+0800","logger":"master","caller":"master/master.go:87","msg":"get Leader","value":"master2-192.168.0.107:9091"&#125;</span><br></pre></td></tr></table></figure></p>
+<p>再次查看etcd的信息，会发现go.micro.server.master-3也成功注册到etcd中了，并且c在/resources/election下方注册了自己的Key，但是该Key比master-2要大。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">/micro/registry/go.micro.server.master/go.micro.server.master-2</span><br><span class="line">&#123;&quot;name&quot;:&quot;go.micro.server.master&quot;,&quot;version&quot;:&quot;latest&quot;,&quot;metadata&quot;:null,&quot;endpoints&quot;:[&#123;&quot;name&quot;:&quot;Greeter.Hello&quot;,&quot;request&quot;:&#123;&quot;name&quot;:&quot;Request&quot;,&quot;type&quot;:&quot;Request&quot;,&quot;values&quot;:[&#123;&quot;name&quot;:&quot;name&quot;,&quot;type&quot;:&quot;string&quot;,&quot;values&quot;:null&#125;]&#125;,&quot;response&quot;:&#123;&quot;name&quot;:&quot;Response&quot;,&quot;type&quot;:&quot;Response&quot;,&quot;values&quot;:[&#123;&quot;name&quot;:&quot;greeting&quot;,&quot;type&quot;:&quot;string&quot;,&quot;values&quot;:null&#125;]&#125;,&quot;metadata&quot;:&#123;&quot;endpoint&quot;:&quot;Greeter.Hello&quot;,&quot;handler&quot;:&quot;rpc&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;path&quot;:&quot;/greeter/hello&quot;&#125;&#125;],&quot;nodes&quot;:[&#123;&quot;id&quot;:&quot;go.micro.server.master-2&quot;,&quot;address&quot;:&quot;192.168.0.107:9091&quot;,&quot;metadata&quot;:&#123;&quot;broker&quot;:&quot;http&quot;,&quot;protocol&quot;:&quot;grpc&quot;,&quot;registry&quot;:&quot;etcd&quot;,&quot;server&quot;:&quot;grpc&quot;,&quot;transport&quot;:&quot;grpc&quot;&#125;&#125;]&#125;</span><br><span class="line">/micro/registry/go.micro.server.master/go.micro.server.master-3</span><br><span class="line">&#123;&quot;name&quot;:&quot;go.micro.server.master&quot;,&quot;version&quot;:&quot;latest&quot;,&quot;metadata&quot;:null,&quot;endpoints&quot;:[&#123;&quot;name&quot;:&quot;Greeter.Hello&quot;,&quot;request&quot;:&#123;&quot;name&quot;:&quot;Request&quot;,&quot;type&quot;:&quot;Request&quot;,&quot;values&quot;:[&#123;&quot;name&quot;:&quot;name&quot;,&quot;type&quot;:&quot;string&quot;,&quot;values&quot;:null&#125;]&#125;,&quot;response&quot;:&#123;&quot;name&quot;:&quot;Response&quot;,&quot;type&quot;:&quot;Response&quot;,&quot;values&quot;:[&#123;&quot;name&quot;:&quot;greeting&quot;,&quot;type&quot;:&quot;string&quot;,&quot;values&quot;:null&#125;]&#125;,&quot;metadata&quot;:&#123;&quot;endpoint&quot;:&quot;Greeter.Hello&quot;,&quot;handler&quot;:&quot;rpc&quot;,&quot;method&quot;:&quot;POST&quot;,&quot;path&quot;:&quot;/greeter/hello&quot;&#125;&#125;],&quot;nodes&quot;:[&#123;&quot;id&quot;:&quot;go.micro.server.master-3&quot;,&quot;address&quot;:&quot;192.168.0.107:9092&quot;,&quot;metadata&quot;:&#123;&quot;broker&quot;:&quot;http&quot;,&quot;protocol&quot;:&quot;grpc&quot;,&quot;registry&quot;:&quot;etcd&quot;,&quot;server&quot;:&quot;grpc&quot;,&quot;transport&quot;:&quot;grpc&quot;&#125;&#125;]&#125;</span><br><span class="line">/resources/election/3f3584fc571ae898</span><br><span class="line">master2-192.168.0.107:9091</span><br><span class="line">/resources/election/3f3584fc571ae8a9</span><br><span class="line">master3-192.168.0.107:9092</span><br></pre></td></tr></table></figure></p>
+<p>到这里，我们就实现了Master的选主操作，所有的Master都只认定一个Leader。当我们终止master-2程序，在master-3程序中会立即看到如下日志，说明当前的Leader已经顺利完成了切换，master-3当选为了新的Leader。<br><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"INFO"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-12-12T00:46:58.288+0800"</span>,<span class="attr">"logger"</span>:<span class="string">"master"</span>,<span class="attr">"caller"</span>:<span class="string">"master/master.go:93"</span>,<span class="attr">"msg"</span>:<span class="string">"watch leader change"</span>,<span class="attr">"leader:"</span>:<span class="string">"master3-192.168.0.107:9092"</span>&#125;</span><br><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"INFO"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-12-12T00:46:58.289+0800"</span>,<span class="attr">"logger"</span>:<span class="string">"master"</span>,<span class="attr">"caller"</span>:<span class="string">"master/master.go:85"</span>,<span class="attr">"msg"</span>:<span class="string">"master change to leader"</span>&#125;</span><br><span class="line">&#123;<span class="attr">"level"</span>:<span class="string">"DEBUG"</span>,<span class="attr">"ts"</span>:<span class="string">"2022-12-12T00:47:18.296+0800"</span>,<span class="attr">"logger"</span>:<span class="string">"master"</span>,<span class="attr">"caller"</span>:<span class="string">"master/master.go:107"</span>,<span class="attr">"msg"</span>:<span class="string">"get Leader"</span>,<span class="attr">"value"</span>:<span class="string">"master3-192.168.0.107:9092"</span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p>当我们再次查看etcd，发现/resources/election/路径下只剩下master-3程序的注册信息了，证明Master的选举成功。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">» docker exec etcd-gcr-v3.5.6 /bin/sh -c "/usr/local/bin/etcdctl get --prefix /"</span><br><span class="line"></span><br><span class="line">/micro/registry/go.micro.server.master/go.micro.server.master-3</span><br><span class="line">&#123;"name":"go.micro.server.master","version":"latest","metadata":null,"endpoints":[&#123;"name":"Greeter.Hello","request":&#123;"name":"Request","type":"Request","values":[&#123;"name":"name","type":"string","values":null&#125;]&#125;,"response":&#123;"name":"Response","type":"Response","values":[&#123;"name":"greeting","type":"string","values":null&#125;]&#125;,"metadata":&#123;"endpoint":"Greeter.Hello","handler":"rpc","method":"POST","path":"/greeter/hello"&#125;&#125;],"nodes":[&#123;"id":"go.micro.server.master-3","address":"192.168.0.107:9092","metadata":&#123;"broker":"http","protocol":"grpc","registry":"etcd","server":"grpc","transport":"grpc"&#125;&#125;]&#125;</span><br><span class="line">/resources/election/3f3584fc571ae8a9</span><br><span class="line">master3-192.168.0.107:9092</span><br></pre></td></tr></table></figure></p>
+<h1 id="etcd选主原理"><a href="#etcd选主原理" class="headerlink" title="etcd选主原理"></a>etcd选主原理</h1><p>经过上面的实践，我们可以看到，借助etcd，分布式选主变得非常容易了，现在我们来看一看etcd实现分布式选主的原理。它的核心代码位于Election.Campaign方法中，如下所示，下面代码做了简化，省略了对异常情况的处理。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *Election)</span> <span class="title">Campaign</span><span class="params">(ctx context.Context, val <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    s := e.session</span><br><span class="line">    client := e.session.Client()</span><br><span class="line"></span><br><span class="line">    k := fmt.Sprintf(<span class="string">"%s%x"</span>, e.keyPrefix, s.Lease())</span><br><span class="line">    txn := client.Txn(ctx).If(v3.Compare(v3.CreateRevision(k), <span class="string">"="</span>, <span class="number">0</span>))</span><br><span class="line">    txn = txn.Then(v3.OpPut(k, val, v3.WithLease(s.Lease())))</span><br><span class="line">    txn = txn.Else(v3.OpGet(k))</span><br><span class="line">    resp, err := txn.Commit()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    e.leaderKey, e.leaderRev, e.leaderSession = k, resp.Header.Revision, s</span><br><span class="line">    _, err = waitDeletes(ctx, client, e.keyPrefix, e.leaderRev<span class="number">-1</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="comment">// clean up in case of context cancel</span></span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">            e.Resign(client.Ctx())</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            e.leaderSession = <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    e.hdr = resp.Header</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Campaign首先用了一个事务操作在要抢占的e.keyPrefix路径下维护一个Key。其中，e.keyPrefix是Master要抢占的etcd路径，在我们的项目中为/resources/election/。这段事务操作会首选判断当前生成的Key（例如/resources/election/3f3584fc571ae8a9）是否已经在etcd中了。如果不存在，才会创建该Key。这样，每一个Master都会在/resources/election/下维护一个Key，并且当前的Key是带租约的。</p>
+<p>Campaign第二步会调用waitDeletes函数堵塞等待，直到自己成为Leader为止。那什么时候当前Master会成为Leader呢？</p>
+<p>waitDeletes函数会调用client.Get获取到当前争抢的/resources/election/路径下具有最大版本号的Key，并调用waitDelete函数等待该Key被删除。而waitDelete会调用client.Watch来完成对特定版本Key的监听。</p>
+<p>当前Master需要监听这个最大版本号Key的删除事件。当这个特定的Key被删除，就意味着已经没有比当前Master创建的Key更早的Key了，因此当前的Master理所当然就排队成为了Leader。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">waitDelete</span><span class="params">(ctx context.Context, client *v3.Client, key <span class="keyword">string</span>, rev <span class="keyword">int64</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    cctx, cancel := context.WithCancel(ctx)</span><br><span class="line">    <span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> wr v3.WatchResponse</span><br><span class="line">    wch := client.Watch(cctx, key, v3.WithRev(rev))</span><br><span class="line">    <span class="keyword">for</span> wr = <span class="keyword">range</span> wch &#123;</span><br><span class="line">        <span class="keyword">for</span> _, ev := <span class="keyword">range</span> wr.Events &#123;</span><br><span class="line">            <span class="keyword">if</span> ev.Type == mvccpb.DELETE &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> err := wr.Err(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> err := ctx.Err(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> fmt.Errorf(<span class="string">"lost watcher waiting for delete"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这种监听方式还避免了惊群效应，因为当Leader崩溃后，并不会唤醒所有在选举中的Master。只有当队列中的前一个Master创建的Key被删除，当前的Master才会被唤醒。也就是说，每一个Master都在排队等待着前一个Master退出，这样Master就以最小的代价实现了对Key的争抢。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>这节课，我们借助etcd实现了分布式Master的选主，确保了在同一时刻只能存在一个Leader。此外，我们还实现了Master的故障容错能力。</p>
+<p>etcdclientv3为我们封装了选主的实现，它的实现方式也很简单，通过监听最近的Key的DELETE事件，我们实现了所有的节点对同一个Key的抢占，同时还避免了集群可能出现的惊群效应。在实践中，我们也可以使用其他的分布式协调组件（例如ZooKeeper、Consul）帮助我们实现选主，它们的实现原理都和etcd类似。</p>
+<h1 id="课后题"><a href="#课后题" class="headerlink" title="课后题"></a>课后题</h1><p>其实，利用MySQL也可以实现分布式的选主，你知道如何实现吗？（参考：<a href="http://code.openark.org/blog/mysql/leader-election-using-mysql）" target="_blank" rel="noopener">http://code.openark.org/blog/mysql/leader-election-using-mysql）</a></p>
+
       
     </div>
 
@@ -607,8 +655,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -625,7 +682,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">1017</span>
+                    <span class="site-state-item-count">1140</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -700,7 +757,13 @@
                     
                       
                     
-                    <span class="site-state-item-count">23</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -961,7 +1024,19 @@
                     
                       
                     
-                    <span class="site-state-item-count">72</span>
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">79</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -992,23 +1067,23 @@
                 
                 
                   <li>
-                    <a href="/2023/04/04/结束语｜秒杀系统之上的业务协同思考/" title="结束语｜秒杀系统之上的业务协同思考" target="_blank">结束语｜秒杀系统之上的业务协同思考</a>
+                    <a href="/2023/07/19/zero-admin-3/" title="zero-admin-3" target="_blank">zero-admin-3</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/04/04/14｜百万级流量秒杀系统的关键总结/" title="14｜百万级流量秒杀系统的关键总结" target="_blank">14｜百万级流量秒杀系统的关键总结</a>
+                    <a href="/2023/07/19/zero-admin-2/" title="zero-admin-2" target="_blank">zero-admin-2</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/04/04/13｜优化番外篇：Vertx介绍及快速入门/" title="13｜优化番外篇：Vertx介绍及快速入门" target="_blank">13｜优化番外篇：Vertx介绍及快速入门</a>
+                    <a href="/2023/07/19/zero-admin-1/" title="zero-admin-1" target="_blank">zero-admin-1</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/04/04/12｜高性能优化：单机Java极致优化/" title="12｜高性能优化：单机Java极致优化" target="_blank">12｜高性能优化：单机Java极致优化</a>
+                    <a href="/2023/07/19/Day7-服务发现与注册中心/" title="Day7 服务发现与注册中心" target="_blank">Day7 服务发现与注册中心</a>
                   </li>
                 
                   <li>
-                    <a href="/2023/04/04/11｜高性能优化：物理机极致优化/" title="11｜高性能优化：物理机极致优化" target="_blank">11｜高性能优化：物理机极致优化</a>
+                    <a href="/2023/07/19/Day6-负载均衡/" title="Day6 负载均衡" target="_blank">Day6 负载均衡</a>
                   </li>
                 
               </ul>
@@ -1023,6 +1098,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#etcd选主API"><span class="nav-number">1.</span> <span class="nav-text">etcd选主API</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#实现Master选主与故障容错"><span class="nav-number">2.</span> <span class="nav-text">实现Master选主与故障容错</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#etcd选主原理"><span class="nav-number">3.</span> <span class="nav-text">etcd选主原理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#课后题"><span class="nav-number">5.</span> <span class="nav-text">课后题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1052,7 +1144,7 @@
     
       <span class="post-meta-item-text">站点总字数：</span>
     
-    <span title="站点总字数">8.2m</span>
+    <span title="站点总字数">8.9m</span>
   
 
   
@@ -1063,7 +1155,7 @@
     
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
     
-    <span title="站点阅读时长">124:48</span>
+    <span title="站点阅读时长">135:21</span>
   
 </div>
 

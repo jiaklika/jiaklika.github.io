@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="思考并回答以下问题：">
+<meta name="keywords" content="Web">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于GIN的路由树">
+<meta property="og:url" content="http://yoursite.com/2023/07/13/关于GIN的路由树/index.html">
+<meta property="og:site_name" content="车斌的技术博客">
+<meta property="og:description" content="思考并回答以下问题：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2023/07/13/关于GIN的路由树/1.webp">
+<meta property="og:image" content="http://yoursite.com/2023/07/13/关于GIN的路由树/2.webp">
+<meta property="og:image" content="http://yoursite.com/2023/07/13/关于GIN的路由树/3.webp">
+<meta property="og:updated_time" content="2023-07-14T06:19:32.684Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="关于GIN的路由树">
+<meta name="twitter:description" content="思考并回答以下问题：">
+<meta name="twitter:image" content="http://yoursite.com/2023/07/13/关于GIN的路由树/1.webp">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2023/07/13/关于GIN的路由树/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>关于GIN的路由树 | 车斌的技术博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">车斌的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">放弃会成为一种习惯</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/07/13/关于GIN的路由树/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="CheBin">
+      <meta itemprop="description" content="看视频才能学会，看文字学不会的">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="车斌的技术博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">关于GIN的路由树
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+
+          
+
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2023-07-13 15:53:19" itemprop="dateCreated datePublished" datetime="2023-07-13T15:53:19+08:00">2023-07-13</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2023-07-14 14:19:32" itemprop="dateModified" datetime="2023-07-14T14:19:32+08:00">2023-07-14</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">12k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">11 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>思考并回答以下问题：</p>
+<a id="more"></a>
+<p>GIN是一个golang常用的Web框架，它对API比较友好，源码注释也很明确，使用起来快速灵活，还有极高的容错率。标题中的路由我们可以简单理解为在浏览器中输入的页面地址，而“树”则是一种优化的数据结构。因为在GIN这个Web框架中的路由树是前缀树，所以我们今天会围绕前缀树来讲解。</p>
+<h1 id="什么是前缀树"><a href="#什么是前缀树" class="headerlink" title="什么是前缀树"></a><span style="color:#339AFF;">什么是前缀树</span></h1><p>前缀树其实就是Tire树，是哈希树的变种，通常大家都叫它单词查找树。前缀树多应用于统计，排序和保存大量字符串。因为前缀树能够利用字符串的公共前缀减少查询时间，最大限度地减少不必要的字符串比较。所以前缀树也经常被搜索引擎系统用于文本词频统计。前缀树拥有以下特点：</p>
+<ul>
+<li>根节点不包含字符，其他节点都包含字符</li>
+<li>每一层的节点内容不同</li>
+<li>从根节点到某一个节点，路径上经过的字符连接起来，为该节点对应的字符串</li>
+<li>每个节点的子节点通常有一个标志位，用来标识单词的结束</li>
+</ul>
+<p>以小时候查新华字典为例，我们来直观认识一下前缀树。相信大家都用过音序查字法这种查找方式，其操作内容如下：</p>
+<ul>
+<li>读准字音，根据该字音节确定应查什么字母。</li>
+<li>在“汉语拼音音节索引”中找到这一字母，在这一字母相应部分找到该字的音节，看清这个音节旁标明的页码。</li>
+<li>按此页码翻开字典的正文，按四声顺序找出所要查的字。</li>
+</ul>
+<p><strong>这整个流程其实可以看做一个粗略的前缀树查找流程</strong>，比方说要查找成语“心想事成”中的“心想”两字，在字典中即如下结构：</p>
+<img src="/2023/07/13/关于GIN的路由树/1.webp">
+<p>在查找的过程中，我们根据首字母x，找到x当中的xi这一共同部分，然后再根据不同的字母找到所对应的剩余部分。放到前缀树查找上，案例中的“心”对应xi-&gt;n，而“想”则对应xi-&gt;ang</p>
+<h1 id="GIN中的前缀树-紧凑前缀树"><a href="#GIN中的前缀树-紧凑前缀树" class="headerlink" title="GIN中的前缀树-紧凑前缀树"></a><span style="color:#339AFF;">GIN中的前缀树-紧凑前缀树</span></h1><p>GIN中的前缀树相比普通的前缀树减少了查询的层级，比如说上方我们想查找的“心想”其中xi做为共有的部分，其实可以被分配在同一层同一个节点当中而不是分为两部分：</p>
+<img src="/2023/07/13/关于GIN的路由树/2.webp">
+<p>这样的就是紧凑前缀树，同理如果我们有如下四个路由，他们所形成的紧凑前缀树就会是这个样子：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">r.GET(<span class="string">"/"</span>, handle1)</span><br><span class="line">r.GET(<span class="string">"/product"</span>, handle2)</span><br><span class="line">r.GET(<span class="string">"/product/:id"</span>, handle3)</span><br><span class="line">r.GET(<span class="string">"/product/:name"</span>, handle4)</span><br></pre></td></tr></table></figure></p>
+<img src="/2023/07/13/关于GIN的路由树/3.webp">
+<h1 id="在节点中存储信息"><a href="#在节点中存储信息" class="headerlink" title="在节点中存储信息"></a><span style="color:#339AFF;">在节点中存储信息</span></h1><p>通过上面的内容可以看出，GIN中前缀树整条查询的地址只需通过路由树中每个节点的拼接即可获得。那么GIN是如何完成在这些节点的增加的呢，每个节点中又存放了什么内容？这个问题我们可以通过GIN的源码得到答案。</p>
+<p>首先GIN中常用的声明路由的方式如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    r := gin.Default()</span><br><span class="line">    r.GET(<span class="string">"/"</span>, <span class="function"><span class="keyword">func</span><span class="params">(context *gin.Context)</span></span> &#123;</span><br><span class="line">        context.JSON(<span class="number">200</span>, gin.H&#123;</span><br><span class="line">            <span class="string">"status"</span>:<span class="string">"ok"</span>,</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;)</span><br><span class="line">    r.Run()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// default会初始化一个engin实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Default</span><span class="params">()</span> *<span class="title">Engine</span></span> &#123;</span><br><span class="line">    debugPrintWARNINGDefault()</span><br><span class="line">    engine := New()</span><br><span class="line">    engine.Use(Logger(), Recovery())</span><br><span class="line">    <span class="keyword">return</span> engine</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Engine <span class="keyword">struct</span> &#123; </span><br><span class="line">    RouterGroup</span><br><span class="line">        <span class="comment">// type RouterGroup struct &#123;</span></span><br><span class="line">    <span class="comment">//    Handlers HandlersChain</span></span><br><span class="line">        <span class="comment">//    basePath string</span></span><br><span class="line">        <span class="comment">//    engine   *Engine</span></span><br><span class="line">        <span class="comment">//    root     bool</span></span><br><span class="line">        <span class="comment">// &#125;</span></span><br><span class="line">        <span class="comment">// 小写私有的，不开放</span></span><br><span class="line">    trees            methodTrees </span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> methodTrees []methodTree</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> methodTree <span class="keyword">struct</span> &#123;</span><br><span class="line">    method <span class="keyword">string</span></span><br><span class="line">    root   *node</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// trees 路由树这一部分由一个带有method 和root字段的node列表维护</span></span><br><span class="line"><span class="comment">// 每个node代表了路由树中的每一个节点</span></span><br><span class="line"><span class="comment">// node所具有的字段内容如下</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> node <span class="keyword">struct</span> &#123;</span><br><span class="line">    path      <span class="keyword">string</span> <span class="comment">// 当前节点的绝对路径</span></span><br><span class="line">    indices   <span class="keyword">string</span> <span class="comment">// 缓存下一节点的第一个字符 在遇到子节点为通配符类型的情况下,indices=''</span></span><br><span class="line">        <span class="comment">// 默认是 false，当 children 是 通配符类型时，wildChild 为 true 即 indices=''</span></span><br><span class="line">    wildChild <span class="keyword">bool</span> <span class="comment">// 默认是 false，当 children 是 通配符类型时，wildChild 为 true</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 节点的类型，因为在通配符的场景下在查询的时候需要特殊处理， </span></span><br><span class="line">        <span class="comment">// 默认是static类型</span></span><br><span class="line">        <span class="comment">// 根节点为 root类型</span></span><br><span class="line">        <span class="comment">// 对于 path 包含冒号通配符的情况，nType 是 param 类型</span></span><br><span class="line">        <span class="comment">// 对于包含 * 通配符的情况，nType 类型是 catchAll 类型</span></span><br><span class="line">    nType     nodeType</span><br><span class="line">        <span class="comment">// 代表了有几条路由会经过此节点，用于在节点</span></span><br><span class="line">    priority  <span class="keyword">uint32</span></span><br><span class="line">        <span class="comment">// 子节点列表</span></span><br><span class="line">    children  []*node <span class="comment">// child nodes, at most 1 :param style node at the end of the array</span></span><br><span class="line">    handlers  HandlersChain</span><br><span class="line">        <span class="comment">// 是从 root 节点到当前节点的全部 path 部分；如果此节点为终结节点 handlers 为对应的处理链，否则为 nil；</span></span><br><span class="line">        <span class="comment">// maxParams 是当前节点到各个叶子节点的包含的通配符的最大数量</span></span><br><span class="line">    fullPath  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 具体节点类型如下</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    static nodeType = <span class="literal">iota</span> <span class="comment">// default， 静态节点，普通匹配(/user)</span></span><br><span class="line">    root                   <span class="comment">// 根节点 (/)</span></span><br><span class="line">    param                 <span class="comment">// 参数节点(/user/:id)</span></span><br><span class="line">    catchAll              <span class="comment">// 通用匹配，匹配任意参数(*user)</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure></p>
+<p>添加路由则可以通过以下操作：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 在创建路由的过程中， 每一个方法都会最终都会被解析后丢给handle函数去处理</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    r := gin.Default()</span><br><span class="line">    r.GET(<span class="string">"/"</span>, <span class="function"><span class="keyword">func</span><span class="params">(context *gin.Context)</span></span> &#123;</span><br><span class="line">        context.JSON(<span class="number">200</span>, gin.H&#123;</span><br><span class="line">            <span class="string">"status"</span>:<span class="string">"ok"</span>,</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;)</span><br><span class="line">    r.Run()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(group *RouterGroup)</span> <span class="title">GET</span><span class="params">(relativePath <span class="keyword">string</span>, handlers ...HandlerFunc)</span> <span class="title">IRoutes</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> group.handle(http.MethodGet, relativePath, handlers)</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(group *RouterGroup)</span> <span class="title">POST</span><span class="params">(relativePath <span class="keyword">string</span>, handlers ...HandlerFunc)</span> <span class="title">IRoutes</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> group.handle(http.MethodPost, relativePath, handlers)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//  handle函数中会将绝对路径转换为相对路径</span></span><br><span class="line"><span class="comment">//  并将 请求方法、相对路径、处理方法 传给addRoute</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(group *RouterGroup)</span> <span class="title">handle</span><span class="params">(httpMethod, relativePath <span class="keyword">string</span>, handlers HandlersChain)</span> <span class="title">IRoutes</span></span> &#123;</span><br><span class="line">    absolutePath := group.calculateAbsolutePath(relativePath)</span><br><span class="line">    handlers = group.combineHandlers(handlers)</span><br><span class="line">    group.engine.addRoute(httpMethod, absolutePath, handlers)</span><br><span class="line">    <span class="keyword">return</span> group.returnObj()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 路由的添加主要在addRoute这个函数中完成</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">addRoute</span><span class="params">(method, path <span class="keyword">string</span>, handlers HandlersChain)</span></span> &#123;</span><br><span class="line">   <span class="comment">// 校验</span></span><br><span class="line">   <span class="comment">// 路径必须以 / 开头</span></span><br><span class="line">   <span class="comment">// 请求方法不允许为空</span></span><br><span class="line">   <span class="comment">// 处理方法不允许为空</span></span><br><span class="line">   assert1(path[<span class="number">0</span>] == <span class="string">'/'</span>, <span class="string">"path must begin with '/'"</span>)</span><br><span class="line">   assert1(method != <span class="string">""</span>, <span class="string">"HTTP method can not be empty"</span>)</span><br><span class="line">   assert1(<span class="built_in">len</span>(handlers) &gt; <span class="number">0</span>, <span class="string">"there must be at least one handler"</span>)</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 如果开启了gin的debug模式，则对应处理</span></span><br><span class="line">   debugPrintRoute(method, path, handlers)</span><br><span class="line">   <span class="comment">// 根据请求方式获取对应的树的根</span></span><br><span class="line">   <span class="comment">// 每一个请求方法都有自己对应的一颗紧凑前缀树，这里通过请求方法拿到最顶部的根</span></span><br><span class="line">   root := engine.trees.get(method)</span><br><span class="line">   <span class="comment">// 如果根为空，则表示这是第一个路由，则自己创建一个以 / 为path的根节点</span></span><br><span class="line">   <span class="keyword">if</span> root == <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="comment">// 如果没有就创建</span></span><br><span class="line">      root = <span class="built_in">new</span>(node)</span><br><span class="line">      root.fullPath = <span class="string">"/"</span></span><br><span class="line">      engine.trees = <span class="built_in">append</span>(engine.trees, methodTree&#123;method: method, root: root&#125;)</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="comment">// 此处的path是子路由</span></span><br><span class="line">   <span class="comment">// 以上内容是做了一层预校验，避免书写不规范导致的请求查询不到</span></span><br><span class="line">   <span class="comment">// 接下来是添加路由的正文</span></span><br><span class="line">   root.addRoute(path, handlers)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// addRoute adds a node with the given handle to the path.</span></span><br><span class="line"><span class="comment">// Not concurrency-safe! 并发不安全</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *node)</span> <span class="title">addRoute</span><span class="params">(path <span class="keyword">string</span>, handlers HandlersChain)</span></span> &#123;</span><br><span class="line">    fullPath := path</span><br><span class="line">        <span class="comment">// 添加完成后，经过此节点的路由条数将会+1</span></span><br><span class="line">    n.priority++</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Empty tree</span></span><br><span class="line">        <span class="comment">// 如果为空树， 即只有一个根节点"/" 则插入一个子节点， 并将当前节点设置为root类型的节点</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(n.path) == <span class="number">0</span> &amp;&amp; <span class="built_in">len</span>(n.children) == <span class="number">0</span> &#123;</span><br><span class="line">        n.insertChild(path, fullPath, handlers)</span><br><span class="line">        n.nType = root</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    parentFullPathIndex := <span class="number">0</span></span><br><span class="line"></span><br><span class="line">walk:</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="comment">// Find the longest common prefix.</span></span><br><span class="line">        <span class="comment">// This also implies that the common prefix contains no ':' or '*'</span></span><br><span class="line">        <span class="comment">// since the existing key can't contain those chars.</span></span><br><span class="line">                <span class="comment">// 找到最长的共有前缀的长度 即到i位置 path[i] == n.path[i]</span></span><br><span class="line">        i := longestCommonPrefix(path, n.path)</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Split edge</span></span><br><span class="line">                <span class="comment">// 假设当前节点存在的前缀信息为 hello</span></span><br><span class="line">                <span class="comment">// 现有前缀信息为heo的结点进入， 则当前节点需要被拆分</span></span><br><span class="line">                <span class="comment">// 拆分成为 he节点 以及 (llo 和 o 两个子节点)</span></span><br><span class="line">        <span class="keyword">if</span> i &lt; <span class="built_in">len</span>(n.path) &#123;</span><br><span class="line">            child := node&#123;</span><br><span class="line">                                <span class="comment">// 除去公共前缀部分，剩余的内容作为子节点</span></span><br><span class="line">                path:      n.path[i:],</span><br><span class="line">                wildChild: n.wildChild,</span><br><span class="line">                indices:   n.indices,</span><br><span class="line">                children:  n.children,</span><br><span class="line">                handlers:  n.handlers,</span><br><span class="line">                priority:  n.priority - <span class="number">1</span>,</span><br><span class="line">                fullPath:  n.fullPath,</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            n.children = []*node&#123;&amp;child&#125;</span><br><span class="line">            <span class="comment">// []byte for proper unicode char conversion, see #65</span></span><br><span class="line">            n.indices = bytesconv.BytesToString([]<span class="keyword">byte</span>&#123;n.path[i]&#125;)</span><br><span class="line">            n.path = path[:i]</span><br><span class="line">            n.handlers = <span class="literal">nil</span></span><br><span class="line">            n.wildChild = <span class="literal">false</span></span><br><span class="line">            n.fullPath = fullPath[:parentFullPathIndex+i]</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Make new node a child of this node</span></span><br><span class="line">                <span class="comment">// 将新来的节点插入新的parent节点作为子节点</span></span><br><span class="line">        <span class="keyword">if</span> i &lt; <span class="built_in">len</span>(path) &#123;</span><br><span class="line">            path = path[i:]</span><br><span class="line">            c := path[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">            <span class="comment">// '/' after param</span></span><br><span class="line">                        <span class="comment">// 如果是参数节点 形如/:i</span></span><br><span class="line">            <span class="keyword">if</span> n.nType == param &amp;&amp; c == <span class="string">'/'</span> &amp;&amp; <span class="built_in">len</span>(n.children) == <span class="number">1</span> &#123;</span><br><span class="line">                parentFullPathIndex += <span class="built_in">len</span>(n.path)</span><br><span class="line">                n = n.children[<span class="number">0</span>]</span><br><span class="line">                n.priority++</span><br><span class="line">                <span class="keyword">continue</span> walk</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Check if a child with the next path byte exists</span></span><br><span class="line">            <span class="keyword">for</span> i, max := <span class="number">0</span>, <span class="built_in">len</span>(n.indices); i &lt; max; i++ &#123;</span><br><span class="line">                <span class="keyword">if</span> c == n.indices[i] &#123;</span><br><span class="line">                    parentFullPathIndex += <span class="built_in">len</span>(n.path)</span><br><span class="line">                    i = n.incrementChildPrio(i)</span><br><span class="line">                    n = n.children[i]</span><br><span class="line">                    <span class="keyword">continue</span> walk</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Otherwise insert it</span></span><br><span class="line">            <span class="keyword">if</span> c != <span class="string">':'</span> &amp;&amp; c != <span class="string">'*'</span> &amp;&amp; n.nType != catchAll &#123;</span><br><span class="line">                <span class="comment">// []byte for proper unicode char conversion, see #65</span></span><br><span class="line">                n.indices += bytesconv.BytesToString([]<span class="keyword">byte</span>&#123;c&#125;)</span><br><span class="line">                child := &amp;node&#123;</span><br><span class="line">                    fullPath: fullPath,</span><br><span class="line">                &#125;</span><br><span class="line">                n.addChild(child)</span><br><span class="line">                n.incrementChildPrio(<span class="built_in">len</span>(n.indices) - <span class="number">1</span>)</span><br><span class="line">                n = child</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> n.wildChild &#123;</span><br><span class="line">                <span class="comment">// inserting a wildcard node, need to check if it conflicts with the existing wildcard</span></span><br><span class="line">                n = n.children[<span class="built_in">len</span>(n.children)<span class="number">-1</span>]</span><br><span class="line">                n.priority++</span><br><span class="line"></span><br><span class="line">                <span class="comment">// Check if the wildcard matches</span></span><br><span class="line">                <span class="keyword">if</span> <span class="built_in">len</span>(path) &gt;= <span class="built_in">len</span>(n.path) &amp;&amp; n.path == path[:<span class="built_in">len</span>(n.path)] &amp;&amp;</span><br><span class="line">                    <span class="comment">// Adding a child to a catchAll is not possible</span></span><br><span class="line">                    n.nType != catchAll &amp;&amp;</span><br><span class="line">                    <span class="comment">// Check for longer wildcard, e.g. :name and :names</span></span><br><span class="line">                    (<span class="built_in">len</span>(n.path) &gt;= <span class="built_in">len</span>(path) || path[<span class="built_in">len</span>(n.path)] == <span class="string">'/'</span>) &#123;</span><br><span class="line">                    <span class="keyword">continue</span> walk</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="comment">// Wildcard conflict</span></span><br><span class="line">                pathSeg := path</span><br><span class="line">                <span class="keyword">if</span> n.nType != catchAll &#123;</span><br><span class="line">                    pathSeg = strings.SplitN(pathSeg, <span class="string">"/"</span>, <span class="number">2</span>)[<span class="number">0</span>]</span><br><span class="line">                &#125;</span><br><span class="line">                prefix := fullPath[:strings.Index(fullPath, pathSeg)] + n.path</span><br><span class="line">                <span class="built_in">panic</span>(<span class="string">"'"</span> + pathSeg +</span><br><span class="line">                    <span class="string">"' in new path '"</span> + fullPath +</span><br><span class="line">                    <span class="string">"' conflicts with existing wildcard '"</span> + n.path +</span><br><span class="line">                    <span class="string">"' in existing prefix '"</span> + prefix +</span><br><span class="line">                    <span class="string">"'"</span>)</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            n.insertChild(path, fullPath, handlers)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Otherwise add handle to current node</span></span><br><span class="line">                <span class="comment">// 设置处理函数，如果已经存在，则报错</span></span><br><span class="line">        <span class="keyword">if</span> n.handlers != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="built_in">panic</span>(<span class="string">"handlers are already registered for path '"</span> + fullPath + <span class="string">"'"</span>)</span><br><span class="line">        &#125;</span><br><span class="line">        n.handlers = handlers</span><br><span class="line">        n.fullPath = fullPath</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="Priority优先级"><a href="#Priority优先级" class="headerlink" title="Priority优先级"></a><span style="color:#339AFF;">Priority优先级</span></h1><p>为了能快速找到并组合完整的路由，GIN在添加路由的同时，会在每个节点中添加Priority这个属性。在查找时根据Priority进行排序，常用节点（通过次数理论最多的节点）在最前，并且同一层级里面Priority值越大，越优先进行匹配。</p>
+<h1 id="为何要将9种请求方法放在slice而不是map中"><a href="#为何要将9种请求方法放在slice而不是map中" class="headerlink" title="为何要将9种请求方法放在slice而不是map中"></a><span style="color:#339AFF;">为何要将9种请求方法放在slice而不是map中</span></h1><p>这是因为9个请求方法对应9棵路由树，而GIN对应的所有请求方法都维护了一颗路由树，同时这些关键信息都被包裹在Node结构体内，并被放置在一个数组当中而非map中。这样是为了固定请求数量，同时在项目启动后请求方法会被维护在内存当中，采用固定长度的slice从而在保证一定查询效率的同时减少内存占用。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> methodTrees []methodTree</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(trees methodTrees)</span> <span class="title">get</span><span class="params">(method <span class="keyword">string</span>)</span> *<span class="title">node</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> _, tree := <span class="keyword">range</span> trees &#123;</span><br><span class="line">        <span class="keyword">if</span> tree.method == method &#123;</span><br><span class="line">            <span class="keyword">return</span> tree.root</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="查找路由"><a href="#查找路由" class="headerlink" title="查找路由"></a><span style="color:#339AFF;">查找路由</span></h1><p>路由树构建完毕之后，GIN即可开始正常接收请求。第一步是从ServeHTTP开始解析路由地址，而查找的过程处理逻辑如下：</p>
+<ul>
+<li>申请一块内存用来填充响应体</li>
+<li>处理请求信息</li>
+<li>从trees中遍历比较请求方法，拿到最对应请求方法的路由树</li>
+<li>获取根节点</li>
+</ul>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">ServeHTTP</span><span class="params">(w http.ResponseWriter, req *http.Request)</span></span> &#123;</span><br><span class="line">    c := engine.pool.Get().(*Context)</span><br><span class="line">    c.writermem.reset(w)</span><br><span class="line">    c.Request = req</span><br><span class="line">    c.reset()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 真正开始处理请求</span></span><br><span class="line">    engine.handleHTTPRequest(c)</span><br><span class="line"></span><br><span class="line">    engine.pool.Put(c)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">handleHTTPRequest</span><span class="params">(c *Context)</span></span> &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    t := engine.trees</span><br><span class="line">    <span class="keyword">for</span> i, tl := <span class="number">0</span>, <span class="built_in">len</span>(t); i &lt; tl; i++ &#123;</span><br><span class="line">        <span class="comment">// 根据请求方法进行判断</span></span><br><span class="line">        <span class="keyword">if</span> t[i].method != httpMethod &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        root := t[i].root</span><br><span class="line">        <span class="comment">// 在该方法树上查找路由</span></span><br><span class="line">        value := root.getValue(rPath, c.params, unescape)</span><br><span class="line">        <span class="keyword">if</span> value.params != <span class="literal">nil</span> &#123;</span><br><span class="line">            c.Params = *value.params</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 执行处理函数</span></span><br><span class="line">        <span class="keyword">if</span> value.handlers != <span class="literal">nil</span> &#123;</span><br><span class="line">            c.handlers = value.handlers</span><br><span class="line">            c.fullPath = value.fullPath</span><br><span class="line">            c.Next() <span class="comment">// 涉及到gin的中间件机制</span></span><br><span class="line">            <span class="comment">// 到这里时，请求已经处理完毕，返回的结果也存储在对应的结构体中了</span></span><br><span class="line">            c.writermem.WriteHeaderNow()</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">      <span class="keyword">break</span></span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">if</span> engine.HandleMethodNotAllowed &#123;</span><br><span class="line">    <span class="keyword">for</span> _, tree := <span class="keyword">range</span> engine.trees &#123;</span><br><span class="line">        <span class="keyword">if</span> tree.method == httpMethod &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> value := tree.root.getValue(rPath, <span class="literal">nil</span>, c.skippedNodes, unescape); value.handlers != <span class="literal">nil</span> &#123;</span><br><span class="line">            c.handlers = engine.allNoMethod</span><br><span class="line">            serveError(c, http.StatusMethodNotAllowed, default405Body)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/07/13/Golang常见设计模式之装饰模式/" rel="next" title="Golang常见设计模式之装饰模式">
+                <i class="fa fa-chevron-left"></i> Golang常见设计模式之装饰模式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/07/13/gin-admin-1/" rel="prev" title="gin-admin-1">
+                gin-admin-1 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="CheBin">
+            
+              <p class="site-author-name" itemprop="name">CheBin</p>
+              <div class="site-description motion-element" itemprop="description">看视频才能学会，看文字学不会的</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">1140</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">79</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <!-- modify icon to fire by szw -->
+                <i class="fa fa-history fa-" aria-hidden="true"></i>
+                近期文章
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                
+                  <li>
+                    <a href="/2023/07/19/zero-admin-3/" title="zero-admin-3" target="_blank">zero-admin-3</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/07/19/zero-admin-2/" title="zero-admin-2" target="_blank">zero-admin-2</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/07/19/zero-admin-1/" title="zero-admin-1" target="_blank">zero-admin-1</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/07/19/Day7-服务发现与注册中心/" title="Day7 服务发现与注册中心" target="_blank">Day7 服务发现与注册中心</a>
+                  </li>
+                
+                  <li>
+                    <a href="/2023/07/19/Day6-负载均衡/" title="Day6 负载均衡" target="_blank">Day6 负载均衡</a>
+                  </li>
+                
+              </ul>
+            </div>
+        
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#什么是前缀树"><span class="nav-number">1.</span> <span class="nav-text">什么是前缀树</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GIN中的前缀树-紧凑前缀树"><span class="nav-number">2.</span> <span class="nav-text">GIN中的前缀树-紧凑前缀树</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#在节点中存储信息"><span class="nav-number">3.</span> <span class="nav-text">在节点中存储信息</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Priority优先级"><span class="nav-number">4.</span> <span class="nav-text">Priority优先级</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#为何要将9种请求方法放在slice而不是map中"><span class="nav-number">5.</span> <span class="nav-text">为何要将9种请求方法放在slice而不是map中</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#查找路由"><span class="nav-number">6.</span> <span class="nav-text">查找路由</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2018 – <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">CheBin</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数：</span>
+    
+    <span title="站点总字数">8.9m</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    
+    <span title="站点阅读时长">135:21</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+<script>
+  $('.highlight').each(function(i, e) {
+    var $wrap = $('<div>').addClass('highlight-wrap');
+    $(e).after($wrap);
+    $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function(e) {
+      var code = $(this).parent().find('.code').find('.line').map(function(i, e) {
+        return $(e).text();
+      }).toArray().join('\n');
+      var ta = document.createElement('textarea');
+      var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+      ta.style.top = yPosition + 'px'; // Prevent page scroll
+      ta.style.position = 'absolute';
+      ta.style.opacity = '0';
+      ta.readOnly = true;
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, code.length);
+      ta.readOnly = false;
+      var result = document.execCommand('copy');
+      
+        if (result) $(this).text('复制成功');
+        else $(this).text('复制失败');
+      
+      ta.blur(); // For iOS
+      $(this).blur();
+    })).on('mouseleave', function(e) {
+      var $b = $(this).find('.copy-btn');
+      setTimeout(function() {
+        $b.text('复制');
+      }, 300);
+    }).append(e);
+  })
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
